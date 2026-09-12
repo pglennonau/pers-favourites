@@ -124,7 +124,7 @@
   <dialog id="placeDialog" class="modal">
     <form method="dialog" id="placeForm">
       <div class="modal-head"><h2 id="placeDialogTitle">Place</h2><button value="cancel" class="icon-button">×</button></div>
-      <div class="online-find-strip"><button id="findPlaceOnlineBtn" type="button" class="secondary">Find Place Online</button><span class="muted small">Searches near your current location first, then widens if needed.</span></div>
+      <div class="online-find-strip"><button id="findPlaceOnlineBtn" type="button" class="secondary">Find Place Online</button><span class="muted small">Uses Google Places when configured and strongly prioritises your current location. It never silently jumps to worldwide matches.</span></div>
       <input type="hidden" id="placeId" />
       <div class="grid2">
         <label class="wide">Name<input id="placeName" required /></label>
@@ -177,8 +177,8 @@
 
   <dialog id="findPlaceDialog" class="modal">
     <div class="modal-head"><h2>Find Place Online</h2><button id="findPlaceClose" class="icon-button">×</button></div>
-    <p class="muted">Nearby matches are prioritised using your device location. Words such as Restaurant, Cafe and Bar are treated as category hints rather than mandatory name text.</p>
-    <div class="search-wrap"><input id="findPlaceQuery" type="search" placeholder="e.g. Brutus Restaurant" /><button id="runFindPlaceBtn" class="primary compact">Search</button></div>
+    <p class="muted">Find Place Online uses your device location. Google Places is the preferred search source; OpenStreetMap is only a fallback. Searches such as “Brutus” and “Brutus Restaurant” should resolve to the same nearby venue when Google Places is configured.</p>
+    <div class="search-wrap"><input id="findPlaceQuery" type="search" placeholder="e.g. Brutus Restaurant" /><button id="runFindPlaceBtn" class="primary compact">Search nearby</button><button id="searchWiderBtn" class="secondary compact hidden" type="button">Search wider</button></div>
     <p id="findPlaceStatus" class="status"></p>
     <div id="findPlaceResults" class="online-results"></div>
   </dialog>
@@ -250,6 +250,8 @@
       <label class="check"><input id="settingAskPersEnabled" type="checkbox" /> Enable Ask Pers natural-language search</label>
       <label>Ask Pers server endpoint<input id="settingAskPersEndpoint" type="url" placeholder="https://your-worker.example.com/ask-pers" /></label>
       <p class="muted small">The OpenAI/API key belongs in the server/Cloudflare secret store, never in this browser app. The endpoint may return controlled filters only.</p>
+      <label>Google Places search endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
+      <p class="muted small">Recommended for reliable Find Place Online results. Keep the Google Places API key in the server/Cloudflare secret store, not in this public GitHub PWA.</p>
       <p class="muted small">User contributions remain pending until Owner/Admin approval. Turn this off at any time to stop new user uploads.</p>
       <button id="saveSettingsBtn" class="primary">Save collection settings</button>
       <button id="restoreBackupBtn" class="secondary">Restore backup (local trial)</button>
@@ -261,7 +263,7 @@
     </section>
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
-    <p class="version">Version <span id="versionLabel">0.27.5</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.6</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

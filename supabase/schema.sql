@@ -1,5 +1,5 @@
--- Pers Favourites v027e - one isolated Supabase project per rollout.
--- v027e adds separate Pers and User ratings, location-aware online place search in the PWA, and full backup support. Ordinary browsing remains public/read-only.
+-- Pers Favourites v027f - one isolated Supabase project per rollout.
+-- v027f retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
 -- Run in a NEW Supabase project for each separately deployed GitHub instance.
 
 create extension if not exists pgcrypto;
@@ -21,6 +21,7 @@ create table if not exists public.app_settings (
   allow_user_photos boolean not null default true,
   ask_pers_enabled boolean not null default false,
   ask_pers_endpoint text,
+  places_search_endpoint text,
   updated_at timestamptz not null default now()
 );
 insert into public.app_settings(id) values (1) on conflict (id) do nothing;
@@ -28,6 +29,7 @@ alter table public.app_settings add column if not exists deployment_id text;
 alter table public.app_settings add column if not exists allow_user_photos boolean not null default true;
 alter table public.app_settings add column if not exists ask_pers_enabled boolean not null default false;
 alter table public.app_settings add column if not exists ask_pers_endpoint text;
+alter table public.app_settings add column if not exists places_search_endpoint text;
 update public.app_settings set deployment_id='UNCONFIGURED' where deployment_id is null or btrim(deployment_id)='';
 alter table public.app_settings alter column deployment_id set default 'UNCONFIGURED';
 alter table public.app_settings alter column deployment_id set not null;
@@ -346,7 +348,7 @@ as $$
 begin
   if not public.is_editor() then raise exception 'Administrator access required'; end if;
   return jsonb_build_object(
-    'schema_version', 275,
+    'schema_version', 276,
     'exported_at', now(),
     'app_settings', (select to_jsonb(x) from public.app_settings x where id=1),
     'profiles', coalesce((select jsonb_agg(to_jsonb(x) order by x.created_at) from public.profiles x),'[]'::jsonb),

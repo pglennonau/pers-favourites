@@ -1,5 +1,5 @@
--- Pers Favourites v026 -> v027e migration
--- Run in the EXISTING rollout Supabase project before deploying v027e application files.
+-- Pers Favourites v026 -> v027f direct migration (0.27.6)
+-- Run in the EXISTING rollout Supabase project before deploying v027f application files.
 
 alter table public.app_settings add column if not exists ask_pers_enabled boolean not null default false;
 alter table public.app_settings add column if not exists ask_pers_endpoint text;
@@ -48,7 +48,7 @@ as $$
 begin
   if not public.is_editor() then raise exception 'Administrator access required'; end if;
   return jsonb_build_object(
-    'schema_version', 275,
+    'schema_version', 276,
     'exported_at', now(),
     'app_settings', (select to_jsonb(x) from public.app_settings x where id=1),
     'profiles', coalesce((select jsonb_agg(to_jsonb(x) order by x.created_at) from public.profiles x),'[]'::jsonb),
@@ -64,3 +64,8 @@ begin
 end; $$;
 revoke all on function public.export_full_backup() from public, anon;
 grant execute on function public.export_full_backup() to authenticated;
+-- Pers Favourites PWA v027e -> v027f (0.27.6)
+-- Adds a configurable secure Google Places search endpoint.
+
+alter table public.app_settings
+  add column if not exists places_search_endpoint text;
