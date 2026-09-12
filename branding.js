@@ -3,7 +3,7 @@
 
   const cfg = window.PERS_CONFIG || {};
   const deploymentId = cfg.deploymentId || location.pathname;
-  const storageKey = `pers-v026-brand:${deploymentId}`;
+  const storageKey = `pers-v027e-brand:${deploymentId}`;
   let manifestObjectUrl = '';
 
   function cleanName(value) {

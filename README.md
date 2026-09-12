@@ -1,42 +1,44 @@
-# Pers Favourites PWA v027c
+# Pers Favourites PWA v027e
 
-Version 0.27.3. v027c is an incremental refinement of v027, not a new major version.
+Version: 0.27.5
 
-## What is included
+This is the deployment folder. Upload the CONTENTS of this folder to the existing GitHub repository for the rollout. Do not create a new repository just because the software version changes.
 
-- Public read-only browsing without login.
-- Cloudflare production backend: Pages/Functions, D1 database and R2 venue-photo storage.
-- Cloudflare Access protection for Owner/Admin and contribution actions.
-- Intelligent searchable entry for Place Type, Cuisine, Country, State/Region, City/Town, Suburb/Area, Meal/Visit Type, Great For, Features, Dietary and Tags.
-- Administrator-maintained master lists in Settings. Existing legitimate database values also feed suggestions.
-- Controlled country names and alias normalisation to reduce duplicates.
-- Agreed Cuisine list, including Mediterranean, Asiatico, Carne/Meat, Gastronomico, Mallorquin, Michelin, Pescados/Fish-Paellas, Fusion, Tapas, Vegetariano/Vegan and Italiano/Italian.
-- `+ Add Place`, `Find Online`, and `Import Places` entry routes.
-- Find Online accepts venue-name/location searches and Google Maps links. The server-side lookup uses OpenStreetMap/Nominatim and keeps source provenance. It does not scrape Google Maps or Tripadvisor.
-- Official venue Website, Directions, Call, Book and Share quick actions where data is available.
-- Import of Google Takeout ZIP, CSV, JSON and GeoJSON; automatic common-field mapping; one-place test import; duplicate Keep/Merge/Replace decisions; optional bulk tag; import summary; Undo Last Import.
-- Bulk Edit of the places currently shown by filters.
-- Visited / Want to Try, Last Visited, Times Visited and Would Go Again.
-- Quick filters, Tonight/Nearby, Smart Collections, map/list views and backup/export.
-- Optional Ask Pers natural-language search. It is OFF by default and must be enabled by the Owner in Settings. The OpenAI API key is held only as a Cloudflare secret. Ask Pers generates a controlled structured query plan; it does not receive the Pers venue database and cannot submit arbitrary SQL.
+## v027e highlights
 
-## Local test
+- Two distinct venue ratings: **Pers/Administrator Rating** and **User Rating**.
+- User Rating is the average of ordinary viewer ratings only. Owner/Admin ratings are excluded by both UI and database rules.
+- Administrator display name is configurable. Rights still come from the protected Owner/Admin account role; typing a name never grants rights.
+- App/collection name is configurable and the PWA branding/manifest updates to match.
+- **Find Place Online** searches near the device's current location first, then widens. Generic category words such as Restaurant/Cafe/Bar are treated as hints, which improves searches such as “Brutus Restaurant” in Mallorca.
+- Online place results can populate address, coordinates, phone and official website where the source provides them.
+- Optional **Ask Pers** natural-language search can be enabled by the Owner. The browser stores no OpenAI/API secret; it calls a configured server endpoint that may return only controlled filters/search terms.
+- Import workflow now supports a single-venue test flow plus drag-and-drop/file-picker bulk import for CSV/JSON/GeoJSON/Google Takeout extracts.
+- Administrator **full backup** export contains venue data, settings, ratings, visits, photo metadata and attempts to embed the actual photo files. Local-trial restore remains available in-app. Production restore is deliberately an Owner deployment procedure to avoid accidental destructive overwrite.
+- Existing v026 photo moderation, Archive, version history, filters, map view and per-user personal details remain.
 
-`config.js` is supplied in `mode: "local"` so Pat/Per can test the app before Cloudflare is connected. Open the hosted HTTPS PWA, start the local trial, then use Add Place / Find Online / Import Places. Local trial data is kept in the browser on that device.
+## Existing v026 production rollout -> v027e
 
-## Cloudflare production
+1. Export a v026 backup first.
+2. In the EXISTING rollout's Supabase SQL Editor, run `supabase/migration_v026_to_v027e.sql`.
+3. Upload the v027e deployment files to the existing GitHub repository.
+4. Keep the rollout's existing `deploymentId`, Supabase URL and browser-safe publishable key in `config.js`.
+5. Hard refresh/reopen the PWA after deployment.
 
-Copy `config.example.js` to `config.js`, set a unique `deploymentId`, set `mode: "cloudflare"`, then configure Cloudflare as described in `cloudflare/README.md` and the Setup/Admin Guide in the Final Set.
+## New production rollout
 
-Required bindings:
+1. Create one Supabase project for this rollout only.
+2. Run `supabase/schema.sql`.
+3. Set `app_settings.deployment_id` to exactly match `config.js`.
+4. Create the Owner/Admin authentication accounts and set their `profiles.role` values.
+5. Configure authentication redirect/recovery URLs.
+6. Copy `config.example.js` to `config.js` and enter the rollout settings. Use only a browser-safe Supabase publishable key.
+7. Deploy over HTTPS (GitHub Pages is suitable for the static PWA).
 
-- `PERS_DB` -> D1 database
-- `PERS_PHOTOS` -> R2 bucket
+## Rating security model
 
-Protect `/api/admin*` and `/api/contribute*` with separate Cloudflare Access applications/policies so each can have its own Audience (AUD). Keep `/api/public` and `/media/*` public so ordinary browsing needs no login.
+`places.pers_rating` is editable by Owner/Admin through the protected editor role. `venue_ratings` accepts ratings only from authenticated `viewer` profiles. A database trigger rejects Owner/Admin attempts to enter User Ratings. `venue_rating_summary` is public read-only so signed-out users can see the average without exposing private notes.
 
-Ask Pers requires `OPENAI_API_KEY` as a Cloudflare secret only when the Owner chooses to enable the feature.
+## Backup model
 
-## Important production note
-
-A live Cloudflare deployment is required to fully verify Access authentication, D1/R2 bindings, R2 photo uploads, the server-side online lookup, and Ask Pers with a real API key. All local/static checks recorded in the v027c QA Record should be completed before that live verification.
+The Administrator backup is a JSON package intended to preserve the complete logical collection: places, settings, ratings, visits, personal data available to the signed-in administrator, photo metadata, and photo binaries encoded in the backup where they can be retrieved. Large photo collections can create a large backup file. Keep backups securely because they can contain private notes and contribution metadata.
