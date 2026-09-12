@@ -1,49 +1,42 @@
-# Pers Favourites PWA v026
+# Pers Favourites PWA v027c
 
-Version: 0.26.0
+Version 0.27.3. v027c is an incremental refinement of v027, not a new major version.
 
-This folder is the GitHub Pages deployment package. For a normal software update, upload the CONTENTS of `deploy` to the existing GitHub repository for that rollout. Do not create a new repository just because the software version changes.
+## What is included
 
-## What v026 adds
+- Public read-only browsing without login.
+- Cloudflare production backend: Pages/Functions, D1 database and R2 venue-photo storage.
+- Cloudflare Access protection for Owner/Admin and contribution actions.
+- Intelligent searchable entry for Place Type, Cuisine, Country, State/Region, City/Town, Suburb/Area, Meal/Visit Type, Great For, Features, Dietary and Tags.
+- Administrator-maintained master lists in Settings. Existing legitimate database values also feed suggestions.
+- Controlled country names and alias normalisation to reduce duplicates.
+- Agreed Cuisine list, including Mediterranean, Asiatico, Carne/Meat, Gastronomico, Mallorquin, Michelin, Pescados/Fish-Paellas, Fusion, Tapas, Vegetariano/Vegan and Italiano/Italian.
+- `+ Add Place`, `Find Online`, and `Import Places` entry routes.
+- Find Online accepts venue-name/location searches and Google Maps links. The server-side lookup uses OpenStreetMap/Nominatim and keeps source provenance. It does not scrape Google Maps or Tripadvisor.
+- Official venue Website, Directions, Call, Book and Share quick actions where data is available.
+- Import of Google Takeout ZIP, CSV, JSON and GeoJSON; automatic common-field mapping; one-place test import; duplicate Keep/Merge/Replace decisions; optional bulk tag; import summary; Undo Last Import.
+- Bulk Edit of the places currently shown by filters.
+- Visited / Want to Try, Last Visited, Times Visited and Would Go Again.
+- Quick filters, Tonight/Nearby, Smart Collections, map/list views and backup/export.
+- Optional Ask Pers natural-language search. It is OFF by default and must be enabled by the Owner in Settings. The OpenAI API key is held only as a Cloudflare secret. Ask Pers generates a controlled structured query plan; it does not receive the Pers venue database and cannot submit arbitrary SQL.
 
-- Venue-photo galleries and cover photos.
-- Owner/Admin photo uploads appear immediately.
-- Ordinary viewers open/search/filter/map without a login.
-- A viewer who chooses to contribute a photo uses a secure email sign-in link at that point and still gains no venue-edit permission.
-- Viewer photos are PENDING until Owner/Admin approval, so users cannot make new public photo content appear without moderation.
-- Owner/Admin can approve, hide, change captions, set a cover photo and permanently remove venue photos.
-- Owner has the strongest rights: only Owner can change the collection identity, restore a local backup, or permanently delete an archived venue. Owner can also turn new user photo contributions on/off.
-- Venue cards and venue detail screens use approved photos; pending/hidden photos do not appear to other Viewer users.
-- A Google reviews & photos action opens the stored Google Maps venue link when available.
-- v026 uses a warmer, more colourful interface while keeping the existing simple filter/navigation layout.
-- Local Test mode stores photo files in IndexedDB and includes local photo files in v026 JSON backups.
-- Production mode uses a rollout-specific Supabase Storage bucket named `venue-photos`, isolated inside that rollout's own Supabase project. Approved images use public delivery URLs so normal browsing remains login-free; pending/hidden metadata is not exposed to signed-out viewers.
+## Local test
 
-## Modes
+`config.js` is supplied in `mode: "local"` so Pat/Per can test the app before Cloudflare is connected. Open the hosted HTTPS PWA, start the local trial, then use Add Place / Find Online / Import Places. Local trial data is kept in the browser on that device.
 
-- `mode: "local"`: local trial on one browser/device. Place data is stored locally; photo metadata is stored with the app data and compressed photo blobs are stored in IndexedDB.
-- `mode: "supabase"`: production/shared rollout. Active venue data and approved photo metadata are public/read-only; Owner/Admin controls use email/password authentication; user photo contribution uses a secure email link. Every rollout MUST have its own separate Supabase project.
+## Cloudflare production
 
-## Existing production rollout: v025.1 -> v026
+Copy `config.example.js` to `config.js`, set a unique `deploymentId`, set `mode: "cloudflare"`, then configure Cloudflare as described in `cloudflare/README.md` and the Setup/Admin Guide in the Final Set.
 
-Before deploying v026 application files, run `supabase/migration_v025_1_to_v026.sql` in the EXISTING Supabase project for that rollout. This creates the v026 photo table/storage bucket, enables login-free read-only browsing, and tightens the Owner-only master controls. Then deploy the v026 files. Do not run the migration against another owner's project.
+Required bindings:
 
-## New production rollout
+- `PERS_DB` -> D1 database
+- `PERS_PHOTOS` -> R2 bucket
 
-1. Create a new Supabase project for this rollout only.
-2. Run `supabase/schema.sql` in its SQL editor.
-3. Set `app_settings.deployment_id` exactly equal to the unique `deploymentId` in `config.js`.
-4. Create the Owner/Admin accounts and assign their profile roles as shown at the end of the schema.
-5. Configure password-recovery and magic-link redirect settings in Supabase.
-6. Copy `config.example.js` over `config.js`, enter this rollout's unique settings, and set `mode: "supabase"`.
-7. Commit the deployment files to this rollout's GitHub repository and enable GitHub Pages over HTTPS.
+Protect `/api/admin*` and `/api/contribute*` with separate Cloudflare Access applications/policies so each can have its own Audience (AUD). Keep `/api/public` and `/media/*` public so ordinary browsing needs no login.
 
-Use only the browser-safe Supabase publishable key in `config.js`. Never place a service-role or other secret key in GitHub.
+Ask Pers requires `OPENAI_API_KEY` as a Cloudflare secret only when the Owner chooses to enable the feature.
 
-## Photo moderation model
+## Important production note
 
-Viewers can browse without signing in. If they choose to add photos, they identify themselves by a secure email link but still cannot add/edit venues. Their photos are forced to `pending` by both application logic and database policy. Owner/Admin can make a photo visible by approving it, hide it again, edit its caption, make it the venue cover, or remove it. A Viewer can remove their own uploaded photo. The Owner can override and manage all visible catalogue content and can turn off new user photo contributions at any time.
-
-## Update/data rule
-
-Application code and rollout data remain separate. Replacing GitHub files must not delete the rollout's Supabase database or Storage bucket. Each different owner/city rollout gets a different GitHub repository/site AND a different Supabase project.
+A live Cloudflare deployment is required to fully verify Access authentication, D1/R2 bindings, R2 photo uploads, the server-side online lookup, and Ask Pers with a real API key. All local/static checks recorded in the v027c QA Record should be completed before that live verification.

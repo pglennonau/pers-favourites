@@ -1,10 +1,13 @@
 window.PERS_CONFIG = {
-  version: "0.26.0",
+  version: "0.27.3",
+  releaseLabel: "v027c",
   deploymentId: "CHANGE-TO-A-UNIQUE-ROLLOUT-ID",
-  mode: "supabase",
-  appName: "Your Favourites",
+  mode: "cloudflare",
+  appName: "Pers Favourites",
   ownerDisplayName: "Owner",
   homeRegion: "Your city / region",
-  supabaseUrl: "https://YOUR-PROJECT.supabase.co",
-  supabasePublishableKey: "sb_publishable_YOUR_PROJECT_KEY"
+  onlinePlaceSearch: {
+    enabled: true,
+    provider: "openstreetmap"
+  }
 };

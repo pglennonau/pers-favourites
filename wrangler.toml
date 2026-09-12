@@ -1,0 +1,21 @@
+name = "pers-favourites"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "PERS_DB"
+database_name = "pers-favourites"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "PERS_PHOTOS"
+bucket_name = "pers-favourites-photos"
+
+[vars]
+DEPLOYMENT_ID = "pers-favourites-per"
+CF_ACCESS_TEAM_DOMAIN = "https://REPLACE.cloudflareaccess.com"
+CF_ACCESS_ADMIN_AUD = "REPLACE_WITH_ADMIN_ACCESS_APPLICATION_AUD"
+CF_ACCESS_CONTRIB_AUD = "REPLACE_WITH_CONTRIBUTOR_ACCESS_APPLICATION_AUD"
+OWNER_EMAIL = "REPLACE_WITH_OWNER_EMAIL"
+OPENAI_MODEL = "gpt-5.6-luna"
+# Add OPENAI_API_KEY as a Cloudflare secret, not here.
