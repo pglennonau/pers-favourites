@@ -43,3 +43,5 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .drop-zone{border:2px dashed #b8b2a4;border-radius:12px;padding:1rem;text-align:center;margin:.6rem 0;background:#faf8f1}
 .drop-zone.dragover{border-style:solid;background:#eef7ef}
 .backup-progress{font-size:.86rem;color:#5e625f}
+
+.button-link{display:inline-flex;align-items:center;justify-content:center;border-radius:11px;padding:10px 13px;text-decoration:none;color:var(--ink);background:#f2f0eb;border:1px solid #ddd7cd;font:inherit}.button-link.compact{padding:8px 11px}.find-place-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.find-place-actions input{flex:1 1 220px}.inline-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:6px}

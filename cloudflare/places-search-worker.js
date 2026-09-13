@@ -84,10 +84,12 @@ export default {
       const normal = clean(input?.normalizedQuery);
       if (!query) return new Response(JSON.stringify({ error: 'A venue query is required.' }), { status: 400, headers });
       let places = await textSearch(env, query, input?.location, input?.context, !!input?.widen);
-      if (!places.length && normal && normal.toLowerCase() !== query.toLowerCase()) {
-        places = await textSearch(env, normal, input?.location, input?.context, !!input?.widen);
+      if (normal && normal.toLowerCase() !== query.toLowerCase()) {
+        const retry = await textSearch(env, normal, input?.location, input?.context, !!input?.widen);
+        const seen = new Set(places.map(x => x.id || `${x.name}|${x.address}`));
+        for (const x of retry) { const k = x.id || `${x.name}|${x.address}`; if (!seen.has(k)) { seen.add(k); places.push(x); } }
       }
-      return new Response(JSON.stringify({ provider: 'google-places', places }), { status: 200, headers });
+      return new Response(JSON.stringify({ provider: 'google-places', places: places.slice(0, 15) }), { status: 200, headers });
     } catch (e) {
       return new Response(JSON.stringify({ error: e?.message || 'Places search failed.' }), { status: 500, headers });
     }

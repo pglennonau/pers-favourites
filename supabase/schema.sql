@@ -1,5 +1,5 @@
--- Pers Favourites v027f - one isolated Supabase project per rollout.
--- v027f retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
+-- Pers Favourites v027g - one isolated Supabase project per rollout.
+-- v027g retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
 -- Run in a NEW Supabase project for each separately deployed GitHub instance.
 
 create extension if not exists pgcrypto;
