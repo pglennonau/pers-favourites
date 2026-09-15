@@ -49,3 +49,6 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 /* v027h - Ask Pers voice input and External Services connection panel */
 .ask-pers-input-row{display:flex;gap:.5rem;align-items:center;margin:.35rem 0 .25rem}.ask-pers-input-row input{flex:1;margin:0}.mic-button{min-width:46px;min-height:42px;font-size:1.1rem;padding:.45rem .65rem}.mic-button.listening{outline:3px solid rgba(168,69,48,.18);transform:scale(1.03)}
 .external-service-card{border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0;background:#fbfaf7}.external-service-card legend{font-weight:800;padding:0 6px}.connection-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}.connection-grid>div{display:grid;gap:3px;padding:9px;border-radius:10px;background:#f2f1ec}.connection-grid strong{overflow-wrap:anywhere}.danger{background:#f8e6e2!important;color:#8a3326!important;border:1px solid #e8c0b8!important}@media(max-width:650px){.connection-grid{grid-template-columns:1fr}.external-service-card .inline-actions{align-items:stretch}.external-service-card .inline-actions button{flex:1 1 46%}}
+
+/* v027i */
+.app-update-card{margin:10px 0}.geo-attribution a{color:inherit;text-decoration:underline}

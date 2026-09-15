@@ -229,6 +229,20 @@
     </label>
     <label class="check"><input id="rememberFilters" type="checkbox" /> Remember my filters between visits</label>
     <hr />
+    <section class="app-update-card">
+      <h3>App Updates</h3>
+      <div class="connection-grid">
+        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.9</strong></div>
+        <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
+      </div>
+      <div class="inline-actions">
+        <button id="checkUpdateBtn" type="button" class="secondary compact">Check for Update</button>
+        <button id="installUpdateBtn" type="button" class="primary compact hidden">Install Update</button>
+      </div>
+      <p id="appUpdateStatus" class="muted small">Pers checks automatically when opened. A manual check is available here.</p>
+      <p class="muted small">Updates refresh the PWA code and preserve the Pers database, ratings and settings. A new release must first be published to the hosting site.</p>
+    </section>
+    <hr />
     <section id="editorSettings" class="hidden">
       <h3>Shared content controls</h3>
       <button id="managePhotosBtn" class="secondary">Manage venue photos <span id="pendingPhotoBadge" class="count-badge hidden">0</span></button>
@@ -289,7 +303,8 @@
     </section>
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
-    <p class="version">Version <span id="versionLabel">0.27.8</span></p>
+    <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
+    <p class="version">Version <span id="versionLabel">0.27.9</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

@@ -1,5 +1,5 @@
 window.PERS_CONFIG = {
-  version: "0.27.8",
+  version: "0.27.9",
   deploymentId: "pers-favourites-per-trial",
   mode: "local",
   appName: "Pers Favourites",
