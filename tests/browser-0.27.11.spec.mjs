@@ -41,7 +41,7 @@ async function startApp(page){
   await page.addInitScript(() => {
     localStorage.setItem('pers-v027f-session:pers-favourites-per-trial','local-started');
   });
-  await page.goto('http://127.0.0.1:4173/', {waitUntil:'domcontentloaded'});
+  await page.goto('/', {waitUntil:'domcontentloaded'});
   await expect(page.locator('#appScreen')).toBeVisible();
   await page.waitForFunction(()=>window.PERS_TEST?.seedCatalogue);
   await page.evaluate(rows=>window.PERS_TEST.seedCatalogue(rows), catalogue);
@@ -75,21 +75,31 @@ test('opening filters cascade against the Pers catalogue', async ({page}) => {
   expect(await values(page,'regionFilter')).toEqual(['','Victoria']);
 });
 
-test('Add/Edit uses native controls, cascades, chips and safe close actions', async ({page}) => {
+test('Add/Edit uses native controls, resets cleanly, cascades, chips and safe close actions', async ({page}) => {
   await startApp(page);
   const initialCount = await page.evaluate(()=>window.PERS_TEST.getState().places.length);
 
   await page.click('#addPlaceBtn');
   await expect(page.locator('#placeDialog')).toHaveJSProperty('open', true);
-  await expect(page.locator('#placeType')).toHaveJSProperty('tagName','SELECT');
-  await expect(page.locator('#placeCuisine')).toHaveJSProperty('tagName','SELECT');
+  expect(await page.locator('#placeType').evaluate(el=>el.tagName)).toBe('SELECT');
+  expect(await page.locator('#placeCuisine').evaluate(el=>el.tagName)).toBe('SELECT');
+
+  await page.selectOption('#placeType','Restaurant');
+  await page.selectOption('#placeCuisine','Spanish');
+  await page.click('#placeCancelBtn');
+  await expect(page.locator('#placeDialog')).toHaveJSProperty('open', false);
+  expect(await page.evaluate(()=>window.PERS_TEST.getState().places.length)).toBe(initialCount);
+
+  await page.click('#addPlaceBtn');
+  await expect(page.locator('#placeType')).toHaveValue('');
+  await expect(page.locator('#placeCuisine')).toHaveValue('');
 
   await page.selectOption('#placeCountry','Spain');
+  await expect.poll(async()=>await values(page,'placeRegion')).toContain('Andalusia');
   await expect(page.locator('#placeRegion')).toBeEnabled();
-  await expect.poll(()=>values(page,'placeRegion')).toContain('Andalusia');
   await page.selectOption('#placeRegion','Andalusia');
+  await expect.poll(async()=>await values(page,'placeCity')).toContain('Granada');
   await expect(page.locator('#placeCity')).toBeEnabled();
-  await expect.poll(()=>values(page,'placeCity')).toContain('Granada');
 
   await page.selectOption('#placeMealsPicker','Lunch');
   await expect(page.locator('#placeMealsChips')).toContainText('Lunch');
@@ -97,11 +107,6 @@ test('Add/Edit uses native controls, cascades, chips and safe close actions', as
   await page.locator('#placeMealsChips [data-multi-remove="placeMeals"]').click();
   await expect(page.locator('#placeMeals')).toHaveValue('');
 
-  await page.click('#placeCancelBtn');
-  await expect(page.locator('#placeDialog')).toHaveJSProperty('open', false);
-  expect(await page.evaluate(()=>window.PERS_TEST.getState().places.length)).toBe(initialCount);
-
-  await page.click('#addPlaceBtn');
   await page.click('#placeCloseBtn');
   await expect(page.locator('#placeDialog')).toHaveJSProperty('open', false);
   expect(await page.evaluate(()=>window.PERS_TEST.getState().places.length)).toBe(initialCount);
@@ -111,9 +116,9 @@ test('Add/Edit uses native controls, cascades, chips and safe close actions', as
   await page.selectOption('#placeType','Restaurant');
   await page.selectOption('#placeCuisine','Spanish');
   await page.selectOption('#placeCountry','Spain');
-  await expect.poll(()=>values(page,'placeRegion')).toContain('Andalusia');
+  await expect.poll(async()=>await values(page,'placeRegion')).toContain('Andalusia');
   await page.selectOption('#placeRegion','Andalusia');
-  await expect.poll(()=>values(page,'placeCity')).toContain('Granada');
+  await expect.poll(async()=>await values(page,'placeCity')).toContain('Granada');
   await page.selectOption('#placeCity','Granada');
   await page.selectOption('#placeMealsPicker','Dinner');
   await page.click('#savePlaceBtn');
