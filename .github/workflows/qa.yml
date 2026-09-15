@@ -1,0 +1,31 @@
+name: Pers Favourites QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check app.js
+          node --check branding.js
+          node --check config.js
+          node --check config.example.js
+          node --check sw.js
+          node --check v027j.js
+
+      - name: v027j regression checks
+        run: node tests/qa-v027j.mjs
