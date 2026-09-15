@@ -1,6 +1,6 @@
 {
-  "release": "v027i",
-  "version": "0.27.9",
+  "release": "v027j",
+  "version": "0.27.10",
   "published": "2026-09-16",
-  "notes": "Geographic cascading filters and in-PWA update checking/install flow."
+  "notes": "Corrective cascade release: front-page dependent filters, Country > State/Region > City/Town cascading, Add/Edit geographic dropdowns, editor escape/cancel fixes, richer choice lists, and regression QA hooks."
 }
