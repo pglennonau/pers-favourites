@@ -36,6 +36,11 @@ The objective is not merely to make code compile. The objective is to deliver be
    - Major release: `1.0.0` when production stability and support expectations justify it.
    - Do not use letter suffixes such as `027j` for releases.
 
+7. **Keep the Library current.**
+   - Every completed app release must have a corresponding current-version package and/or release documentation prepared for the user’s ChatGPT Library.
+   - Do not assume a file is in Library merely because it exists in GitHub, a chat, a Project, or a temporary sandbox.
+   - Library status is a release-tracking item that must be explicitly verified.
+
 ## Standard workflow
 
 ### 1. Reproduce and define the problem
@@ -205,6 +210,35 @@ Geographic hierarchy:
 - Changing Country clears incompatible State/Region and City/Town.
 - Changing State/Region clears incompatible City/Town.
 
+## Library and release-artifact handoff
+
+Library management is part of release completion, not an optional housekeeping task.
+
+For every app release:
+
+1. Identify the canonical release version using semantic versioning.
+2. Prepare the current release artifacts with unambiguous filenames, for example:
+   - `Pers_Favourites_0.27.11.zip`
+   - `Pers_Favourites_Release_Notes_0.27.11.pdf` or `.md`
+   - current Owner/Setup/Instruction Manual files when those documents changed.
+3. Treat GitHub as the source-code system and ChatGPT Library as the user-facing retained-file system. A GitHub commit does **not** count as a Library save.
+4. Save the new current-version artifacts to Library when a Library write capability is available in the current environment.
+5. After saving, verify the Library item exists and is the intended version before reporting that Library is updated.
+6. Superseded releases should be clearly marked/archive-managed rather than mixed with the current release. Do not delete historical versions unless the user explicitly requests deletion.
+7. Maintain one obvious current version. Do not leave multiple similarly named “final”, “latest”, `final2`, or letter-suffix copies that make it unclear which release is authoritative.
+8. If a Project also needs the artifact as a Source, handle that separately; Project Sources and Library are not interchangeable.
+9. If the current tool environment cannot write to Library, do **not** claim that the file was saved there. Instead:
+   - create/provide the final versioned artifact where possible;
+   - state plainly that the Library handoff remains outstanding;
+   - give the user the minimum necessary upload step;
+   - retain the canonical version/name in release notes so the handoff can be completed later without ambiguity.
+10. Before declaring a release completely finished, report Library status as one of:
+   - `Library: verified current`
+   - `Library: not required for this change`
+   - `Library: outstanding — no Library write capability in this session`
+
+For Pers Favourites, the preferred Library organization is a clear app-specific location such as `Pers Favourites`, containing the current release package and current user documentation, with older versions archived or clearly identified as superseded.
+
 ## Release discipline
 
 For meaningful functional changes:
@@ -221,6 +255,7 @@ For meaningful functional changes:
 10. Update concise release notes.
 11. Deploy.
 12. Verify the live application.
+13. Complete and verify the Library/release-artifact handoff.
 
 Prefer a branch + CI + reviewed diff for substantial changes. Tiny documentation-only edits may go directly to the default branch.
 
@@ -237,12 +272,15 @@ A change is done only when:
 - Deployment succeeds.
 - The deployed application reports the intended version.
 - The exact reported defect no longer reproduces in the deployed application, or any remaining verification limitation is stated explicitly.
+- Required release artifacts have a clear canonical version and filename.
+- Library status has been explicitly verified or explicitly reported as outstanding because the current environment cannot write to Library.
 
 ## Communication rules
 
 - Report concrete findings early when debugging.
-- Distinguish clearly between “code changed”, “CI passed”, “deployed”, and “user-path verified”.
+- Distinguish clearly between “code changed”, “CI passed”, “deployed”, “user-path verified”, and “Library verified”.
 - Never represent static/source checks as equivalent to real functional QA.
+- Never claim a file was saved to Library without verifying that save.
 - If a release still has a known risk, state it rather than masking it with confidence language.
 - Keep release notes focused on user-visible behaviour, architecture changes, migration impact and known limitations.
 
@@ -257,5 +295,5 @@ The following failures should not recur:
 - Form Cancel/Close controls accidentally submitting because `type="button"` was omitted.
 - Service-worker caching causing a user to see behaviour different from the repository state.
 - Version naming that obscures normal semantic release progression.
-
-This skill is intentionally biased toward maintainability, reproducibility and deployed behaviour over fast patching.
+- Files being created in a chat or GitHub but then assumed to be safely retained in Library.
+- Multiple poorly named versions making it unclear which file is current.
