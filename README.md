@@ -1,37 +1,58 @@
-# Pers Favourites PWA v027i
+# Pers Favourites PWA v027j
 
-Version: 0.27.9  
+Version: 0.27.10  
 Date: 16 September 2026
 
-Upload/deploy the contents of this folder to the live GitHub Pages/static HTTPS deployment. Preserve rollout-specific values in `config.js`, including deploymentId, Supabase URL and the browser-safe Supabase publishable key.
+v027j is a corrective release focused on filter cascading, Add/Edit usability and regression QA. It does not require a database migration.
 
-## v027h -> v027i
+## v027i -> v027j
 
-1. Keep the v027h package/commit as rollback.
-2. Replace the deployed static PWA files with this package, preserving rollout-specific `config.js` connection values.
-3. No database schema migration is required for v027i.
-4. Fully close/reopen the installed PWA and confirm Version 0.27.9.
-5. Test Country = Spain -> State/Region -> City/Town.
-6. Open Account & Settings -> App Updates -> Check for Update. It should report 0.27.9 is current.
+1. Keep the v027i package/commit as rollback.
+2. Deploy the current `main` branch/static files.
+3. Fully close and reopen the installed PWA, or use Account & Settings -> App Updates -> Check for Update / Install Update.
+4. Confirm Version 0.27.10.
+5. Confirm Country -> State/Region -> City/Town cascading on both the opening page and Add/Edit.
 
-If a production rollout is still on v027g, apply the existing `supabase/migration_v027g_to_v027h.sql` first because that migration belongs to the v027h Google connection feature. v027i adds no further database migration.
+## Corrected filter behaviour
 
-## v027i geographic cascade
+The opening-page filters now rebuild as a dependent set rather than as independent static lists. Country changes clear incompatible State/Region and City selections; State/Region changes clear City. Place Type, Cuisine, Meal / Visit Type, Great For, Feature, Dietary and Personal Tag choices are also rebuilt against the other active filters and the current search text so stale choices are not left behind.
 
-The Country, State/Region and City/Town filters now use the browser-native Countries States Cities data package through jsDelivr, loaded only when needed. The dropdowns are no longer limited to locations already present in saved Pers venues. Stored venue geography is merged into the choices and remains the fallback if the geography service is unavailable.
+Country, State/Region and City/Town use the browser-compatible Countries States Cities dataset through jsDelivr. The app keeps an on-device/saved-venue fallback if that geographic source cannot be reached. Geographic alias handling retains compatibility with names such as Andalucía/Andalusia, Catalunya/Catalonia and Illes Balears/Balearic Islands.
 
-Changing Country clears incompatible State/Region and City selections. Changing State/Region clears City. The filter still returns Pers venues only; selecting a geographic area with no saved Pers venues correctly returns no results.
+## Add / Edit corrections
+
+The Add/Edit form no longer traps the user. The X and Cancel controls are explicitly non-submit buttons and Escape also closes the editor where supported.
+
+Country, State/Region and City/Town are true cascading dropdowns. Place Type and Cuisine are also true dropdowns populated from standard choices plus values already present in the Pers catalogue. Multi-value fields (Meal / Visit Type, Great For, Features, Dietary and Personal Tags) now use an iPhone-friendly picker with removable chips instead of requiring comma-separated typing.
+
+Find Place Online continues to populate the editor, and v027j now rehydrates the dropdowns after an online result is chosen so imported country/region/city/type/cuisine values are not lost.
+
+## Additional stale-state fixes
+
+Search changes, filter-chip removal, quick filters, Ask Pers results and archive/restore/permanent-delete paths all refresh dependent filter choices. The release also uses a new service-worker cache name (`pers-favourites-v027j-shell-v1`) so an installed PWA cannot silently continue serving the v027i shell after updating.
+
+## QA added in v027j
+
+`v027j.js` includes structural and geographic self-checks exposed as `window.PERS_QA_027J` for browser diagnostics. The repository also contains `tests/qa-v027j.mjs` and `.github/workflows/qa.yml`, covering:
+
+- JavaScript syntax checks for the principal app files.
+- Version consistency across config, service worker and `version.json`.
+- Required filter/editor DOM IDs.
+- Country -> State/Region -> City/Town reset/cascade wiring.
+- Add/Edit X and Cancel non-submit behaviour.
+- Add/Edit dropdown and multi-picker presence.
+- Search/dependent-filter rebuild wiring.
+- A representative Spain/Australia cascade regression model.
+- Runtime geographic checks for Spain, Andalusia, Balearic Islands, Granada, Málaga, Australia, Victoria and Melbourne when the geographic dataset is reachable.
 
 ## App Updates
 
-Account & Settings includes Current version, Latest available, Check for Update and Install Update. Pers also performs a silent update check when opened. The update mechanism reads `version.json` without using the service-worker cache. When a newer release has already been published to the host, Install Update refreshes the service worker and reloads the PWA.
-
-Publishing is still a developer/administrator action: the new release files must first exist on GitHub/Cloudflare. End users then update from inside Pers without deleting/reinstalling the Home Screen PWA. Venue data, ratings and settings remain in their existing storage/database.
+Account & Settings includes Current version, Latest available, Check for Update and Install Update. Pers reads `version.json` without the service-worker cache. Venue data, ratings and settings remain in their existing local/database storage across app updates.
 
 ## Google Maps / Places
 
-v027h secure Google connection management is retained unchanged. The PWA does not store the server-side Google API key. Owner/Admin key-management actions call the Cloudflare Worker over HTTPS.
+The secure Google connection-management design from v027h is retained. The PWA does not store the server-side Google API key. Owner/Admin key-management actions call the configured secure worker endpoint.
 
 ## Ask Pers
 
-v027h typed and microphone speech input is retained. Supported browsers transcribe speech into the Ask Pers text field; where direct browser speech recognition is unavailable, the device keyboard dictation microphone can be used.
+Typed and microphone speech input are retained. Ask Pers returns controlled Pers filters/search terms rather than unrestricted database queries.
