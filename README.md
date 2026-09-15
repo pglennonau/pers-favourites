@@ -1,58 +1,98 @@
-# Pers Favourites PWA v027j
+# Pers Favourites PWA
 
-Version: 0.27.10  
+Version: 0.27.11  
 Date: 16 September 2026
 
-v027j is a corrective release focused on filter cascading, Add/Edit usability and regression QA. It does not require a database migration.
+0.27.11 is a quality-focused corrective release. Cascading filters and Add/Edit dropdowns are implemented directly in the base application. The former `v027j.js` runtime corrective layer has been removed.
 
-## v027i -> v027j
+## What changed
 
-1. Keep the v027i package/commit as rollback.
-2. Deploy the current `main` branch/static files.
-3. Fully close and reopen the installed PWA, or use Account & Settings -> App Updates -> Check for Update / Install Update.
-4. Confirm Version 0.27.10.
-5. Confirm Country -> State/Region -> City/Town cascading on both the opening page and Add/Edit.
+### Opening-page filters
 
-## Corrected filter behaviour
+The opening filters now operate as one dependent system against the actual Pers catalogue.
 
-The opening-page filters now rebuild as a dependent set rather than as independent static lists. Country changes clear incompatible State/Region and City selections; State/Region changes clear City. Place Type, Cuisine, Meal / Visit Type, Great For, Feature, Dietary and Personal Tag choices are also rebuilt against the other active filters and the current search text so stale choices are not left behind.
+- Country limits State/Region.
+- State/Region limits City/Town.
+- Place Type, Cuisine, Meal / Visit Type, Great For, Feature, Dietary and Personal Tag choices are rebuilt against the other active filters and current search text.
+- Invalid child selections are cleared when a parent selection changes.
+- Filter choice counts are based on the catalogue rows that can actually match.
+- Search and result filtering use the same normalized text matching so accents do not create inconsistent choices versus results.
 
-Country, State/Region and City/Town use the browser-compatible Countries States Cities dataset through jsDelivr. The app keeps an on-device/saved-venue fallback if that geographic source cannot be reached. Geographic alias handling retains compatibility with names such as Andalucía/Andalusia, Catalunya/Catalonia and Illes Balears/Balearic Islands.
+The opening page deliberately derives choices from Pers venue data rather than the worldwide geography database. This keeps catalogue filtering deterministic and useful offline.
 
-## Add / Edit corrections
+### Add / Edit venue
 
-The Add/Edit form no longer traps the user. The X and Cancel controls are explicitly non-submit buttons and Escape also closes the editor where supported.
+Add/Edit now uses native controls defined directly in `index.html`.
 
-Country, State/Region and City/Town are true cascading dropdowns. Place Type and Cuisine are also true dropdowns populated from standard choices plus values already present in the Pers catalogue. Multi-value fields (Meal / Visit Type, Great For, Features, Dietary and Personal Tags) now use an iPhone-friendly picker with removable chips instead of requiring comma-separated typing.
+- Place Type and Cuisine are native dropdowns.
+- Country → State/Region → City/Town is a native cascading sequence.
+- Add/Edit geography uses the master Countries/States/Cities source, with existing Pers venue values retained as a fallback for compatibility.
+- Existing or legacy taxonomy values are preserved even when they are not part of the standard controlled lists.
+- Meal / Visit Type, Great For, Features, Dietary and Personal Tags use picker-plus-chip controls rather than comma-separated typing.
+- A new Add form is explicitly reset, so values from a previously edited/cancelled venue are not carried forward.
+- Find Place Online rehydrates the same permanent editor controls; it does not bypass them.
 
-Find Place Online continues to populate the editor, and v027j now rehydrates the dropdowns after an online result is chosen so imported country/region/city/type/cuisine values are not lost.
+The Close (×) and Cancel controls are explicit non-submit buttons. Escape also closes the editor where supported.
 
-## Additional stale-state fixes
+## Architecture cleanup
 
-Search changes, filter-chip removal, quick filters, Ask Pers results and archive/restore/permanent-delete paths all refresh dependent filter choices. The release also uses a new service-worker cache name (`pers-favourites-v027j-shell-v1`) so an installed PWA cannot silently continue serving the v027i shell after updating.
+0.27.11 removes the previous version-specific runtime correction architecture.
 
-## QA added in v027j
+- `v027j.js` has been removed.
+- The late-loaded overlay from `config.js` / `config.example.js` has been removed.
+- The permanent logic now lives in the base `app.js` and permanent controls live in `index.html`.
+- Existing localStorage/database keys and venue data formats remain unchanged.
+- No database migration is required for this release.
 
-`v027j.js` includes structural and geographic self-checks exposed as `window.PERS_QA_027J` for browser diagnostics. The repository also contains `tests/qa-v027j.mjs` and `.github/workflows/qa.yml`, covering:
+## QA
 
-- JavaScript syntax checks for the principal app files.
-- Version consistency across config, service worker and `version.json`.
-- Required filter/editor DOM IDs.
-- Country -> State/Region -> City/Town reset/cascade wiring.
-- Add/Edit X and Cancel non-submit behaviour.
-- Add/Edit dropdown and multi-picker presence.
-- Search/dependent-filter rebuild wiring.
-- A representative Spain/Australia cascade regression model.
-- Runtime geographic checks for Spain, Andalusia, Balearic Islands, Granada, Málaga, Australia, Victoria and Melbourne when the geographic dataset is reachable.
+The release gate now includes multiple layers rather than relying on source-text checks alone.
 
-## App Updates
+1. JavaScript syntax checks.
+2. Structural/version/regression checks.
+3. Deterministic cascade regression checks.
+4. Playwright interaction tests using an iPhone WebKit profile.
 
-Account & Settings includes Current version, Latest available, Check for Update and Install Update. Pers reads `version.json` without the service-worker cache. Venue data, ratings and settings remain in their existing local/database storage across app updates.
+The WebKit tests exercise the actual user paths:
 
-## Google Maps / Places
+- Spain → Andalusia/Balearic Islands cascading.
+- Andalusia → Granada/Malaga cascading.
+- dependent Place Type and Cuisine choices.
+- search-driven filter choices.
+- parent changes clearing invalid child geography.
+- native Add/Edit dropdowns.
+- Add/Edit master geography cascade.
+- multi-value chip add/remove.
+- Cancel and × closing without saving.
+- fresh Add forms not retaining cancelled Type/Cuisine values.
+- Save and Edit round-trip of venue values.
 
-The secure Google connection-management design from v027h is retained. The PWA does not store the server-side Google API key. Owner/Admin key-management actions call the configured secure worker endpoint.
+A regression guard also protects the existing Recently Visited sort while the filter/editor code is being refactored.
 
-## Ask Pers
+## PWA update behaviour
 
-Typed and microphone speech input are retained. Ask Pers returns controlled Pers filters/search terms rather than unrestricted database queries.
+The service-worker shell cache is `pers-favourites-0.27.11-shell-v1` and no longer includes the obsolete corrective script. `version.json` remains network-fetched so the App Updates screen can detect the release without being trapped behind an old shell cache.
+
+Existing Pers venue data, ratings, photos, preferences and settings continue to use their existing storage keys and survive application updates.
+
+## Updating an installed PWA
+
+Use:
+
+**☰ → Account & Settings → App Updates → Check for Update → Install Update**
+
+After reopening, confirm **Version 0.27.11**.
+
+For acceptance testing, first check the exact corrected paths:
+
+- On the opening page choose Spain, then verify only Spanish regions appear.
+- Choose Andalusia, then verify Granada/Malaga rather than Palma/Melbourne.
+- Change Place Type/Cuisine and confirm available choices adjust to the current catalogue matches.
+- Open + Add and confirm Country → State/Region → City/Town cascades there as well.
+- Confirm Cancel and × close without creating a venue.
+
+## Other retained capabilities
+
+The existing security/roles, Owner/Admin controls, user ratings versus Pers rating, photos/moderation, Archive, backup/version history, import, Ask Pers, Find Place Online, Google Maps/Places connection management, map view and venue actions remain part of the application.
+
+For engineering and release discipline, see `AGENTS.md` and `skills/app-building/SKILL.md`.
