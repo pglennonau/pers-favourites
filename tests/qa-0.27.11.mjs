@@ -46,6 +46,9 @@ assert.match(app, /filters\.region\s*=\s*''/);
 assert.match(app, /filters\.city\s*=\s*''/);
 assert.match(app, /placeCloseBtn/);
 assert.match(app, /placeCancelBtn/);
+assert.match(app, /clean\(getPersonal\(b\.id\)\.lastVisited\)\.localeCompare\(clean\(getPersonal\(a\.id\)\.lastVisited\)\)/, 'Recently visited sort must read both personal records');
+assert.doesNotMatch(app, /clean\(a\.id\)\.lastVisited/, 'Recently visited sort must not dereference a cleaned string');
+assert.match(app, /refreshEditorTaxonomy\(\{placeType:p\?\.placeType\|\|'',cuisine:p\?\.cuisine\|\|''\}\)/, 'A new Add form must explicitly reset Type and Cuisine');
 
 const sample = [
   {country:'Spain',region:'Andalusia',city:'Granada',type:'Restaurant',cuisine:'Spanish'},
