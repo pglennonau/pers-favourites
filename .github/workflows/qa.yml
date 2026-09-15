@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: JavaScript syntax checks
         run: |
@@ -27,6 +27,7 @@ jobs:
           node --check config.js
           node --check config.example.js
           node --check sw.js
+          node --check playwright.config.mjs
           node --check tests/qa-0.27.11.mjs
           node --check tests/browser-0.27.11.spec.mjs
 
@@ -38,9 +39,9 @@ jobs:
           npm install --no-save @playwright/test
           npx playwright install --with-deps webkit
 
-      - name: WebKit interaction regression tests
+      - name: WebKit iPhone interaction regression tests
         run: |
           python3 -m http.server 4173 > /tmp/pers-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
-          npx playwright test tests/browser-0.27.11.spec.mjs --project=webkit --reporter=line
+          npx playwright test tests/browser-0.27.11.spec.mjs --project=webkit-iphone --reporter=line
