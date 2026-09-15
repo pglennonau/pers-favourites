@@ -77,8 +77,8 @@
 
       <div class="filter-row" id="primaryFilters">
         <select id="countryFilter"><option value="">Country</option></select>
-        <select id="regionFilter"><option value="">State/Region</option></select>
-        <select id="cityFilter"><option value="">City/Town</option></select>
+        <select id="regionFilter" disabled><option value="">Select Country first</option></select>
+        <select id="cityFilter" disabled><option value="">Select State/Region first</option></select>
         <select id="typeFilter"><option value="">Place Type</option></select>
         <select id="cuisineFilter"><option value="">Cuisine</option></select>
         <select id="ratingFilter">
@@ -123,17 +123,17 @@
 
   <dialog id="placeDialog" class="modal">
     <form method="dialog" id="placeForm">
-      <div class="modal-head"><h2 id="placeDialogTitle">Place</h2><button value="cancel" class="icon-button">×</button></div>
+      <div class="modal-head"><h2 id="placeDialogTitle">Place</h2><button id="placeCloseBtn" type="button" class="icon-button" aria-label="Close">×</button></div>
       <div class="online-find-strip"><button id="findPlaceOnlineBtn" type="button" class="secondary">Find Place Online</button><span class="muted small">Uses Google Places when connected. If it is not connected, Pers clearly identifies the OpenStreetMap fallback instead of implying it is Google-equivalent.</span></div>
       <input type="hidden" id="placeId" />
       <div class="grid2">
         <label class="wide">Name<input id="placeName" required /></label>
-        <label>Place type<input id="placeType" placeholder="Restaurant" /></label>
-        <label>Cuisine<input id="placeCuisine" placeholder="Spanish" /></label>
-        <label>Country<input id="placeCountry" /></label>
-        <label>State/Region<input id="placeRegion" /></label>
-        <label>City/Town<input id="placeCity" /></label>
-        <label>Suburb/Area<input id="placeSuburb" /></label>
+        <label>Place type<select id="placeType"><option value="">Select Place Type</option></select></label>
+        <label>Cuisine<select id="placeCuisine"><option value="">Select Cuisine</option></select></label>
+        <label>Country<select id="placeCountry"><option value="">Select Country</option></select></label>
+        <label>State/Region<select id="placeRegion" disabled><option value="">Select Country first</option></select></label>
+        <label>City/Town<select id="placeCity" disabled><option value="">Select State/Region first</option></select></label>
+        <label>Suburb/Area<input id="placeSuburb" autocomplete="off" /></label>
         <label class="wide">Address<input id="placeAddress" /></label>
         <label>Latitude<input id="placeLat" type="number" step="any" /></label>
         <label>Longitude<input id="placeLng" type="number" step="any" /></label>
@@ -142,11 +142,33 @@
         <label class="wide">Website<input id="placeWebsite" type="url" /></label>
         <label class="wide">Google Maps link<input id="placeGoogleUrl" type="url" /></label>
         <label class="wide">Booking / reservation link<input id="placeBookingUrl" type="url" /></label>
-        <label class="wide">Meal / visit types<input id="placeMeals" placeholder="Lunch, Dinner, Drinks" /></label>
-        <label class="wide">Great for<input id="placeGreatFor" placeholder="Special Occasion, Views" /></label>
-        <label class="wide">Features<input id="placeFeatures" placeholder="Outdoor Seating, Waterfront" /></label>
-        <label class="wide">Dietary<input id="placeDietary" placeholder="Vegetarian, Gluten Free" /></label>
-        <label class="wide">Personal tags<input id="placeTags" placeholder="Great Wine, Visitors, Local Favourite" /></label>
+
+        <label class="wide">Meal / visit types
+          <input id="placeMeals" type="hidden" />
+          <select id="placeMealsPicker"><option value="">Add Meal / Visit Type…</option></select>
+          <div id="placeMealsChips" class="chips"></div>
+        </label>
+        <label class="wide">Great for
+          <input id="placeGreatFor" type="hidden" />
+          <select id="placeGreatForPicker"><option value="">Add Great For…</option></select>
+          <div id="placeGreatForChips" class="chips"></div>
+        </label>
+        <label class="wide">Features
+          <input id="placeFeatures" type="hidden" />
+          <select id="placeFeaturesPicker"><option value="">Add Feature…</option></select>
+          <div id="placeFeaturesChips" class="chips"></div>
+        </label>
+        <label class="wide">Dietary
+          <input id="placeDietary" type="hidden" />
+          <select id="placeDietaryPicker"><option value="">Add Dietary…</option></select>
+          <div id="placeDietaryChips" class="chips"></div>
+        </label>
+        <label class="wide">Personal tags
+          <input id="placeTags" type="hidden" />
+          <select id="placeTagsPicker"><option value="">Add Personal Tag…</option></select>
+          <div id="placeTagsChips" class="chips"></div>
+        </label>
+
         <label class="wide">Must try / what to order<input id="placeMustTry" /></label>
         <label class="wide">Owner/list notes<textarea id="placeNotes" rows="3"></textarea></label>
       </div>
@@ -155,7 +177,7 @@
         <button id="restorePlaceBtn" type="button" class="secondary hidden">Restore</button>
         <button id="deleteForeverBtn" type="button" class="danger hidden">Delete forever</button>
         <span class="spacer"></span>
-        <button value="cancel" class="secondary">Cancel</button>
+        <button id="placeCancelBtn" type="button" class="secondary">Cancel</button>
         <button id="savePlaceBtn" type="submit" class="primary">Save</button>
       </div>
     </form>
@@ -232,7 +254,7 @@
     <section class="app-update-card">
       <h3>App Updates</h3>
       <div class="connection-grid">
-        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.9</strong></div>
+        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.11</strong></div>
         <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
       </div>
       <div class="inline-actions">
@@ -304,7 +326,7 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.9</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.11</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">
