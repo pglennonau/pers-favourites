@@ -2,7 +2,9 @@ name: Pers Favourites QA
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
     branches: [main]
 
@@ -25,7 +27,20 @@ jobs:
           node --check config.js
           node --check config.example.js
           node --check sw.js
-          node --check v027j.js
+          node --check tests/qa-0.27.11.mjs
+          node --check tests/browser-0.27.11.spec.mjs
 
-      - name: v027j regression checks
-        run: node tests/qa-v027j.mjs
+      - name: Structural and regression checks
+        run: node tests/qa-0.27.11.mjs
+
+      - name: Install Playwright WebKit
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps webkit
+
+      - name: WebKit interaction regression tests
+        run: |
+          python3 -m http.server 4173 > /tmp/pers-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          npx playwright test tests/browser-0.27.11.spec.mjs --project=webkit --reporter=line
