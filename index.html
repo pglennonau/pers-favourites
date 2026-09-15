@@ -170,7 +170,12 @@
   <dialog id="askPersDialog" class="modal">
     <div class="modal-head"><h2>Ask Pers</h2><button id="askPersClose" class="icon-button">×</button></div>
     <p class="muted">Ask for places in natural language. The service may return only controlled Pers filters/search terms; it cannot run unrestricted SQL.</p>
-    <label>What are you looking for?<input id="askPersQuery" placeholder="e.g. good dinner places near me with a user rating of 4+" /></label>
+    <label>What are you looking for?</label>
+    <div class="ask-pers-input-row">
+      <input id="askPersQuery" placeholder="e.g. good dinner places near me with a user rating of 4+" aria-label="Ask Pers question" />
+      <button id="askPersMicBtn" type="button" class="secondary mic-button" aria-label="Speak your Ask Pers question" title="Speak your question">🎙️</button>
+    </div>
+    <p class="muted small">Type your question, or tap the microphone and speak. On devices where browser speech recognition is unavailable, use the keyboard's dictation microphone.</p>
     <button id="runAskPersBtn" class="primary">Search Pers</button>
     <p id="askPersStatus" class="status"></p>
   </dialog>
@@ -236,6 +241,28 @@
       <button id="exportBackupBtn" class="secondary">Export full database + photos backup</button>
       <p class="muted small">Includes venue records, ratings, settings, visit data, photo metadata and the photo files themselves where accessible.</p>
       <button id="exportHistoryBtn" class="secondary">Export version history</button>
+      <hr />
+      <fieldset class="external-service-card">
+        <legend>External Services - Google Maps / Places</legend>
+        <label>Google Places Worker endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="googleConnectionState">Not connected</strong></div>
+          <div><span class="muted small">Mode</span><strong id="googleConnectionMode">Not set</strong></div>
+          <div><span class="muted small">API key</span><strong id="googleKeyHint">Not configured</strong></div>
+        </div>
+        <label>Connection mode<select id="googleModeSelect"><option value="demo">Demo</option><option value="production">Production</option></select></label>
+        <label id="googleKeyEntryWrap" class="hidden">New Google API key<input id="googleApiKeyInput" type="password" autocomplete="new-password" placeholder="Paste the new key" /></label>
+        <p class="muted small">The raw key is sent directly to the secure Cloudflare Worker and saved as an encrypted Worker secret. Pers does not store it in localStorage, Supabase or GitHub.</p>
+        <div class="inline-actions">
+          <button id="saveGoogleEndpointBtn" type="button" class="secondary compact">Save endpoint</button>
+          <button id="testPlacesEndpointBtn" type="button" class="secondary compact">Test connection</button>
+          <button id="replaceGoogleKeyBtn" type="button" class="secondary compact">Replace API key</button>
+          <button id="saveGoogleKeyBtn" type="button" class="primary compact hidden">Save new key</button>
+          <button id="cancelGoogleKeyBtn" type="button" class="secondary compact hidden">Cancel</button>
+          <button id="removeGoogleKeyBtn" type="button" class="danger compact">Remove connection</button>
+        </div>
+        <span id="placesEndpointStatus" class="small muted"></span>
+      </fieldset>
     </section>
     <section id="ownerSettings" class="hidden">
       <hr />
@@ -250,9 +277,7 @@
       <label class="check"><input id="settingAskPersEnabled" type="checkbox" /> Enable Ask Pers natural-language search</label>
       <label>Ask Pers server endpoint<input id="settingAskPersEndpoint" type="url" placeholder="https://your-worker.example.com/ask-pers" /></label>
       <p class="muted small">The OpenAI/API key belongs in the server/Cloudflare secret store, never in this browser app. The endpoint may return controlled filters only.</p>
-      <label>Google Places search endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
-      <p class="muted small">Required for Google-quality in-app business search. Uploading the GitHub PWA does not activate Google Places by itself. Keep the API key in the Cloudflare secret store, not in this public GitHub PWA.</p>
-      <div class="inline-actions"><button id="testPlacesEndpointBtn" type="button" class="secondary compact">Test Google Places connection</button><span id="placesEndpointStatus" class="small muted"></span></div>
+
       <p class="muted small">User contributions remain pending until Owner/Admin approval. Turn this off at any time to stop new user uploads.</p>
       <button id="saveSettingsBtn" class="primary">Save collection settings</button>
       <button id="restoreBackupBtn" class="secondary">Restore backup (local trial)</button>
@@ -264,7 +289,7 @@
     </section>
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
-    <p class="version">Version <span id="versionLabel">0.27.7</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.8</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

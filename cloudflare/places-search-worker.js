@@ -3,7 +3,7 @@ function cors(origin, allowed) {
   return {
     'Access-Control-Allow-Origin': ok ? (allowed || '*') : 'null',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Vary': 'Origin',
     'Content-Type': 'application/json; charset=utf-8'
   };
@@ -30,28 +30,19 @@ function normalisePlace(p) {
   const city = component(p, 'locality') || component(p, 'postal_town') || component(p, 'administrative_area_level_2');
   const suburb = component(p, 'sublocality_level_1') || component(p, 'sublocality') || component(p, 'neighborhood');
   return {
-    id: p.id || '',
-    name: p.displayName?.text || '',
-    address: p.formattedAddress || '',
-    lat: p.location?.latitude ?? null,
-    lng: p.location?.longitude ?? null,
+    id: p.id || '', name: p.displayName?.text || '', address: p.formattedAddress || '',
+    lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null,
     placeType: p.primaryTypeDisplayName?.text || p.primaryType || (p.types || [])[0] || '',
-    primaryType: p.primaryType || '',
-    country, stateRegion, city, suburb,
-    website: p.websiteUri || '',
-    phone: p.internationalPhoneNumber || '',
-    googleMapsUrl: p.googleMapsUri || ''
+    primaryType: p.primaryType || '', country, stateRegion, city, suburb,
+    website: p.websiteUri || '', phone: p.internationalPhoneNumber || '', googleMapsUrl: p.googleMapsUri || ''
   };
 }
-async function textSearch(env, textQuery, location, context, widen) {
+async function textSearchWithKey(apiKey, textQuery, location, context, widen) {
   const body = { textQuery, pageSize: 10, languageCode: 'en' };
   if (location && Number.isFinite(+location.lat) && Number.isFinite(+location.lng)) {
     const lat = +location.lat, lng = +location.lng;
-    if (widen) {
-      body.locationBias = { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } };
-    } else {
-      body.locationRestriction = { rectangle: rectangle(lat, lng, 30) };
-    }
+    if (widen) body.locationBias = { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } };
+    else body.locationRestriction = { rectangle: rectangle(lat, lng, 30) };
   } else {
     const label = [context?.city, context?.region, context?.country].map(clean).filter(Boolean).join(', ');
     if (!label) throw new Error('Current location is unavailable and no city/region fallback is known.');
@@ -61,7 +52,7 @@ async function textSearch(env, textQuery, location, context, widen) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Goog-Api-Key': env.GOOGLE_PLACES_API_KEY,
+      'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents'
     },
     body: JSON.stringify(body)
@@ -71,27 +62,92 @@ async function textSearch(env, textQuery, location, context, widen) {
   return (json.places || []).map(normalisePlace);
 }
 
+async function verifyEditor(request, env) {
+  const bearer = clean(request.headers.get('Authorization'));
+  if (!bearer.toLowerCase().startsWith('bearer ')) throw new Error('Owner/Admin sign-in is required.');
+  const token = bearer.slice(7).trim();
+  const base = clean(env.SUPABASE_URL).replace(/\/$/, '');
+  const key = clean(env.SUPABASE_PUBLISHABLE_KEY);
+  if (!base || !key) throw new Error('Worker admin verification is not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.');
+  const userRes = await fetch(`${base}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
+  const user = await userRes.json().catch(() => ({}));
+  if (!userRes.ok || !user?.id) throw new Error('Your Pers sign-in could not be verified.');
+  const pRes = await fetch(`${base}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(user.id)}`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
+  const rows = await pRes.json().catch(() => []);
+  const role = rows?.[0]?.role || '';
+  if (!['owner', 'admin'].includes(role)) throw new Error('Owner/Admin permission is required.');
+  return { id: user.id, role };
+}
+
+function keyHint(key) { const s = clean(key); return s ? `••••${s.slice(-4)}` : ''; }
+async function changeWorkerSecret(env, key, mode, remove = false) {
+  const accountId = clean(env.CLOUDFLARE_ACCOUNT_ID);
+  const scriptName = clean(env.CLOUDFLARE_WORKER_SCRIPT_NAME);
+  const token = clean(env.CLOUDFLARE_API_TOKEN);
+  if (!accountId || !scriptName || !token) throw new Error('Cloudflare key replacement is not configured. Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_WORKER_SCRIPT_NAME and the CLOUDFLARE_API_TOKEN secret.');
+  const secrets = remove ? {
+    GOOGLE_PLACES_API_KEY: null,
+    GOOGLE_PLACES_MODE: null
+  } : {
+    GOOGLE_PLACES_API_KEY: { type: 'secret_text', name: 'GOOGLE_PLACES_API_KEY', text: key },
+    GOOGLE_PLACES_MODE: { type: 'secret_text', name: 'GOOGLE_PLACES_MODE', text: mode }
+  };
+  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/workers/scripts/${encodeURIComponent(scriptName)}/secrets-bulk`, {
+    method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ secrets })
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j?.success === false) throw new Error(j?.errors?.[0]?.message || `Cloudflare secret update failed (${r.status}).`);
+  return j;
+}
+
+async function handleAdminGoogleConnection(request, env, headers) {
+  await verifyEditor(request, env);
+  const input = await request.json().catch(() => ({}));
+  const action = clean(input?.action).toLowerCase();
+  if (action === 'status') {
+    const key = clean(env.GOOGLE_PLACES_API_KEY);
+    return new Response(JSON.stringify({ connected: !!key, mode: clean(env.GOOGLE_PLACES_MODE) || '', keyHint: keyHint(key) }), { status: 200, headers });
+  }
+  if (action === 'replace') {
+    const key = clean(input?.key); const mode = clean(input?.mode).toLowerCase();
+    if (!key || key.length < 12) return new Response(JSON.stringify({ error: 'A valid Google API key is required.' }), { status: 400, headers });
+    if (!['demo', 'production'].includes(mode)) return new Response(JSON.stringify({ error: 'Mode must be demo or production.' }), { status: 400, headers });
+    await changeWorkerSecret(env, key, mode, false);
+    return new Response(JSON.stringify({ connected: true, mode, keyHint: keyHint(key) }), { status: 200, headers });
+  }
+  if (action === 'remove') {
+    await changeWorkerSecret(env, '', '', true);
+    return new Response(JSON.stringify({ connected: false, mode: '', keyHint: '' }), { status: 200, headers });
+  }
+  return new Response(JSON.stringify({ error: 'Unknown Google connection action.' }), { status: 400, headers });
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
-    const headers = cors(origin, env.ALLOWED_ORIGIN || '*');
+    const allowed = env.ALLOWED_ORIGIN || '*';
+    const headers = cors(origin, allowed);
+    if (allowed !== '*' && origin && origin !== allowed) return new Response(JSON.stringify({ error: 'Origin is not allowed.' }), { status: 403, headers });
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (request.method !== 'POST') return new Response(JSON.stringify({ error: 'POST required.' }), { status: 405, headers });
-    if (!env.GOOGLE_PLACES_API_KEY) return new Response(JSON.stringify({ error: 'GOOGLE_PLACES_API_KEY secret is not configured.' }), { status: 500, headers });
+    const path = new URL(request.url).pathname.replace(/\/$/, '') || '/';
     try {
+      if (path.endsWith('/admin/google-connection')) return await handleAdminGoogleConnection(request, env, headers);
+      if (!env.GOOGLE_PLACES_API_KEY) return new Response(JSON.stringify({ error: 'GOOGLE_PLACES_API_KEY secret is not configured.' }), { status: 500, headers });
       const input = await request.json();
-      const query = clean(input?.query);
-      const normal = clean(input?.normalizedQuery);
+      const query = clean(input?.query); const normal = clean(input?.normalizedQuery);
       if (!query) return new Response(JSON.stringify({ error: 'A venue query is required.' }), { status: 400, headers });
-      let places = await textSearch(env, query, input?.location, input?.context, !!input?.widen);
+      let places = await textSearchWithKey(env.GOOGLE_PLACES_API_KEY, query, input?.location, input?.context, !!input?.widen);
       if (normal && normal.toLowerCase() !== query.toLowerCase()) {
-        const retry = await textSearch(env, normal, input?.location, input?.context, !!input?.widen);
+        const retry = await textSearchWithKey(env.GOOGLE_PLACES_API_KEY, normal, input?.location, input?.context, !!input?.widen);
         const seen = new Set(places.map(x => x.id || `${x.name}|${x.address}`));
         for (const x of retry) { const k = x.id || `${x.name}|${x.address}`; if (!seen.has(k)) { seen.add(k); places.push(x); } }
       }
       return new Response(JSON.stringify({ provider: 'google-places', places: places.slice(0, 15) }), { status: 200, headers });
     } catch (e) {
-      return new Response(JSON.stringify({ error: e?.message || 'Places search failed.' }), { status: 500, headers });
+      const msg = e?.message || 'Places service failed.';
+      const status = /permission|required|verified|sign-in/i.test(msg) ? 403 : 500;
+      return new Response(JSON.stringify({ error: msg }), { status, headers });
     }
   }
 };

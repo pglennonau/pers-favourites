@@ -1,5 +1,5 @@
--- Pers Favourites v027g - one isolated Supabase project per rollout.
--- v027g retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
+-- Pers Favourites v027h - one isolated Supabase project per rollout.
+-- v027h retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
 -- Run in a NEW Supabase project for each separately deployed GitHub instance.
 
 create extension if not exists pgcrypto;
@@ -159,6 +159,22 @@ revoke all on function public.is_editor() from public, anon;
 revoke all on function public.is_owner() from public, anon;
 grant execute on function public.is_editor() to authenticated;
 grant execute on function public.is_owner() to authenticated;
+
+-- v027h: Owner/Admin may update only the Google Places Worker endpoint without gaining
+-- permission to alter the rest of app_settings. The Google API key itself never enters Supabase.
+create or replace function public.set_places_search_endpoint(p_endpoint text)
+returns void language plpgsql security definer set search_path='public'
+as $$
+begin
+  if not exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('owner','admin')) then
+    raise exception 'Owner/Admin permission required';
+  end if;
+  update public.app_settings
+     set places_search_endpoint=nullif(btrim(p_endpoint),''), updated_at=now()
+   where id=1;
+end; $$;
+revoke all on function public.set_places_search_endpoint(text) from public, anon;
+grant execute on function public.set_places_search_endpoint(text) to authenticated;
 
 -- App identity is public/read-only.
 drop policy if exists app_settings_read on public.app_settings;
