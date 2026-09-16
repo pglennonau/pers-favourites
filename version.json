@@ -1,6 +1,5 @@
 {
-  "release": "v027i",
-  "version": "0.27.9",
+  "version": "0.27.12",
   "published": "2026-09-16",
-  "notes": "Geographic cascading filters and in-PWA update checking/install flow."
+  "notes": "Searchable Country, State/Region and City/Town controls on the opening filters and Add/Edit, with reliable cascading and on-device geography fallback."
 }

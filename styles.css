@@ -52,3 +52,11 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 
 /* v027i */
 .app-update-card{margin:10px 0}.geo-attribution a{color:inherit;text-decoration:underline}
+
+/* 0.27.12 searchable geographic controls */
+.filter-row .geo-choice-wrap{flex:0 0 auto;width:172px;min-width:150px;max-width:210px}
+.filter-row .geo-choice{width:100%;padding:9px 30px 9px 10px;border-radius:11px;background:#fff}
+.geo-choice{background-image:linear-gradient(45deg,transparent 50%,#69736d 50%),linear-gradient(135deg,#69736d 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.geo-choice:disabled{background-color:#f2f0eb;color:#8a8f8c}
+.multi-editor{padding-top:2px}.multi-editor .chips{min-height:8px;margin-top:7px}
+@media(max-width:640px){.filter-row .geo-choice-wrap{width:168px;min-width:150px}}

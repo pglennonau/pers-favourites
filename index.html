@@ -76,9 +76,9 @@
       </div>
 
       <div class="filter-row" id="primaryFilters">
-        <select id="countryFilter"><option value="">Country</option></select>
-        <select id="regionFilter"><option value="">State/Region</option></select>
-        <select id="cityFilter"><option value="">City/Town</option></select>
+        <div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div>
+        <div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div>
+        <div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div>
         <select id="typeFilter"><option value="">Place Type</option></select>
         <select id="cuisineFilter"><option value="">Cuisine</option></select>
         <select id="ratingFilter">
@@ -123,16 +123,16 @@
 
   <dialog id="placeDialog" class="modal">
     <form method="dialog" id="placeForm">
-      <div class="modal-head"><h2 id="placeDialogTitle">Place</h2><button value="cancel" class="icon-button">×</button></div>
+      <div class="modal-head"><h2 id="placeDialogTitle">Place</h2><button id="placeCloseBtn" type="button" class="icon-button" aria-label="Close">×</button></div>
       <div class="online-find-strip"><button id="findPlaceOnlineBtn" type="button" class="secondary">Find Place Online</button><span class="muted small">Uses Google Places when connected. If it is not connected, Pers clearly identifies the OpenStreetMap fallback instead of implying it is Google-equivalent.</span></div>
       <input type="hidden" id="placeId" />
       <div class="grid2">
         <label class="wide">Name<input id="placeName" required /></label>
-        <label>Place type<input id="placeType" placeholder="Restaurant" /></label>
-        <label>Cuisine<input id="placeCuisine" placeholder="Spanish" /></label>
-        <label>Country<input id="placeCountry" /></label>
-        <label>State/Region<input id="placeRegion" /></label>
-        <label>City/Town<input id="placeCity" /></label>
+        <label>Place type<select id="placeType"><option value="">Select Place Type</option></select></label>
+        <label>Cuisine<select id="placeCuisine"><option value="">Select Cuisine</option></select></label>
+        <label>Country<input id="placeCountry" class="geo-choice" list="placeCountryList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="placeCountryList"></datalist></label>
+        <label>State/Region<input id="placeRegion" class="geo-choice" list="placeRegionList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="placeRegionList"></datalist></label>
+        <label>City/Town<input id="placeCity" class="geo-choice" list="placeCityList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="placeCityList"></datalist></label>
         <label>Suburb/Area<input id="placeSuburb" /></label>
         <label class="wide">Address<input id="placeAddress" /></label>
         <label>Latitude<input id="placeLat" type="number" step="any" /></label>
@@ -142,11 +142,11 @@
         <label class="wide">Website<input id="placeWebsite" type="url" /></label>
         <label class="wide">Google Maps link<input id="placeGoogleUrl" type="url" /></label>
         <label class="wide">Booking / reservation link<input id="placeBookingUrl" type="url" /></label>
-        <label class="wide">Meal / visit types<input id="placeMeals" placeholder="Lunch, Dinner, Drinks" /></label>
-        <label class="wide">Great for<input id="placeGreatFor" placeholder="Special Occasion, Views" /></label>
-        <label class="wide">Features<input id="placeFeatures" placeholder="Outdoor Seating, Waterfront" /></label>
-        <label class="wide">Dietary<input id="placeDietary" placeholder="Vegetarian, Gluten Free" /></label>
-        <label class="wide">Personal tags<input id="placeTags" placeholder="Great Wine, Visitors, Local Favourite" /></label>
+        <div class="wide multi-editor"><label>Meal / visit types<select id="placeMealsPicker"><option value="">Add Meal / Visit Type…</option></select></label><input id="placeMeals" type="hidden" /><div id="placeMealsChips" class="chips"></div></div>
+        <div class="wide multi-editor"><label>Great for<select id="placeGreatForPicker"><option value="">Add Great For…</option></select></label><input id="placeGreatFor" type="hidden" /><div id="placeGreatForChips" class="chips"></div></div>
+        <div class="wide multi-editor"><label>Features<select id="placeFeaturesPicker"><option value="">Add Feature…</option></select></label><input id="placeFeatures" type="hidden" /><div id="placeFeaturesChips" class="chips"></div></div>
+        <div class="wide multi-editor"><label>Dietary<select id="placeDietaryPicker"><option value="">Add Dietary…</option></select></label><input id="placeDietary" type="hidden" /><div id="placeDietaryChips" class="chips"></div></div>
+        <div class="wide multi-editor"><label>Personal tags<select id="placeTagsPicker"><option value="">Add Personal Tag…</option></select></label><input id="placeTags" type="hidden" /><div id="placeTagsChips" class="chips"></div></div>
         <label class="wide">Must try / what to order<input id="placeMustTry" /></label>
         <label class="wide">Owner/list notes<textarea id="placeNotes" rows="3"></textarea></label>
       </div>
@@ -155,7 +155,7 @@
         <button id="restorePlaceBtn" type="button" class="secondary hidden">Restore</button>
         <button id="deleteForeverBtn" type="button" class="danger hidden">Delete forever</button>
         <span class="spacer"></span>
-        <button value="cancel" class="secondary">Cancel</button>
+        <button id="placeCancelBtn" type="button" class="secondary">Cancel</button>
         <button id="savePlaceBtn" type="submit" class="primary">Save</button>
       </div>
     </form>
@@ -304,7 +304,7 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.9</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.12</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">
@@ -324,6 +324,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="geo-fallback.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
