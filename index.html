@@ -76,9 +76,15 @@
       </div>
 
       <div class="filter-row" id="primaryFilters">
+<<<<<<< HEAD
         <div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div>
         <div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div>
         <div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div>
+=======
+        <select id="countryFilter"><option value="">Country</option></select>
+        <select id="regionFilter" disabled><option value="">Select Country first</option></select>
+        <select id="cityFilter" disabled><option value="">Select State/Region first</option></select>
+>>>>>>> a3d1e99031ad5c378898c13cc5731d07ab57ef45
         <select id="typeFilter"><option value="">Place Type</option></select>
         <select id="cuisineFilter"><option value="">Cuisine</option></select>
         <select id="ratingFilter">
@@ -130,10 +136,17 @@
         <label class="wide">Name<input id="placeName" required /></label>
         <label>Place type<select id="placeType"><option value="">Select Place Type</option></select></label>
         <label>Cuisine<select id="placeCuisine"><option value="">Select Cuisine</option></select></label>
+<<<<<<< HEAD
         <label>Country<input id="placeCountry" class="geo-choice" list="placeCountryList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="placeCountryList"></datalist></label>
         <label>State/Region<input id="placeRegion" class="geo-choice" list="placeRegionList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="placeRegionList"></datalist></label>
         <label>City/Town<input id="placeCity" class="geo-choice" list="placeCityList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="placeCityList"></datalist></label>
         <label>Suburb/Area<input id="placeSuburb" /></label>
+=======
+        <label>Country<select id="placeCountry"><option value="">Select Country</option></select></label>
+        <label>State/Region<select id="placeRegion" disabled><option value="">Select Country first</option></select></label>
+        <label>City/Town<select id="placeCity" disabled><option value="">Select State/Region first</option></select></label>
+        <label>Suburb/Area<input id="placeSuburb" autocomplete="off" /></label>
+>>>>>>> a3d1e99031ad5c378898c13cc5731d07ab57ef45
         <label class="wide">Address<input id="placeAddress" /></label>
         <label>Latitude<input id="placeLat" type="number" step="any" /></label>
         <label>Longitude<input id="placeLng" type="number" step="any" /></label>
@@ -142,11 +155,41 @@
         <label class="wide">Website<input id="placeWebsite" type="url" /></label>
         <label class="wide">Google Maps link<input id="placeGoogleUrl" type="url" /></label>
         <label class="wide">Booking / reservation link<input id="placeBookingUrl" type="url" /></label>
+<<<<<<< HEAD
         <div class="wide multi-editor"><label>Meal / visit types<select id="placeMealsPicker"><option value="">Add Meal / Visit Type…</option></select></label><input id="placeMeals" type="hidden" /><div id="placeMealsChips" class="chips"></div></div>
         <div class="wide multi-editor"><label>Great for<select id="placeGreatForPicker"><option value="">Add Great For…</option></select></label><input id="placeGreatFor" type="hidden" /><div id="placeGreatForChips" class="chips"></div></div>
         <div class="wide multi-editor"><label>Features<select id="placeFeaturesPicker"><option value="">Add Feature…</option></select></label><input id="placeFeatures" type="hidden" /><div id="placeFeaturesChips" class="chips"></div></div>
         <div class="wide multi-editor"><label>Dietary<select id="placeDietaryPicker"><option value="">Add Dietary…</option></select></label><input id="placeDietary" type="hidden" /><div id="placeDietaryChips" class="chips"></div></div>
         <div class="wide multi-editor"><label>Personal tags<select id="placeTagsPicker"><option value="">Add Personal Tag…</option></select></label><input id="placeTags" type="hidden" /><div id="placeTagsChips" class="chips"></div></div>
+=======
+
+        <label class="wide">Meal / visit types
+          <input id="placeMeals" type="hidden" />
+          <select id="placeMealsPicker"><option value="">Add Meal / Visit Type…</option></select>
+          <div id="placeMealsChips" class="chips"></div>
+        </label>
+        <label class="wide">Great for
+          <input id="placeGreatFor" type="hidden" />
+          <select id="placeGreatForPicker"><option value="">Add Great For…</option></select>
+          <div id="placeGreatForChips" class="chips"></div>
+        </label>
+        <label class="wide">Features
+          <input id="placeFeatures" type="hidden" />
+          <select id="placeFeaturesPicker"><option value="">Add Feature…</option></select>
+          <div id="placeFeaturesChips" class="chips"></div>
+        </label>
+        <label class="wide">Dietary
+          <input id="placeDietary" type="hidden" />
+          <select id="placeDietaryPicker"><option value="">Add Dietary…</option></select>
+          <div id="placeDietaryChips" class="chips"></div>
+        </label>
+        <label class="wide">Personal tags
+          <input id="placeTags" type="hidden" />
+          <select id="placeTagsPicker"><option value="">Add Personal Tag…</option></select>
+          <div id="placeTagsChips" class="chips"></div>
+        </label>
+
+>>>>>>> a3d1e99031ad5c378898c13cc5731d07ab57ef45
         <label class="wide">Must try / what to order<input id="placeMustTry" /></label>
         <label class="wide">Owner/list notes<textarea id="placeNotes" rows="3"></textarea></label>
       </div>
@@ -232,7 +275,7 @@
     <section class="app-update-card">
       <h3>App Updates</h3>
       <div class="connection-grid">
-        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.9</strong></div>
+        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.11</strong></div>
         <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
       </div>
       <div class="inline-actions">
@@ -304,7 +347,11 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
+<<<<<<< HEAD
     <p class="version">Version <span id="versionLabel">0.27.12</span></p>
+=======
+    <p class="version">Version <span id="versionLabel">0.27.11</span></p>
+>>>>>>> a3d1e99031ad5c378898c13cc5731d07ab57ef45
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">
