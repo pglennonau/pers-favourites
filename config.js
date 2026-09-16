@@ -7,5 +7,5 @@ window.PERS_CONFIG = {
   homeRegion: "Melbourne / Travel",
   supabaseUrl: "",
   supabasePublishableKey: "",
-  placesSearchEndpoint: ""
+  placesSearchEndpoint: "https://pers-places-search.pglennon-au.workers.dev"
 };
