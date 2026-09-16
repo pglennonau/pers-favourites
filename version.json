@@ -1,5 +1,5 @@
 {
-  "version": "0.27.12",
-  "published": "2026-09-16",
-  "notes": "Searchable Country, State/Region and City/Town controls on the opening filters and Add/Edit, with reliable cascading and on-device geography fallback."
+  "version": "0.27.13",
+  "published": "2026-09-17",
+  "notes": "Clarifies the Find Place Online workflow: search results now show Use Details and the Add Place form clearly shows Save Place before the venue is added."
 }
