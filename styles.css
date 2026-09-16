@@ -60,3 +60,10 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .geo-choice:disabled{background-color:#f2f0eb;color:#8a8f8c}
 .multi-editor{padding-top:2px}.multi-editor .chips{min-height:8px;margin-top:7px}
 @media(max-width:640px){.filter-row .geo-choice-wrap{width:168px;min-width:150px}}
+
+/* 0.27.13 clearer Find Place Online workflow */
+#findPlaceResults:not(:empty)::before{content:"Tap Use Details to load the selected venue into the Add Place form. Review the details, then tap Save Place.";display:block;padding:.72rem .8rem;border-radius:10px;background:var(--blue-soft);color:#285f83;font-size:.84rem;line-height:1.35}
+#findPlaceResults button[data-use-online]{font-size:0}
+#findPlaceResults button[data-use-online]::after{content:"Use Details";font-size:.84rem;line-height:1.2}
+#savePlaceBtn{font-size:0}
+#savePlaceBtn::after{content:"Save Place";font-size:1rem;line-height:1.2}
