@@ -1,6 +1,6 @@
 {
   "name": "Pers Favourites",
-  "short_name": "Favourites",
+  "short_name": "Pers Favourites",
   "description": "A curated places collection with personal ratings, photos and map filtering.",
   "start_url": "./",
   "scope": "./",

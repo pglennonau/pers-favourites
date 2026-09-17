@@ -49,13 +49,25 @@
         <button id="clearSearchBtn" class="icon-button" aria-label="Clear search">×</button>
       </div>
 
+      <section class="core-location-banner" aria-labelledby="coreLocationTitle">
+        <div class="core-location-head">
+          <div><strong id="coreLocationTitle">Your location filters</strong><div id="locationScopeLabel" class="small muted">All locations</div></div>
+          <button id="clearLocationBtn" class="link-button compact" type="button">Clear location</button>
+        </div>
+        <div class="core-location-fields">
+          <div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div>
+          <div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div>
+          <div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div>
+        </div>
+      </section>
+
       <div class="quick-actions" id="quickActions">
         <button data-quick="near">📍 Near Me</button>
-        <button data-quick="coffee">☕ Coffee</button>
-        <button id="askPersBtn" class="hidden">Ask Pers</button>
-        <button data-quick="five">★ 5 Star</button>
         <button data-quick="favourite">♥ Favourites</button>
         <button data-quick="want">○ Want to Visit</button>
+        <button data-quick="coffee">☕ Coffee</button>
+        <button data-quick="five">★ 5 Star</button>
+        <button id="askPersBtn" class="hidden">Ask Pers</button>
         <button data-quick="restaurant">Restaurant</button>
         <button data-quick="winebar">Wine Bar</button>
       </div>
@@ -76,16 +88,13 @@
       </div>
 
       <div class="filter-row" id="primaryFilters">
-        <div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div>
-        <div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div>
-        <div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div>
         <select id="typeFilter"><option value="">Place Type</option></select>
         <select id="cuisineFilter"><option value="">Cuisine</option></select>
         <select id="ratingFilter">
-          <option value="">User Rating</option><option value="5">5★ only</option><option value="4">4★+</option><option value="3">3★+</option>
+          <option value="">Rating</option><option value="combined5">5 Star: Pers 5 or Users 4.5+</option><option value="5">Users 5★ only</option><option value="4">Users 4★+</option><option value="3">Users 3★+</option>
         </select>
         <select id="distanceFilter">
-          <option value="">Distance</option><option value="0.5">500 m</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
+          <option value="">Distance</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
         </select>
         <button id="moreFiltersBtn" class="secondary compact">More Filters ▾</button>
       </div>
@@ -310,7 +319,7 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.15</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.16</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

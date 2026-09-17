@@ -41,7 +41,9 @@ create table if not exists public.places (
   address text, lat double precision, lng double precision, price text, pers_rating numeric(2,1) check (pers_rating between 0 and 5),
   meal_types text[] not null default '{}', great_for text[] not null default '{}',
   features text[] not null default '{}', dietary text[] not null default '{}', tags text[] not null default '{}',
-  must_try text, notes text, website text, google_maps_url text, phone text, booking_url text,
+  must_try text, notes text, website text, google_maps_url text,
+  google_place_id text, google_photo_ref text, google_photo_attribution jsonb not null default '[]'::jsonb,
+  phone text, booking_url text,
   archived_at timestamptz,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
@@ -66,7 +68,7 @@ create table if not exists public.venue_photos (
   updated_at timestamptz not null default now()
 );
 create index if not exists venue_photos_place_idx on public.venue_photos(place_id, status, sort_order, created_at);
-create unique index if not exists venue_photos_one_cover_idx on public.venue_photos(place_id) where is_cover and status='approved';
+drop index if exists public.venue_photos_one_cover_idx;
 
 create table if not exists public.personal_place_data (
   user_id uuid not null references auth.users(id) on delete cascade,

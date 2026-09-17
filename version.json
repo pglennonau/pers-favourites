@@ -1,5 +1,5 @@
 {
-  "version": "0.27.15",
+  "version": "0.27.16",
   "published": "2026-09-18",
-  "notes": "Adds configurable Coffee/Near Me quick filtering, fresh location refresh, 1 km default walking radius, role-separated settings, user photo contribution improvements, and up to four selected banner photos."
+  "notes": "Adds User location banner filters, reordered quick actions, combined 5 Star results, multi-photo catalogue banners, Google photo fallback support, accurate Google connection status, and Home Screen naming from the App / collection name."
 }

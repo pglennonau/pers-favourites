@@ -11,6 +11,24 @@ function cors(origin, allowed) {
 
 function clean(v) { return String(v ?? '').trim(); }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+async function recordGoogleUsage(env) {
+  const db = env.USAGE_DB;
+  if (!db) return;
+  await db.prepare('create table if not exists google_places_usage (bucket text primary key, call_count integer not null default 0, updated_at text not null)').run();
+  const now = new Date(), minute = now.toISOString().slice(0, 16), day = now.toISOString().slice(0, 10);
+  const minuteKey = `minute:${minute}`, dayKey = `day:${day}`;
+  const [m, d] = await Promise.all([
+    db.prepare('select call_count from google_places_usage where bucket=?').bind(minuteKey).first(),
+    db.prepare('select call_count from google_places_usage where bucket=?').bind(dayKey).first()
+  ]);
+  if ((m?.call_count || 0) >= 10) throw new Error('Google Places demo limit reached for this minute. Please retry shortly.');
+  if ((d?.call_count || 0) >= 100) throw new Error('Google Places demo daily limit reached. Please retry tomorrow.');
+  await db.batch([
+    db.prepare('insert into google_places_usage(bucket,call_count,updated_at) values(?,1,?) on conflict(bucket) do update set call_count=call_count+1,updated_at=excluded.updated_at').bind(minuteKey, now.toISOString()),
+    db.prepare('insert into google_places_usage(bucket,call_count,updated_at) values(?,1,?) on conflict(bucket) do update set call_count=call_count+1,updated_at=excluded.updated_at').bind(dayKey, now.toISOString()),
+    db.prepare("delete from google_places_usage where updated_at < datetime('now','-3 days')")
+  ]);
+}
 function rectangle(lat, lng, radiusKm) {
   const dLat = radiusKm / 111.32;
   const cos = Math.max(0.2, Math.cos(lat * Math.PI / 180));
@@ -29,15 +47,17 @@ function normalisePlace(p) {
   const stateRegion = component(p, 'administrative_area_level_1') || component(p, 'administrative_area_level_2');
   const city = component(p, 'locality') || component(p, 'postal_town') || component(p, 'administrative_area_level_2');
   const suburb = component(p, 'sublocality_level_1') || component(p, 'sublocality') || component(p, 'neighborhood');
+  const photo = (p.photos || [])[0] || {};
   return {
     id: p.id || '', name: p.displayName?.text || '', address: p.formattedAddress || '',
     lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null,
     placeType: p.primaryTypeDisplayName?.text || p.primaryType || (p.types || [])[0] || '',
     primaryType: p.primaryType || '', country, stateRegion, city, suburb,
-    website: p.websiteUri || '', phone: p.internationalPhoneNumber || '', googleMapsUrl: p.googleMapsUri || ''
+    website: p.websiteUri || '', phone: p.internationalPhoneNumber || '', googleMapsUrl: p.googleMapsUri || '',
+    photoRef: photo.name || '', photoAttribution: Array.isArray(photo.authorAttributions) ? photo.authorAttributions.map(x => ({ displayName: x.displayName || '', uri: x.uri || '', photoUri: x.photoUri || '' })) : []
   };
 }
-async function textSearchWithKey(apiKey, textQuery, location, context, widen) {
+async function textSearchWithKey(env, apiKey, textQuery, location, context, widen) {
   const body = { textQuery, pageSize: 10, languageCode: 'en' };
   if (location && Number.isFinite(+location.lat) && Number.isFinite(+location.lng)) {
     const lat = +location.lat, lng = +location.lng;
@@ -48,18 +68,33 @@ async function textSearchWithKey(apiKey, textQuery, location, context, widen) {
     if (!label) throw new Error('Current location is unavailable and no city/region fallback is known.');
     body.textQuery = `${textQuery}, ${label}`;
   }
+  await recordGoogleUsage(env);
   const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents,places.photos'
     },
     body: JSON.stringify(body)
   });
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(json?.error?.message || `Google Places request failed (${r.status}).`);
   return (json.places || []).map(normalisePlace);
+}
+
+async function photoUriWithKey(env, apiKey, photoRef, maxWidthPx = 1200) {
+  const ref = clean(photoRef);
+  if (!/^places\/[^/]+\/photos\/[^/]+$/.test(ref)) throw new Error('A valid Google Places photo reference is required.');
+  const width = Math.round(clamp(+maxWidthPx || 1200, 400, 2400));
+  const u = new URL(`https://places.googleapis.com/v1/${ref}/media`);
+  u.searchParams.set('maxWidthPx', String(width));
+  u.searchParams.set('skipHttpRedirect', 'true');
+  await recordGoogleUsage(env);
+  const r = await fetch(u.toString(), { headers: { 'X-Goog-Api-Key': apiKey } });
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok || !json.photoUri) throw new Error(json?.error?.message || `Google Places photo request failed (${r.status}).`);
+  return json.photoUri;
 }
 
 async function verifyEditor(request, env) {
@@ -135,11 +170,15 @@ export default {
       if (path.endsWith('/admin/google-connection')) return await handleAdminGoogleConnection(request, env, headers);
       if (!env.GOOGLE_PLACES_API_KEY) return new Response(JSON.stringify({ error: 'GOOGLE_PLACES_API_KEY secret is not configured.' }), { status: 500, headers });
       const input = await request.json();
+      if (path.endsWith('/photo') || path.endsWith('/places-photo')) {
+        const photoUri = await photoUriWithKey(env, env.GOOGLE_PLACES_API_KEY, input?.photoRef, input?.maxWidthPx);
+        return new Response(JSON.stringify({ provider: 'google-places', photoUri }), { status: 200, headers });
+      }
       const query = clean(input?.query); const normal = clean(input?.normalizedQuery);
       if (!query) return new Response(JSON.stringify({ error: 'A venue query is required.' }), { status: 400, headers });
-      let places = await textSearchWithKey(env.GOOGLE_PLACES_API_KEY, query, input?.location, input?.context, !!input?.widen);
+      let places = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, query, input?.location, input?.context, !!input?.widen);
       if (normal && normal.toLowerCase() !== query.toLowerCase()) {
-        const retry = await textSearchWithKey(env.GOOGLE_PLACES_API_KEY, normal, input?.location, input?.context, !!input?.widen);
+        const retry = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, normal, input?.location, input?.context, !!input?.widen);
         const seen = new Set(places.map(x => x.id || `${x.name}|${x.address}`));
         for (const x of retry) { const k = x.id || `${x.name}|${x.address}`; if (!seen.has(k)) { seen.add(k); places.push(x); } }
       }

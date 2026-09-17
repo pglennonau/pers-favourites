@@ -1,7 +1,7 @@
 # Pers Favourites PWA
 
-Version: **0.27.12**  
-Date: 16 September 2026
+Version: **0.27.16**
+Date: 18 September 2026
 
 0.27.12 corrects the geography controls reported during iPhone testing. It is a patch release and does not change the Pers database schema or localStorage keys.
 
@@ -44,3 +44,12 @@ No database migration is required from 0.27.11.
 - Up to four approved photos can be selected for the venue banner; the banner falls back to initials when no Pers photo exists.
 - Google Places photos are intended as a temporary compliant fallback once the deployed Worker photo endpoint is enabled; they are not copied into Pers storage.
 - Passkey/WebAuthn is the target protected-authentication method for production. The local trial still uses its existing local-role/test authentication path; no biometric data is stored by Pers.
+
+## 0.27.16 update
+- Country, State/Region and City/Town are prominent per-User location filters. Each committed change immediately refreshes the result count, catalogue and map.
+- Opening quick actions begin Near Me, Favourites, Want to Visit, Coffee and 5 Star, followed by the remaining actions in their prior order.
+- 5 Star includes a place when the Pers/Owner rating is exactly 5.0 or the non-Owner User Rating average is 4.5 to 5.0.
+- All selected banner photos appear on both the opening catalogue card and venue detail, using split/collage layouts for two to four photos.
+- When no approved Pers photo exists, the app may show an attributed Google Places photo without copying it into Pers storage; initials remain the safe final fallback.
+- Account & Settings verifies the configured Google Places service instead of falsely reporting a disconnected local trial.
+- New Home Screen installs use the Owner-controlled App / collection name. Remove and reinstall an existing icon to refresh its label.
