@@ -1,5 +1,5 @@
 {
-  "version": "0.27.13",
+  "version": "0.27.14",
   "published": "2026-09-17",
-  "notes": "Clarifies the Find Place Online workflow: search results now show Use Details and the Add Place form clearly shows Save Place before the venue is added."
+  "notes": "Fixes Add/Edit country switching on iPhone, makes the geography cascade terminology country-aware, adds Cafe - Specialty Coffee as a Place Type, and adds Coffee under Great For."
 }

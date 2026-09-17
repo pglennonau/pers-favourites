@@ -131,8 +131,8 @@
         <label>Place type<select id="placeType"><option value="">Select Place Type</option></select></label>
         <label>Cuisine<select id="placeCuisine"><option value="">Select Cuisine</option></select></label>
         <label>Country<input id="placeCountry" class="geo-choice" list="placeCountryList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="placeCountryList"></datalist></label>
-        <label>State/Region<input id="placeRegion" class="geo-choice" list="placeRegionList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="placeRegionList"></datalist></label>
-        <label>City/Town<input id="placeCity" class="geo-choice" list="placeCityList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="placeCityList"></datalist></label>
+        <label><span id="placeRegionLabel">State/Region</span><input id="placeRegion" class="geo-choice" list="placeRegionList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="placeRegionList"></datalist></label>
+        <label><span id="placeCityLabel">City/Town</span><input id="placeCity" class="geo-choice" list="placeCityList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="placeCityList"></datalist></label>
         <label>Suburb/Area<input id="placeSuburb" /></label>
         <label class="wide">Address<input id="placeAddress" /></label>
         <label>Latitude<input id="placeLat" type="number" step="any" /></label>
