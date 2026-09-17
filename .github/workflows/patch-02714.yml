@@ -1,0 +1,171 @@
+name: Patch 0.27.14 app base
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-02714.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch app.js
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('app.js')
+          s = path.read_text()
+
+          def replace_once(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'Missing expected text for {label}')
+              s = s.replace(old, new, 1)
+
+          replace_once("version:'0.27.12'", "version:'0.27.14'", 'default version')
+          replace_once(
+              "const PLACE_TYPES=['Restaurant','Bar','Wine Bar','Cafe','Bakery','Pub','Bistro','Brasserie','Winery','Cellar Door','Hotel','Accommodation','Attraction','Market','Shop','Beach','Park','Other'];",
+              "const PLACE_TYPES=['Restaurant','Bar','Wine Bar','Cafe','Cafe - Specialty Coffee','Bakery','Pub','Bistro','Brasserie','Winery','Cellar Door','Hotel','Accommodation','Attraction','Market','Shop','Beach','Park','Other'];",
+              'place types'
+          )
+          replace_once(
+              "const GREAT_FOR=['Casual','Couples','Family','Groups','Local Favourite','Special Occasion','Visitors','Views','Wine'];",
+              "const GREAT_FOR=['Casual','Coffee','Couples','Family','Groups','Local Favourite','Special Occasion','Visitors','Views','Wine'];",
+              'great for'
+          )
+          replace_once(
+              '// 0.27.12: searchable geographic controls. Add/Edit uses master geography with an on-device fallback; opening filters use the Pers catalogue.',
+              '// 0.27.14: searchable geographic controls with iPhone-safe commits and country-aware cascade terminology.',
+              'geography comment'
+          )
+
+          new_bind = r'''function bindTypeaheadChoice(id,onCommit,{geo=false}={}){
+            const el=$(id);if(!el)return;let timer=null,lastCommitted='';
+            const setCommitted=v=>{const next=clean(v);if(next===lastCommitted)return;lastCommitted=next;onCommit(next);};
+            const resolveAndCommit=(fuzzy=true)=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){el.value='';setCommitted('');return '';}const v=resolveSearchChoice(id,raw,{geo,fuzzy});if(v){el.value=v;setCommitted(v);return v;}return '';};
+            // Programmatic fills (for example Google returning Spain) do not fire input/change.
+            // Re-sync when the user enters the field so an old country cannot snap back on iPhone Safari.
+            el.addEventListener('focus',()=>{clearTimeout(timer);const raw=clean(el.value);lastCommitted=resolveSearchChoice(id,raw,{geo,fuzzy:true})||raw;if(raw&&/^place(Country|Region|City)$/.test(id)){setTimeout(()=>{try{el.select();}catch{}},0);}try{el.showPicker?.();}catch{}});
+            el.addEventListener('input',()=>{
+              clearTimeout(timer);const q=clean(el.value);
+              if(!q){setCommitted('');return;}
+              // iPhone datalist selections reliably produce an input event even when change/blur ordering varies.
+              const exact=resolveSearchChoice(id,q,{geo,fuzzy:false});
+              const isExact=exact&&(geo?geoSame(exact,q):foldText(exact)===foldText(q));
+              if(isExact){el.value=exact;setCommitted(exact);return;}
+              if(q.length>=3)timer=setTimeout(()=>{const v=resolveSearchChoice(id,q,{geo,fuzzy:false});if(v){el.value=v;setCommitted(v);}},220);
+            });
+            el.addEventListener('change',()=>resolveAndCommit(true));
+            el.addEventListener('blur',()=>{const raw=clean(el.value);if(!raw){resolveAndCommit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;setCommitted(v);}/* keep unmatched text visible rather than restoring a stale prior country */});
+            el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){const v=resolveSearchChoice(id,el.value,{geo,fuzzy:true});if(v){e.preventDefault();el.value=v;setCommitted(v);}}});
+          }'''
+          s, n = re.subn(
+              r"function bindTypeaheadChoice\(id,onCommit,\{geo=false\}=\{\}\)\{.*?\n\}\n\nfunction catalogueSearchMatches",
+              new_bind + "\n\nfunction catalogueSearchMatches",
+              s,
+              count=1,
+              flags=re.S,
+          )
+          if n != 1:
+              raise SystemExit('Could not patch bindTypeaheadChoice')
+
+          geo_anchor = "function geoSame(a,b){return !!a&&!!b&&geoAliasKey(a)===geoAliasKey(b);}\n"
+          geo_extra = r'''function regionTerm(country=''){
+            const k=geoAliasKey(country);
+            const terms={
+              'australia':'State/Territory','united states':'State','canada':'Province/Territory','new zealand':'Region',
+              'spain':'Region','italy':'Region','france':'Region','portugal':'Region','greece':'Region','ireland':'County',
+              'germany':'State','austria':'State','switzerland':'Canton','united kingdom':'Country/Region','japan':'Prefecture'
+            };
+            return terms[k]||'State/Region';
+          }
+          function updateEditorGeoLabels(country=''){
+            const term=regionTerm(country);
+            const label=$('placeRegionLabel');if(label)label.textContent=term;
+            const cityLabel=$('placeCityLabel');if(cityLabel)cityLabel.textContent='City/Town';
+            return term;
+          }
+          '''
+          if 'function regionTerm(' not in s:
+              replace_once(geo_anchor, geo_anchor + geo_extra, 'country-aware region terminology')
+
+          new_hydrate = r'''async function hydrateEditorGeography(target={}){
+            const seq=++editorGeoRefreshSeq,active=places.filter(p=>!p.archivedAt),country=clean(target.country??$('placeCountry')?.value),region=clean(target.region??$('placeRegion')?.value),city=clean(target.city??$('placeCity')?.value);
+            const term=updateEditorGeoLabels(country);
+            fillEditorChoice('placeCountry','Loading countries…',active.map(p=>p.country),country,true);
+            const countries=await ensureGeoCountries();if(seq!==editorGeoRefreshSeq)return;fillEditorChoice('placeCountry','Country - type to search',uniq([...countries.map(c=>c.name),...active.map(p=>p.country)]),country,false);
+            if(!country){fillEditorChoice('placeRegion','Select Country first',[],'',true);fillEditorChoice('placeCity',`Select ${term} first`,[],'',true);return;}
+            const savedRegions=active.filter(p=>geoSame(p.country,country)).map(p=>p.stateRegion);fillEditorChoice('placeRegion',`Loading ${term.toLowerCase()}…`,savedRegions,region,true);const states=await ensureGeoStates(country);if(seq!==editorGeoRefreshSeq)return;const regions=uniq([...states.map(x=>x.name),...savedRegions,region]);fillEditorChoice('placeRegion',`${term} - type to search`,regions,region,!regions.length);
+            if(!region){fillEditorChoice('placeCity',`Select ${term} first`,[],'',true);return;}
+            const savedCities=active.filter(p=>geoSame(p.country,country)&&geoSame(p.stateRegion,region)).map(p=>p.city);fillEditorChoice('placeCity','Loading cities…',savedCities,city,true);const cities=await ensureGeoCities(country,region);if(seq!==editorGeoRefreshSeq)return;const cityValues=uniq([...cities.map(x=>x.name),...savedCities,city]);fillEditorChoice('placeCity','City/Town - type to search',cityValues,city,!cityValues.length);
+          }'''
+          s, n = re.subn(
+              r"async function hydrateEditorGeography\(target=\{\}\)\{.*?\n\}\nfunction refreshMultiEditor",
+              new_hydrate + "\nfunction refreshMultiEditor",
+              s,
+              count=1,
+              flags=re.S,
+          )
+          if n != 1:
+              raise SystemExit('Could not patch hydrateEditorGeography')
+
+          new_filters = r'''function populateFilterOptions(){
+            const dynamic=[['typeFilter','Place Type','type'],['cuisineFilter','Cuisine','cuisine'],['mealFilter','Meal / Visit Type','meal'],['greatForFilter','Great For','greatFor'],['featureFilter','Feature','feature'],['dietaryFilter','Dietary','dietary'],['tagFilter','Personal Tag','tag']];
+            for(let pass=0;pass<2;pass++){
+              const countryOptions=counted(rowsForFilterChoice('country').map(p=>p.country));
+              if(filters.country&&!optionContains(countryOptions,filters.country,true)){filters.country='';filters.region='';filters.city='';}
+              populateSearchChoice('countryFilter','Country - type to search',countryOptions,filters.country,!countryOptions.length);
+              const term=regionTerm(filters.country);
+              if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter','Select Country first',[],'',true);populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
+              else{
+                const regionOptions=counted(rowsForFilterChoice('region').filter(p=>geoSame(p.country,filters.country)).map(p=>p.stateRegion));
+                if(filters.region&&!optionContains(regionOptions,filters.region,true)){filters.region='';filters.city='';}
+                populateSearchChoice('regionFilter',`${term} - type to search`,regionOptions,filters.region,!regionOptions.length);
+                if(!filters.region){filters.city='';populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
+                else{const cityOptions=counted(rowsForFilterChoice('city').filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter','City/Town - type to search',cityOptions,filters.city,!cityOptions.length);}
+              }
+              for(const [id,label,key] of dynamic){const options=counted(valuesForFilter(rowsForFilterChoice(key),key));if(filters[key]&&!optionContains(options,filters[key],false))filters[key]='';populateSelect(id,label,options,filters[key]);}
+            }
+            syncFilterControls();
+          }'''
+          s, n = re.subn(
+              r"function populateFilterOptions\(\)\{.*?\n\}\nfunction filterCountLabel",
+              new_filters + "\nfunction filterCountLabel",
+              s,
+              count=1,
+              flags=re.S,
+          )
+          if n != 1:
+              raise SystemExit('Could not patch populateFilterOptions')
+
+          s = s.replace(
+              "toast('Online place details added. Review them, then Save.');",
+              "toast('Online place details loaded. Review them, then tap Save Place.');"
+          )
+
+          path.write_text(s)
+          PY
+
+          node --check app.js
+          grep -q "Cafe - Specialty Coffee" app.js
+          grep -q "'Coffee','Couples'" app.js
+          grep -q "'australia':'State/Territory'" app.js
+          grep -q "version:'0.27.14'" app.js
+
+      - name: Commit patched base file
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "0.27.14 fix geography cascade and classifications"
+          git push origin HEAD:main
