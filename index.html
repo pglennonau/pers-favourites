@@ -51,7 +51,7 @@
 
       <div class="quick-actions" id="quickActions">
         <button data-quick="near">📍 Near Me</button>
-        <button data-quick="tonight">Tonight</button>
+        <button data-quick="coffee">☕ Coffee</button>
         <button id="askPersBtn" class="hidden">Ask Pers</button>
         <button data-quick="five">★ 5 Star</button>
         <button data-quick="favourite">♥ Favourites</button>
@@ -85,7 +85,7 @@
           <option value="">User Rating</option><option value="5">5★ only</option><option value="4">4★+</option><option value="3">3★+</option>
         </select>
         <select id="distanceFilter">
-          <option value="">Distance</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option>
+          <option value="">Distance</option><option value="0.5">500 m</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
         </select>
         <button id="moreFiltersBtn" class="secondary compact">More Filters ▾</button>
       </div>
@@ -109,7 +109,7 @@
         <strong id="resultCount">0 places</strong>
         <div class="admin-actions" id="adminActions">
           <button id="addPlaceBtn" class="primary compact">+ Add</button>
-          <button id="importBtn" class="secondary compact">Import</button>
+
         </div>
       </div>
 
@@ -223,9 +223,9 @@
       <button id="contributorSigninBtn" class="secondary hidden">Sign in to contribute photos</button>
     </div>
     <hr />
-    <h3>Display & preferences</h3>
+    <h3>My Settings</h3>
     <label>Preferred distance radius
-      <select id="prefDistance"><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option></select>
+      <select id="prefDistance"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select>
     </label>
     <label class="check"><input id="rememberFilters" type="checkbox" /> Remember my filters between visits</label>
     <hr />
@@ -244,6 +244,10 @@
     </section>
     <hr />
     <section id="editorSettings" class="hidden">
+      <h3 id="roleAreaTitle">Owner</h3>
+      <p class="muted small">Role-based management area. Import is available only here, not on the normal catalogue screen.</p>
+      <button id="importBtn" class="secondary">Import places</button>
+      <hr />
       <h3>Shared content controls</h3>
       <button id="managePhotosBtn" class="secondary">Manage venue photos <span id="pendingPhotoBadge" class="count-badge hidden">0</span></button>
       <p class="muted small">User photos require approval before they appear to other users. Owner/Admin can approve, hide, change captions, choose cover photos, reorder visible photos and remove photos.</p>
@@ -280,14 +284,16 @@
     </section>
     <section id="ownerSettings" class="hidden">
       <hr />
-      <h3>Owner-only controls</h3>
+      <h3>Owner controls</h3>
       <p class="owner-callout">The Owner has final control over the collection identity, permanent deletion and all content shown in the app.</p>
       <label>App / collection name<input id="settingAppName" /></label>
       <p class="muted small">This name is also used for new Home Screen/PWA installs. If an icon was installed before the rename, remove and add it again to refresh its label.</p>
-      <label>Administrator display name<input id="settingOwnerName" placeholder="e.g. Per" /></label>
-      <p class="muted small">This is the name shown with the Pers/Administrator rating. Administrator rights come from the protected account role, not from typing a name here.</p>
+      <label>Owner display name<input id="settingOwnerName" placeholder="e.g. Per" /></label>
+      <p class="muted small">This is the name shown with the Pers/Owner rating. Owner and System Administrator rights come from protected account roles, not from typing a name here.</p>
       <label>Home city/region<input id="settingHomeRegion" /></label>
       <label class="check"><input id="settingAllowUserPhotos" type="checkbox" /> Allow users to contribute venue photos</label>
+      <label>Default Near Me radius<select id="settingDefaultNearMe"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label>
+      <label class="check"><input id="settingQuickCoffee" type="checkbox" /> Show Coffee quick-filter button</label>
       <label class="check"><input id="settingAskPersEnabled" type="checkbox" /> Enable Ask Pers natural-language search</label>
       <label>Ask Pers server endpoint<input id="settingAskPersEndpoint" type="url" placeholder="https://your-worker.example.com/ask-pers" /></label>
       <p class="muted small">The OpenAI/API key belongs in the server/Cloudflare secret store, never in this browser app. The endpoint may return controlled filters only.</p>
@@ -299,12 +305,12 @@
     </section>
     <section id="localRoleSettings" class="hidden">
       <hr /><h3>Local test identity</h3>
-      <label>Test role<select id="localRoleSelect"><option value="owner">Owner</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select></label>
+      <label>Test role<select id="localRoleSelect"><option value="owner">Owner</option><option value="sysadmin">System Administrator</option><option value="viewer">User</option></select></label>
     </section>
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.12</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.15</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">
