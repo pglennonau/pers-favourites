@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.12',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.14',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const SUPABASE_PUBLIC_KEY = CFG.supabasePublishableKey || CFG.supabaseAnonKey || ''; // legacy anon key remains accepted for older rollouts
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
@@ -8,10 +8,10 @@ const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || locatio
 const LEGACY_SESSION = `pers-v025-session:${CFG.deploymentId || location.pathname}`;
 const PHOTO_BUCKET = 'venue-photos';
 const FILTER_KEYS = ['country','region','city','type','cuisine','rating','distance','price','meal','greatFor','feature','status','dietary','tag'];
-const PLACE_TYPES=['Restaurant','Bar','Wine Bar','Cafe','Bakery','Pub','Bistro','Brasserie','Winery','Cellar Door','Hotel','Accommodation','Attraction','Market','Shop','Beach','Park','Other'];
+const PLACE_TYPES=['Restaurant','Bar','Wine Bar','Cafe','Cafe - Specialty Coffee','Bakery','Pub','Bistro','Brasserie','Winery','Cellar Door','Hotel','Accommodation','Attraction','Market','Shop','Beach','Park','Other'];
 const CUISINES=['Australian','Basque','Catalan','Chinese','French','Greek','Indian','Italian','Japanese','Korean','Mediterranean','Mexican','Middle Eastern','Modern Australian','Modern European','Seafood','Spanish','Steakhouse','Tapas','Thai','Vegetarian','Vietnamese','Other'];
 const MEALS=['Breakfast','Brunch','Lunch','Dinner','Drinks','Coffee','Dessert','Tasting','Takeaway'];
-const GREAT_FOR=['Casual','Couples','Family','Groups','Local Favourite','Special Occasion','Visitors','Views','Wine'];
+const GREAT_FOR=['Casual','Coffee','Couples','Family','Groups','Local Favourite','Special Occasion','Visitors','Views','Wine'];
 const FEATURES=['Bar Seating','Beachfront','BYO','Historic','Outdoor Seating','Rooftop','Waterfront','Wheelchair Access','Wine List'];
 const DIETARY=['Gluten Free','Halal','Kosher','Vegan','Vegetarian'];
 const TAGS=['Great Wine','Local Favourite','Old Town','Special Occasion','Visitors','Views'];
@@ -62,7 +62,7 @@ let photoDbPromise = null;
 let askPersRecognition = null;
 let askPersListening = false;
 
-// 0.27.12: searchable geographic controls. Add/Edit uses master geography with an on-device fallback; opening filters use the Pers catalogue.
+// 0.27.14: searchable geographic controls with iPhone-safe commits and country-aware cascade terminology.
 const GEO_MODULE_URL='https://cdn.jsdelivr.net/npm/@countrystatecity/countries-browser@1.0.4/+esm';
 let geoModulePromise=null;
 let geoCountries=[];
@@ -255,7 +255,7 @@ async function useOnlinePlace(i){
   Object.entries(plain).forEach(([k,v])=>{if($(k)&&v!=null)$(k).value=v??'';});
   refreshEditorTaxonomy(p);$('placeType').value=clean(p.placeType);$('placeCuisine').value=clean(p.cuisine);
   $('placeMeals').value=arr(p.mealTypes).join(', ');$('placeGreatFor').value=arr(p.greatFor).join(', ');$('placeFeatures').value=arr(p.features).join(', ');$('placeDietary').value=arr(p.dietary).join(', ');$('placeTags').value=arr(p.tags).join(', ');refreshAllMultiEditors();
-  await hydrateEditorGeography({country:p.country,region:p.stateRegion,city:p.city});$('findPlaceDialog').close();toast('Online place details added. Review them, then Save.');
+  await hydrateEditorGeography({country:p.country,region:p.stateRegion,city:p.city});$('findPlaceDialog').close();toast('Online place details loaded. Review them, then tap Save Place.');
 }
 
 function splitCsvLine(line){
@@ -457,10 +457,23 @@ function resolveSearchChoice(id,raw,{geo=false,fuzzy=true}={}){
 function commitSearchChoice(id,opts={}){const input=$(id);if(!input)return '';const raw=clean(input.value);if(!raw){input.value='';return '';}const v=resolveSearchChoice(id,raw,opts);if(v){input.value=v;return v;}return '';}
 function bindTypeaheadChoice(id,onCommit,{geo=false}={}){
   const el=$(id);if(!el)return;let timer=null,lastCommitted='';
-  const commit=(fuzzy=true)=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){if(lastCommitted!==''){lastCommitted='';onCommit('');}return;}const v=commitSearchChoice(id,{geo,fuzzy});if(v&&v!==lastCommitted){lastCommitted=v;onCommit(v);} };
-  el.addEventListener('input',()=>{clearTimeout(timer);const q=clean(el.value);if(q.length>=3)timer=setTimeout(()=>{const v=resolveSearchChoice(id,q,{geo,fuzzy:false});if(v){el.value=v;if(v!==lastCommitted){lastCommitted=v;onCommit(v);}}},220);});
-  el.addEventListener('change',()=>commit(true));el.addEventListener('blur',()=>{const raw=clean(el.value);if(!raw){commit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;if(v!==lastCommitted){lastCommitted=v;onCommit(v);}}else if((searchableChoices.get(id)||[]).length){el.value=lastCommitted||'';}});
-  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){const v=resolveSearchChoice(id,el.value,{geo,fuzzy:true});if(v){e.preventDefault();el.value=v;if(v!==lastCommitted){lastCommitted=v;onCommit(v);}}}});
+  const setCommitted=v=>{const next=clean(v);if(next===lastCommitted)return;lastCommitted=next;onCommit(next);};
+  const resolveAndCommit=(fuzzy=true)=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){el.value='';setCommitted('');return '';}const v=resolveSearchChoice(id,raw,{geo,fuzzy});if(v){el.value=v;setCommitted(v);return v;}return '';};
+  // Programmatic fills (for example Google returning Spain) do not fire input/change.
+  // Re-sync when the user enters the field so an old country cannot snap back on iPhone Safari.
+  el.addEventListener('focus',()=>{clearTimeout(timer);const raw=clean(el.value);lastCommitted=resolveSearchChoice(id,raw,{geo,fuzzy:true})||raw;if(raw&&/^place(Country|Region|City)$/.test(id)){setTimeout(()=>{try{el.select();}catch{}},0);}try{el.showPicker?.();}catch{}});
+  el.addEventListener('input',()=>{
+    clearTimeout(timer);const q=clean(el.value);
+    if(!q){setCommitted('');return;}
+    // iPhone datalist selections reliably produce an input event even when change/blur ordering varies.
+    const exact=resolveSearchChoice(id,q,{geo,fuzzy:false});
+    const isExact=exact&&(geo?geoSame(exact,q):foldText(exact)===foldText(q));
+    if(isExact){el.value=exact;setCommitted(exact);return;}
+    if(q.length>=3)timer=setTimeout(()=>{const v=resolveSearchChoice(id,q,{geo,fuzzy:false});if(v){el.value=v;setCommitted(v);}},220);
+  });
+  el.addEventListener('change',()=>resolveAndCommit(true));
+  el.addEventListener('blur',()=>{const raw=clean(el.value);if(!raw){resolveAndCommit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;setCommitted(v);}/* keep unmatched text visible rather than restoring a stale prior country */});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){const v=resolveSearchChoice(id,el.value,{geo,fuzzy:true});if(v){e.preventDefault();el.value=v;setCommitted(v);}}});
 }
 
 function catalogueSearchMatches(p){const q=foldText($('searchInput')?.value||'');if(!q)return true;return foldText([p.name,p.placeType,p.cuisine,p.country,p.stateRegion,p.city,p.suburb,p.address,p.notes,p.mustTry,...(p.tags||[])].join(' ')).includes(q);}
@@ -483,6 +496,21 @@ function optionContains(options,value,geo=false){return options.some(o=>geo?geoS
 function geoKey(v){return foldText(v);}
 function geoAliasKey(v){const k=geoKey(v);const aliases={'andalucia':'andalusia','islas baleares':'balearic islands','illes balears':'balearic islands','cataluna':'catalonia','catalunya':'catalonia','comunidad valenciana':'valencian community','comunitat valenciana':'valencian community','comunidad de madrid':'community of madrid','madrid':'community of madrid','region de murcia':'region of murcia','murcia':'region of murcia','pais vasco':'basque country','euskadi':'basque country','navarra':'navarre','canarias':'canary islands','aragon':'aragon'};return aliases[k]||k;}
 function geoSame(a,b){return !!a&&!!b&&geoAliasKey(a)===geoAliasKey(b);}
+function regionTerm(country=''){
+  const k=geoAliasKey(country);
+  const terms={
+    'australia':'State/Territory','united states':'State','canada':'Province/Territory','new zealand':'Region',
+    'spain':'Region','italy':'Region','france':'Region','portugal':'Region','greece':'Region','ireland':'County',
+    'germany':'State','austria':'State','switzerland':'Canton','united kingdom':'Country/Region','japan':'Prefecture'
+  };
+  return terms[k]||'State/Region';
+}
+function updateEditorGeoLabels(country=''){
+  const term=regionTerm(country);
+  const label=$('placeRegionLabel');if(label)label.textContent=term;
+  const cityLabel=$('placeCityLabel');if(cityLabel)cityLabel.textContent='City/Town';
+  return term;
+}
 async function geographyApi(){if(!geoModulePromise)geoModulePromise=import(GEO_MODULE_URL).catch(e=>{geoLoadError=clean(e?.message)||'Online geography unavailable.';geoModulePromise=null;throw e;});return geoModulePromise;}
 function fallbackCountries(){return Array.isArray(window.PERS_GEO_FALLBACK?.countries)?window.PERS_GEO_FALLBACK.countries:[];}
 function fallbackStates(code){return Array.isArray(window.PERS_GEO_FALLBACK?.subdivisions?.[code])?window.PERS_GEO_FALLBACK.subdivisions[code]:[];}
@@ -495,11 +523,12 @@ function fillEditorChoice(id,label,values,current='',disabled=false){const all=u
 function refreshEditorTaxonomy(source={}){const active=places.filter(p=>!p.archivedAt);const type=clean(source.placeType??$('placeType')?.value);const cuisine=clean(source.cuisine??$('placeCuisine')?.value);populateSelect('placeType','Select Place Type',uniq([...PLACE_TYPES,...active.map(p=>p.placeType)]),type);populateSelect('placeCuisine','Select Cuisine',uniq([...CUISINES,...active.map(p=>p.cuisine)]),cuisine);}
 async function hydrateEditorGeography(target={}){
   const seq=++editorGeoRefreshSeq,active=places.filter(p=>!p.archivedAt),country=clean(target.country??$('placeCountry')?.value),region=clean(target.region??$('placeRegion')?.value),city=clean(target.city??$('placeCity')?.value);
+  const term=updateEditorGeoLabels(country);
   fillEditorChoice('placeCountry','Loading countries…',active.map(p=>p.country),country,true);
   const countries=await ensureGeoCountries();if(seq!==editorGeoRefreshSeq)return;fillEditorChoice('placeCountry','Country - type to search',uniq([...countries.map(c=>c.name),...active.map(p=>p.country)]),country,false);
-  if(!country){fillEditorChoice('placeRegion','Select Country first',[],'',true);fillEditorChoice('placeCity','Select State/Region first',[],'',true);return;}
-  const savedRegions=active.filter(p=>geoSame(p.country,country)).map(p=>p.stateRegion);fillEditorChoice('placeRegion','Loading regions…',savedRegions,region,true);const states=await ensureGeoStates(country);if(seq!==editorGeoRefreshSeq)return;const regions=uniq([...states.map(x=>x.name),...savedRegions,region]);fillEditorChoice('placeRegion','State/Region - type to search',regions,region,!regions.length);
-  if(!region){fillEditorChoice('placeCity','Select State/Region first',[],'',true);return;}
+  if(!country){fillEditorChoice('placeRegion','Select Country first',[],'',true);fillEditorChoice('placeCity',`Select ${term} first`,[],'',true);return;}
+  const savedRegions=active.filter(p=>geoSame(p.country,country)).map(p=>p.stateRegion);fillEditorChoice('placeRegion',`Loading ${term.toLowerCase()}…`,savedRegions,region,true);const states=await ensureGeoStates(country);if(seq!==editorGeoRefreshSeq)return;const regions=uniq([...states.map(x=>x.name),...savedRegions,region]);fillEditorChoice('placeRegion',`${term} - type to search`,regions,region,!regions.length);
+  if(!region){fillEditorChoice('placeCity',`Select ${term} first`,[],'',true);return;}
   const savedCities=active.filter(p=>geoSame(p.country,country)&&geoSame(p.stateRegion,region)).map(p=>p.city);fillEditorChoice('placeCity','Loading cities…',savedCities,city,true);const cities=await ensureGeoCities(country,region);if(seq!==editorGeoRefreshSeq)return;const cityValues=uniq([...cities.map(x=>x.name),...savedCities,city]);fillEditorChoice('placeCity','City/Town - type to search',cityValues,city,!cityValues.length);
 }
 function refreshMultiEditor(fieldId){const cfg=MULTI_EDITOR_FIELDS[fieldId];if(!cfg)return;const hidden=$(fieldId),picker=$(cfg.picker),chips=$(cfg.chips);if(!hidden||!picker||!chips)return;const selected=uniq(arr(hidden.value));hidden.value=selected.join(', ');const observed=places.filter(p=>!p.archivedAt).flatMap(p=>p[cfg.prop]||[]);const choices=uniq([...cfg.values,...observed]).filter(v=>!selected.includes(v));populateSelect(cfg.picker,`Add ${cfg.label}…`,choices,'');chips.innerHTML=selected.map(v=>`<span class="chip">${esc(v)} <button type="button" data-multi-remove="${fieldId}" data-value="${esc(v)}" aria-label="Remove ${esc(v)}">×</button></span>`).join('');}
@@ -535,12 +564,13 @@ function populateFilterOptions(){
     const countryOptions=counted(rowsForFilterChoice('country').map(p=>p.country));
     if(filters.country&&!optionContains(countryOptions,filters.country,true)){filters.country='';filters.region='';filters.city='';}
     populateSearchChoice('countryFilter','Country - type to search',countryOptions,filters.country,!countryOptions.length);
-    if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter','Select Country first',[],'',true);populateSearchChoice('cityFilter','Select State/Region first',[],'',true);}
+    const term=regionTerm(filters.country);
+    if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter','Select Country first',[],'',true);populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
     else{
       const regionOptions=counted(rowsForFilterChoice('region').filter(p=>geoSame(p.country,filters.country)).map(p=>p.stateRegion));
       if(filters.region&&!optionContains(regionOptions,filters.region,true)){filters.region='';filters.city='';}
-      populateSearchChoice('regionFilter','State/Region - type to search',regionOptions,filters.region,!regionOptions.length);
-      if(!filters.region){filters.city='';populateSearchChoice('cityFilter','Select State/Region first',[],'',true);}
+      populateSearchChoice('regionFilter',`${term} - type to search`,regionOptions,filters.region,!regionOptions.length);
+      if(!filters.region){filters.city='';populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
       else{const cityOptions=counted(rowsForFilterChoice('city').filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter','City/Town - type to search',cityOptions,filters.city,!cityOptions.length);}
     }
     for(const [id,label,key] of dynamic){const options=counted(valuesForFilter(rowsForFilterChoice(key),key));if(filters[key]&&!optionContains(options,filters[key],false))filters[key]='';populateSelect(id,label,options,filters[key]);}
