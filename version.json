@@ -1,5 +1,5 @@
 {
-  "version": "0.27.14",
-  "published": "2026-09-17",
-  "notes": "Fixes Add/Edit country switching on iPhone, makes the geography cascade terminology country-aware, adds Cafe - Specialty Coffee as a Place Type, and adds Coffee under Great For."
+  "version": "0.27.15",
+  "published": "2026-09-18",
+  "notes": "Adds configurable Coffee/Near Me quick filtering, fresh location refresh, 1 km default walking radius, role-separated settings, user photo contribution improvements, and up to four selected banner photos."
 }

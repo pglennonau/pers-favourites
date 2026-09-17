@@ -34,3 +34,13 @@ Use **☰ → Account & Settings → App Updates → Check for Update → Instal
 5. Choose **Andalusia**, then **Granada**, save the venue, reopen it and confirm all three values round-trip correctly.
 
 No database migration is required from 0.27.11.
+
+## 0.27.15 update
+- Home quick actions now include Coffee and remove Tonight.
+- Near Me and Coffee force a fresh device location before filtering; default radius is 1 km and users can choose 250 m, 500 m, 1 km, 2 km, 5 km or 10 km.
+- Import is moved from the catalogue into protected role management.
+- Account & Settings is separated conceptually into My Settings, Owner and System Administrator responsibilities.
+- Venue photo contribution remains available to users from venue details, subject to Owner moderation.
+- Up to four approved photos can be selected for the venue banner; the banner falls back to initials when no Pers photo exists.
+- Google Places photos are intended as a temporary compliant fallback once the deployed Worker photo endpoint is enabled; they are not copied into Pers storage.
+- Passkey/WebAuthn is the target protected-authentication method for production. The local trial still uses its existing local-role/test authentication path; no biometric data is stored by Pers.
