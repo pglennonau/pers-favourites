@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.17',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.18',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const SUPABASE_PUBLIC_KEY = CFG.supabasePublishableKey || CFG.supabaseAnonKey || ''; // legacy anon key remains accepted for older rollouts
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
@@ -203,8 +203,10 @@ function foldText(v){return clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g
 function onlineNameScore(name,q){const n=foldText(name),needle=foldText(q);if(!n||!needle)return 0;if(n===needle)return 1000;if(n.startsWith(needle+' '))return 900;if(n.includes(' '+needle+' ')||n.endsWith(' '+needle))return 820;if(n.includes(needle))return 700;const toks=needle.split(/\s+/).filter(Boolean);return toks.length&&toks.every(t=>n.includes(t))?550:0;}
 function distanceKm(a,b){if(!a||!b)return null;const R=6371,d2r=Math.PI/180,dp=(b.lat-a.lat)*d2r,dl=(b.lng-a.lng)*d2r,aa=Math.sin(dp/2)**2+Math.cos(a.lat*d2r)*Math.cos(b.lat*d2r)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(aa));}
 function geoErrorMessage(err){if(!err)return 'Location is unavailable.';if(err.code===1)return 'Location permission is off for this PWA/site. Enable Location for it in iPhone Settings/Safari, then retry.';if(err.code===2)return 'Your current location could not be determined.';if(err.code===3)return 'Location request timed out. Retry where the phone has a clearer location signal.';return clean(err.message)||'Location is unavailable.';}
-function getDeviceLocation(forceFresh=false){return new Promise((resolve)=>{if(currentPosition&&!forceFresh){lastGeoError='';return resolve(currentPosition);}if(!navigator.geolocation){lastGeoError='Location is not supported in this browser.';return resolve(null);}navigator.geolocation.getCurrentPosition(pos=>{currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy||null};lastGeoError='';resolve(currentPosition);},err=>{lastGeoError=geoErrorMessage(err);resolve(null);},{enableHighAccuracy:true,timeout:12000,maximumAge:0});});}
+function getDeviceLocation(forceFresh=false,timeoutMs=12000){return new Promise((resolve)=>{if(currentPosition&&!forceFresh){lastGeoError='';return resolve(currentPosition);}if(!navigator.geolocation){lastGeoError='Location is not supported in this browser.';return resolve(null);}navigator.geolocation.getCurrentPosition(pos=>{currentPosition={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy||null};lastGeoError='';resolve(currentPosition);},err=>{lastGeoError=geoErrorMessage(err);resolve(null);},{enableHighAccuracy:true,timeout:Math.max(2500,+timeoutMs||12000),maximumAge:0});});}
 function storedLocationContext(){const last=preferences?.lastLocation||{};return {city:clean(filters.city||last.city),region:clean(filters.region||last.region),country:clean(filters.country||last.country),label:[clean(filters.city||last.city),clean(filters.region||last.region),clean(filters.country||last.country)].filter(Boolean).join(', ')}};
+function editorSearchContext(){const latText=clean($('placeLat')?.value),lngText=clean($('placeLng')?.value),lat=latText===''?NaN:+latText,lng=lngText===''?NaN:+lngText;const city=clean($('placeCity')?.value),region=clean($('placeRegion')?.value),country=clean($('placeCountry')?.value);return {loc:Number.isFinite(lat)&&Number.isFinite(lng)?{lat,lng,accuracy:null}:null,ctx:{city,region,country,label:[city,region,country].filter(Boolean).join(', ')}};}
+function promiseTimeout(promise,ms,fallback){return Promise.race([promise,new Promise(resolve=>setTimeout(()=>resolve(fallback),ms))]);}
 async function reverseLocationContext(loc){if(!loc)return storedLocationContext();try{const u=new URL('https://nominatim.openstreetmap.org/reverse');u.searchParams.set('format','jsonv2');u.searchParams.set('addressdetails','1');u.searchParams.set('zoom','10');u.searchParams.set('lat',loc.lat);u.searchParams.set('lon',loc.lng);const r=await fetch(u.toString(),{headers:{'Accept':'application/json'}});if(!r.ok)return storedLocationContext();const j=await r.json(),a=j.address||{};const city=clean(a.city||a.town||a.village||a.municipality),region=clean(a.state||a.region||a.county),country=clean(a.country);return {city,region,country,label:[city,region,country].filter(Boolean).join(', ')}}catch{return storedLocationContext();}}
 async function nominatimSearch(q,loc,bounded=true){const u=new URL('https://nominatim.openstreetmap.org/search');u.searchParams.set('format','jsonv2');u.searchParams.set('addressdetails','1');u.searchParams.set('namedetails','1');u.searchParams.set('extratags','1');u.searchParams.set('limit','15');u.searchParams.set('q',q);if(loc){const dlat=.60,dlon=.80;u.searchParams.set('viewbox',`${loc.lng-dlon},${loc.lat+dlat},${loc.lng+dlon},${loc.lat-dlat}`);if(bounded)u.searchParams.set('bounded','1');}const r=await fetch(u.toString(),{headers:{'Accept':'application/json'}});if(!r.ok)throw new Error(`OpenStreetMap place search failed (${r.status}).`);return r.json();}
 function regexEscape(v){return clean(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
@@ -236,26 +238,56 @@ async function saveGoogleKey(){const key=clean($('googleApiKeyInput').value);if(
 async function removeGoogleKey(){if(!confirm('Remove the Google Places API key from Cloudflare? Find Place Online will fall back to OpenStreetMap until another key is added.'))return;try{$('placesEndpointStatus').textContent='Removing secure Google key…';const j=await googleAdminRequest('remove');setGoogleConnectionUi(j);cancelGoogleKeyReplace();$('placesEndpointStatus').textContent='Google Places connection removed.';}catch(e){$('placesEndpointStatus').textContent=`Connection was not removed: ${e.message||e}`;}}
 async function runFindPlaceOnline(widen=false){
   const raw=clean($('findPlaceQuery').value||$('placeName').value);if(!raw)return toast('Enter a venue name first.');
-  lastFindPlaceRaw=raw;$('findPlaceStatus').textContent=widen?'Searching wider only because you asked…':'Getting your current location and searching nearby…';$('findPlaceResults').innerHTML='';$('searchWiderBtn').classList.add('hidden');
+  lastFindPlaceRaw=raw;$('findPlaceResults').innerHTML='';$('searchWiderBtn').classList.add('hidden');
+  const editor=editorSearchContext();
+  $('findPlaceStatus').textContent=widen?'Searching a wider area…':(editor.loc?'Searching Google Places near this venue…':editor.ctx?.label?`Searching Google Places in ${editor.ctx.label}…`:'Getting your current location…');
   try{
-    currentPosition=null;const loc=await getDeviceLocation(true);const ctx=loc?await reverseLocationContext(loc):storedLocationContext();lastFindPlaceContext=ctx;updateGoogleMapsDirectLink(raw,ctx);const q=normalizeOnlineQuery(raw);let rows=[];const configured=!!placesEndpoint();let googleError='';
+    // 0.27.18: when editing an existing venue, its saved coordinates are the fastest and most relevant search anchor.
+    // Only wait briefly for a fresh phone location when the venue itself has no coordinates.
+    let loc=editor.loc,anchorSource=editor.loc?'venue':'';
+    let ctx=editor.ctx?.label?editor.ctx:storedLocationContext();
+    // If the venue already has a city/region, use that immediately instead of making the user wait for GPS.
+    // A fresh phone fix is only needed when the venue record itself has neither coordinates nor usable geography.
+    if(!loc&&!ctx.label){currentPosition=null;loc=await getDeviceLocation(true,4500);if(loc)anchorSource='device';}
+    else if(!loc&&ctx.label)anchorSource='venue-context';
+    if(loc&&!ctx.label){ctx=await promiseTimeout(reverseLocationContext(loc),2500,storedLocationContext());}
+    lastFindPlaceContext=ctx;updateGoogleMapsDirectLink(raw,ctx);const q=normalizeOnlineQuery(raw);let rows=[];const configured=!!placesEndpoint();let googleError='';let googleCount=0;
     if(configured){
       try{
-        let gr=await googlePlacesSearch(raw,loc,ctx,widen);
-        // 0.27.17: Search Nearby automatically widens the Google search once when the fresh local search has no result.
-        if(!widen&&loc&&!(gr||[]).length)gr=await googlePlacesSearch(raw,loc,ctx,true);
+        // When venue geography is known, search Google by explicit city/region text rather than hard-restricting
+        // Google to a phone/saved coordinate. The deployed Worker appends this context to the query.
+        const googleLoc=ctx?.label?null:loc;
+        const gr=await googlePlacesSearch(raw,googleLoc,ctx,widen);googleCount=(gr||[]).length;
         rows.push(...(gr||[]).map(x=>({place:googleWorkerResultToPlace(x),provider:'Google Places'})));
       }catch(e){googleError=e.message||'Google Places connection failed.';}
     }
-    if(!widen){
-      if(loc){const [ov,nr]=await Promise.all([overpassSearch(q,loc,80).catch(()=>[]),nominatimSearch(q,loc,true).catch(()=>[])]);rows.push(...ov.map(x=>({place:overpassResultToPlace(x,ctx),provider:'OpenStreetMap local'})));rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));if(ctx.label){const contextual=await nominatimSearch(`${q}, ${ctx.label}`,loc,false).catch(()=>[]);rows.push(...contextual.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));}}
-      else if(ctx.label){const nr=await nominatimSearch(`${q}, ${ctx.label}`,null,false).catch(()=>[]);rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));}
-      else{$('findPlaceStatus').innerHTML=`${esc(lastGeoError||'Current location is unavailable.')} Choose Country/State/City in the filters or enable location, then retry. No worldwide search was performed.<br><strong>${esc(findPlaceProviderNote())}</strong>`;$('searchWiderBtn').classList.remove('hidden');return;}
-    }else{const nr=await nominatimSearch(q,loc,false).catch(()=>[]);rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap wider search'})));}
+    // Google is the primary business directory. Avoid holding the user for 20-30 seconds on OSM fallbacks.
+    // Only use the fallbacks when Google is unavailable or returns no result, and cap each fallback request.
+    if(!rows.length){
+      if(!widen){
+        if(loc){
+          const [ov,nr]=await Promise.all([
+            promiseTimeout(overpassSearch(q,loc,25).catch(()=>[]),4500,[]),
+            promiseTimeout(nominatimSearch(q,loc,true).catch(()=>[]),4500,[])
+          ]);
+          rows.push(...ov.map(x=>({place:overpassResultToPlace(x,ctx),provider:'OpenStreetMap local'})));
+          rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
+        }else if(ctx.label){
+          const nr=await promiseTimeout(nominatimSearch(`${q}, ${ctx.label}`,null,false).catch(()=>[]),4500,[]);
+          rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
+        }else{
+          $('findPlaceStatus').innerHTML=`${esc(lastGeoError||'Current location is unavailable.')} This venue has no saved coordinates or city context. Add its city/coordinates or enable location, then retry.<br><strong>${esc(findPlaceProviderNote())}</strong>`;$('searchWiderBtn').classList.remove('hidden');return;
+        }
+      }else{
+        const nr=await promiseTimeout(nominatimSearch(ctx.label?`${q}, ${ctx.label}`:q,loc,false).catch(()=>[]),4500,[]);
+        rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap wider search'})));
+      }
+    }
     onlinePlaceResults=rankOnlineRows(dedupeOnlineRows(rows),q,loc,widen);
-    const area=ctx.label?` near ${ctx.label}`:'';const providerWarning=!configured?' Google Places is not connected; these are OpenStreetMap fallback results and may be incomplete.':googleError?` Google Places failed: ${googleError} OpenStreetMap fallback results are shown.`:'';
-    if(onlinePlaceResults.length){$('findPlaceStatus').textContent=`${widen?'Showing wider matches':'Showing nearby matches'}${area}${loc&&currentPosition?.accuracy?` (location accuracy about ${Math.round(currentPosition.accuracy)} m)`:''}.${providerWarning}`;if(!widen)$('searchWiderBtn').classList.remove('hidden');renderOnlineResults();return;}
-    const locationNote=loc?'':` ${lastGeoError||'Location was unavailable.'}`;const googleNote=configured?(googleError?` Google Places connection failed: ${googleError}`:' Google Places returned no match.'):' Google Places is not connected, so Pers cannot use Google’s business directory yet.';$('findPlaceStatus').innerHTML=`No ${widen?'wider':'nearby'} match found${esc(area)}.${esc(locationNote)}${esc(googleNote)} ${!widen?'No worldwide results were substituted. ':''}<strong>Use “Search Google Maps” below for the live Google result.</strong>`;if(!widen)$('searchWiderBtn').classList.remove('hidden');
+    const area=ctx.label?` near ${ctx.label}`:'';const anchor=anchorSource==='venue'?' using the venue location':anchorSource==='venue-context'?' using the venue city/region':anchorSource==='device'&&currentPosition?.accuracy?` using a fresh phone location (accuracy about ${Math.round(currentPosition.accuracy)} m)`:'';
+    const providerWarning=!configured?' Google Places is not connected; these are OpenStreetMap fallback results and may be incomplete.':googleError?` Google Places failed: ${googleError} OpenStreetMap fallback results are shown.`:'';
+    if(onlinePlaceResults.length){$('findPlaceStatus').textContent=`${widen?'Showing wider matches':'Showing matches'}${area}${anchor}.${providerWarning}`;if(!widen)$('searchWiderBtn').classList.remove('hidden');renderOnlineResults();return;}
+    const locationNote=loc?'':` ${lastGeoError||'Location was unavailable.'}`;const googleNote=configured?(googleError?` Google Places connection failed: ${googleError}`:` Google Places returned ${googleCount} matches.`):' Google Places is not connected, so Pers cannot use Google’s business directory yet.';$('findPlaceStatus').innerHTML=`No ${widen?'wider':'nearby'} match found${esc(area)}.${esc(locationNote)}${esc(googleNote)} <strong>Use “Search Google Maps” below if Google Maps shows the venue; this indicates a Places API/indexing mismatch rather than a Pers name filter.</strong>`;if(!widen)$('searchWiderBtn').classList.remove('hidden');
   }catch(e){$('findPlaceStatus').textContent=e.message||'Online search failed.';if(!widen)$('searchWiderBtn').classList.remove('hidden');}
 }
 

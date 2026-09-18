@@ -1,5 +1,5 @@
 {
-  "version": "0.27.17",
+  "version": "0.27.18",
   "published": "2026-09-19",
-  "notes": "Fixes Find Place Online > Search Nearby by forcing a fresh device location for every search, automatically widening Google Places when the first nearby lookup returns no result, retaining fuzzy/generic venue-name matching, and preserving Google Place/photo metadata for temporary banner photos."
+  "notes": "Repairs Find Place Online > Search Nearby after the 0.27.17 Massamore acceptance failure: when venue City/Region/Country is known, Google Places is searched by that explicit context instead of being hard-limited by phone/saved coordinates; fresh GPS is only used when venue geography is unavailable, and slow OpenStreetMap fallbacks are capped."
 }

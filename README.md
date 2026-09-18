@@ -1,6 +1,6 @@
 # Pers Favourites PWA
 
-Version: **0.27.17**
+Version: **0.27.18**
 Date: 18 September 2026
 
 0.27.12 corrects the geography controls reported during iPhone testing. It is a patch release and does not change the Pers database schema or localStorage keys.
@@ -53,3 +53,15 @@ No database migration is required from 0.27.11.
 - When no approved Pers photo exists, the app may show an attributed Google Places photo without copying it into Pers storage; initials remain the safe final fallback.
 - Account & Settings verifies the configured Google Places service instead of falsely reporting a disconnected local trial.
 - New Home Screen installs use the Owner-controlled App / collection name. Remove and reinstall an existing icon to refresh its label.
+
+## 0.27.18 update
+- Fixes the failed Massamore Pizzeria, Córdoba acceptance case from 0.27.17.
+- Edit Place > Find Place Online > Search Nearby now uses the venue's City/Region/Country immediately when that geography is known, instead of making Google Places depend on a phone or saved coordinate.
+- If the venue has no usable geography, Pers requests a fresh phone location with a wait capped at about 4.5 seconds.
+- Google Place matching therefore sends contextual text such as `Massamore Pizzeria, Córdoba, Andalusia, Spain` to the existing secure Cloudflare Worker. This avoids the previous hard geographic restriction being driven by an inaccurate or stale coordinate.
+- Slow OpenStreetMap fallback calls are capped so Find Place Online should no longer sit for 30+ seconds waiting for fallback services.
+- Google Place ID and photo reference metadata remain preserved when a result is selected, allowing the temporary Google banner-photo fallback to operate through the already deployed `/photo` Worker.
+- No Cloudflare Worker redeployment is required for 0.27.18; the currently deployed Worker remains compatible.
+
+Acceptance test: from Massamore Pizzeria in Córdoba, Edit Place > Find Place Online > Search Nearby should return the Google Places record promptly. Select Use, save the venue, reopen it, and verify a Google fallback banner appears if there is no approved Pers photo.
+

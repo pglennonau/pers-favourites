@@ -1,5 +1,5 @@
 window.PERS_CONFIG = {
-  version: "0.27.17",
+  version: "0.27.18",
   deploymentId: "CHANGE-TO-A-UNIQUE-ROLLOUT-ID",
   mode: "supabase",
   appName: "Your Favourites",
