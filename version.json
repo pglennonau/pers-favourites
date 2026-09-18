@@ -1,5 +1,5 @@
 {
-  "version": "0.27.16",
-  "published": "2026-09-18",
-  "notes": "Adds User location banner filters, reordered quick actions, combined 5 Star results, multi-photo catalogue banners, Google photo fallback support, accurate Google connection status, and Home Screen naming from the App / collection name."
+  "version": "0.27.17",
+  "published": "2026-09-19",
+  "notes": "Fixes Find Place Online > Search Nearby by forcing a fresh device location for every search, automatically widening Google Places when the first nearby lookup returns no result, retaining fuzzy/generic venue-name matching, and preserving Google Place/photo metadata for temporary banner photos."
 }

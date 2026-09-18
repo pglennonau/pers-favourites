@@ -1,6 +1,6 @@
 # Pers Favourites PWA
 
-Version: **0.27.16**
+Version: **0.27.17**
 Date: 18 September 2026
 
 0.27.12 corrects the geography controls reported during iPhone testing. It is a patch release and does not change the Pers database schema or localStorage keys.
@@ -45,7 +45,7 @@ No database migration is required from 0.27.11.
 - Google Places photos are intended as a temporary compliant fallback once the deployed Worker photo endpoint is enabled; they are not copied into Pers storage.
 - Passkey/WebAuthn is the target protected-authentication method for production. The local trial still uses its existing local-role/test authentication path; no biometric data is stored by Pers.
 
-## 0.27.16 update
+## 0.27.17 update
 - Country, State/Region and City/Town are prominent per-User location filters. Each committed change immediately refreshes the result count, catalogue and map.
 - Opening quick actions begin Near Me, Favourites, Want to Visit, Coffee and 5 Star, followed by the remaining actions in their prior order.
 - 5 Star includes a place when the Pers/Owner rating is exactly 5.0 or the non-Owner User Rating average is 4.5 to 5.0.
