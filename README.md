@@ -1,6 +1,6 @@
 # Pers Favourites PWA
 
-Version: **0.27.18**
+Version: **0.27.19**
 Date: 18 September 2026
 
 0.27.12 corrects the geography controls reported during iPhone testing. It is a patch release and does not change the Pers database schema or localStorage keys.
@@ -53,6 +53,17 @@ No database migration is required from 0.27.11.
 - When no approved Pers photo exists, the app may show an attributed Google Places photo without copying it into Pers storage; initials remain the safe final fallback.
 - Account & Settings verifies the configured Google Places service instead of falsely reporting a disconnected local trial.
 - New Home Screen installs use the Owner-controlled App / collection name. Remove and reinstall an existing icon to refresh its label.
+
+
+## 0.27.19 update
+
+- Fixes the failed Massamore Pizzeria acceptance test from 0.27.18.
+- Find Place Online > Search Nearby now actually performs an automatic second Google Places search when the first city/region lookup returns no result.
+- A fresh phone location is requested in parallel, so a successful city/region lookup does not wait for GPS.
+- The automatic second search uses a wide location bias around the fresh phone position. Saved venue coordinates are only a last-resort broad bias, not a hard restriction.
+- Search status now reports the Google stages and result counts to make future diagnosis straightforward.
+- OpenStreetMap fallbacks are capped to avoid the previous 30+ second wait.
+- No Cloudflare Worker redeployment is required for 0.27.19; the existing Worker supports both city-context and wide-location searches.
 
 ## 0.27.18 update
 - Fixes the failed Massamore Pizzeria, Córdoba acceptance case from 0.27.17.

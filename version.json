@@ -1,5 +1,5 @@
 {
-  "version": "0.27.18",
+  "version": "0.27.19",
   "published": "2026-09-19",
-  "notes": "Repairs Find Place Online > Search Nearby after the 0.27.17 Massamore acceptance failure: when venue City/Region/Country is known, Google Places is searched by that explicit context instead of being hard-limited by phone/saved coordinates; fresh GPS is only used when venue geography is unavailable, and slow OpenStreetMap fallbacks are capped."
+  "notes": "Repairs the 0.27.18 Massamore Search Nearby failure by actually performing the automatic second Google Places lookup: Pers first searches by venue city/region when available, obtains a fresh phone location in parallel, then automatically retries with a wide nearby bias if Google returns no result. Saved venue coordinates are only a last-resort broad bias, and OpenStreetMap fallbacks are capped to avoid long waits."
 }

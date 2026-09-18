@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.18',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.19',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const SUPABASE_PUBLIC_KEY = CFG.supabasePublishableKey || CFG.supabaseAnonKey || ''; // legacy anon key remains accepted for older rollouts
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
@@ -240,54 +240,90 @@ async function runFindPlaceOnline(widen=false){
   const raw=clean($('findPlaceQuery').value||$('placeName').value);if(!raw)return toast('Enter a venue name first.');
   lastFindPlaceRaw=raw;$('findPlaceResults').innerHTML='';$('searchWiderBtn').classList.add('hidden');
   const editor=editorSearchContext();
-  $('findPlaceStatus').textContent=widen?'Searching a wider area…':(editor.loc?'Searching Google Places near this venue…':editor.ctx?.label?`Searching Google Places in ${editor.ctx.label}…`:'Getting your current location…');
+  const storedCtx=storedLocationContext();
+  let ctx=editor.ctx?.label?editor.ctx:storedCtx;
+  $('findPlaceStatus').textContent=widen?'Searching a wider Google Places area…':(ctx?.label?`Searching Google Places in ${ctx.label}…`:'Getting a fresh nearby location…');
   try{
-    // 0.27.18: when editing an existing venue, its saved coordinates are the fastest and most relevant search anchor.
-    // Only wait briefly for a fresh phone location when the venue itself has no coordinates.
-    let loc=editor.loc,anchorSource=editor.loc?'venue':'';
-    let ctx=editor.ctx?.label?editor.ctx:storedLocationContext();
-    // If the venue already has a city/region, use that immediately instead of making the user wait for GPS.
-    // A fresh phone fix is only needed when the venue record itself has neither coordinates nor usable geography.
-    if(!loc&&!ctx.label){currentPosition=null;loc=await getDeviceLocation(true,4500);if(loc)anchorSource='device';}
-    else if(!loc&&ctx.label)anchorSource='venue-context';
-    if(loc&&!ctx.label){ctx=await promiseTimeout(reverseLocationContext(loc),2500,storedLocationContext());}
-    lastFindPlaceContext=ctx;updateGoogleMapsDirectLink(raw,ctx);const q=normalizeOnlineQuery(raw);let rows=[];const configured=!!placesEndpoint();let googleError='';let googleCount=0;
+    // 0.27.19: run the Google lookup in stages. A venue/city text lookup starts immediately,
+    // while a fresh phone location is obtained in parallel. If the text lookup misses, Pers
+    // automatically retries with a wide location bias rather than making the user tap Search Wider.
+    // Saved venue coordinates are only a last-resort bias because they can be stale or imported incorrectly.
+    const freshLocationPromise=getDeviceLocation(true,4000);
+    let freshLoc=null;
+    let rankingLoc=null;
+    let rows=[];
+    const configured=!!placesEndpoint();
+    let googleError='';
+    let googleCount=0;
+    const googleStages=[];
+    const addGoogle=(gr,label)=>{const list=gr||[];googleCount+=list.length;googleStages.push(`${label}: ${list.length}`);rows.push(...list.map(x=>({place:googleWorkerResultToPlace(x),provider:'Google Places'})));};
+
+    updateGoogleMapsDirectLink(raw,ctx);
+    const q=normalizeOnlineQuery(raw);
+
     if(configured){
       try{
-        // When venue geography is known, search Google by explicit city/region text rather than hard-restricting
-        // Google to a phone/saved coordinate. The deployed Worker appends this context to the query.
-        const googleLoc=ctx?.label?null:loc;
-        const gr=await googlePlacesSearch(raw,googleLoc,ctx,widen);googleCount=(gr||[]).length;
-        rows.push(...(gr||[]).map(x=>({place:googleWorkerResultToPlace(x),provider:'Google Places'})));
+        if(widen){
+          freshLoc=await freshLocationPromise;
+          const biasLoc=freshLoc||editor.loc;
+          rankingLoc=biasLoc||null;
+          if(biasLoc) addGoogle(await googlePlacesSearch(raw,biasLoc,{},true),'wide nearby');
+          if(!rows.length&&ctx?.label) addGoogle(await googlePlacesSearch(raw,null,ctx,true),'city/region');
+        }else{
+          // Stage 1: explicit venue geography is the quickest and safest query because it is not
+          // constrained by possibly stale saved coordinates.
+          if(ctx?.label) addGoogle(await googlePlacesSearch(raw,null,ctx,false),'city/region');
+
+          // Stage 2: if Google returned nothing, automatically retry around a fresh phone fix.
+          // This is the step 0.27.17/18 intended to perform but did not actually execute automatically.
+          if(!rows.length){
+            freshLoc=await freshLocationPromise;
+            const biasLoc=freshLoc||editor.loc;
+            rankingLoc=biasLoc||null;
+            if(biasLoc) addGoogle(await googlePlacesSearch(raw,biasLoc,{},true),'fresh-location wider');
+          }
+
+          // Stage 3: if the record has geography but the city-text query missed and phone location
+          // was unavailable, use saved venue coordinates only as a broad bias, never a hard restriction.
+          if(!rows.length&&!freshLoc&&editor.loc){
+            rankingLoc=editor.loc;
+            addGoogle(await googlePlacesSearch(raw,editor.loc,{},true),'saved-location wider');
+          }
+        }
       }catch(e){googleError=e.message||'Google Places connection failed.';}
     }
-    // Google is the primary business directory. Avoid holding the user for 20-30 seconds on OSM fallbacks.
-    // Only use the fallbacks when Google is unavailable or returns no result, and cap each fallback request.
+
+    // Keep OpenStreetMap as a short fallback only. It must not turn a Google miss into a 30-second wait.
     if(!rows.length){
-      if(!widen){
-        if(loc){
-          const [ov,nr]=await Promise.all([
-            promiseTimeout(overpassSearch(q,loc,25).catch(()=>[]),4500,[]),
-            promiseTimeout(nominatimSearch(q,loc,true).catch(()=>[]),4500,[])
-          ]);
-          rows.push(...ov.map(x=>({place:overpassResultToPlace(x,ctx),provider:'OpenStreetMap local'})));
-          rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
-        }else if(ctx.label){
-          const nr=await promiseTimeout(nominatimSearch(`${q}, ${ctx.label}`,null,false).catch(()=>[]),4500,[]);
-          rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
-        }else{
-          $('findPlaceStatus').innerHTML=`${esc(lastGeoError||'Current location is unavailable.')} This venue has no saved coordinates or city context. Add its city/coordinates or enable location, then retry.<br><strong>${esc(findPlaceProviderNote())}</strong>`;$('searchWiderBtn').classList.remove('hidden');return;
-        }
-      }else{
-        const nr=await promiseTimeout(nominatimSearch(ctx.label?`${q}, ${ctx.label}`:q,loc,false).catch(()=>[]),4500,[]);
-        rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap wider search'})));
+      if(!freshLoc) freshLoc=await promiseTimeout(freshLocationPromise,4200,null);
+      const fallbackLoc=freshLoc||editor.loc||null;
+      rankingLoc=rankingLoc||fallbackLoc;
+      if(!widen&&fallbackLoc){
+        const [ov,nr]=await Promise.all([
+          promiseTimeout(overpassSearch(q,fallbackLoc,25).catch(()=>[]),3000,[]),
+          promiseTimeout(nominatimSearch(q,fallbackLoc,true).catch(()=>[]),3000,[])
+        ]);
+        rows.push(...ov.map(x=>({place:overpassResultToPlace(x,ctx),provider:'OpenStreetMap local'})));
+        rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
+      }else if(ctx?.label){
+        const nr=await promiseTimeout(nominatimSearch(`${q}, ${ctx.label}`,null,false).catch(()=>[]),3000,[]);
+        rows.push(...nr.map(x=>({place:onlineResultToPlace(x),provider:'OpenStreetMap search'})));
       }
     }
-    onlinePlaceResults=rankOnlineRows(dedupeOnlineRows(rows),q,loc,widen);
-    const area=ctx.label?` near ${ctx.label}`:'';const anchor=anchorSource==='venue'?' using the venue location':anchorSource==='venue-context'?' using the venue city/region':anchorSource==='device'&&currentPosition?.accuracy?` using a fresh phone location (accuracy about ${Math.round(currentPosition.accuracy)} m)`:'';
-    const providerWarning=!configured?' Google Places is not connected; these are OpenStreetMap fallback results and may be incomplete.':googleError?` Google Places failed: ${googleError} OpenStreetMap fallback results are shown.`:'';
-    if(onlinePlaceResults.length){$('findPlaceStatus').textContent=`${widen?'Showing wider matches':'Showing matches'}${area}${anchor}.${providerWarning}`;if(!widen)$('searchWiderBtn').classList.remove('hidden');renderOnlineResults();return;}
-    const locationNote=loc?'':` ${lastGeoError||'Location was unavailable.'}`;const googleNote=configured?(googleError?` Google Places connection failed: ${googleError}`:` Google Places returned ${googleCount} matches.`):' Google Places is not connected, so Pers cannot use Google’s business directory yet.';$('findPlaceStatus').innerHTML=`No ${widen?'wider':'nearby'} match found${esc(area)}.${esc(locationNote)}${esc(googleNote)} <strong>Use “Search Google Maps” below if Google Maps shows the venue; this indicates a Places API/indexing mismatch rather than a Pers name filter.</strong>`;if(!widen)$('searchWiderBtn').classList.remove('hidden');
+
+    onlinePlaceResults=rankOnlineRows(dedupeOnlineRows(rows),q,rankingLoc,widen);
+    const area=ctx?.label?` near ${ctx.label}`:'';
+    const locationNote=freshLoc&&freshLoc.accuracy?` Fresh phone location accuracy about ${Math.round(freshLoc.accuracy)} m.`:'';
+    const stageNote=googleStages.length?` Google search stages: ${googleStages.join(' → ')}.`:'';
+    const providerWarning=!configured?' Google Places is not connected; fallback results may be incomplete.':googleError?` Google Places failed: ${googleError}`:'';
+    if(onlinePlaceResults.length){
+      $('findPlaceStatus').textContent=`${widen?'Showing wider matches':'Showing matches'}${area}.${locationNote}${stageNote}${providerWarning}`;
+      if(!widen)$('searchWiderBtn').classList.remove('hidden');
+      renderOnlineResults();return;
+    }
+    const locationFailure=freshLoc?'':` ${lastGeoError||'Fresh phone location was unavailable.'}`;
+    $('findPlaceStatus').innerHTML=`No ${widen?'wider':'nearby'} match found${esc(area)}.${esc(locationFailure)}${esc(stageNote)}${esc(providerWarning)} <strong>Google Maps may still contain a listing that the Places API did not return.</strong>`;
+    if(!widen)$('searchWiderBtn').classList.remove('hidden');
   }catch(e){$('findPlaceStatus').textContent=e.message||'Online search failed.';if(!widen)$('searchWiderBtn').classList.remove('hidden');}
 }
 
