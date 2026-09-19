@@ -93,7 +93,7 @@ function walk(dir){
   }
   return out;
 }
-const sourceFiles=walk(root).filter(p=>/\.(js|mjs|html|md|json|css|yml|yaml)$/.test(p));
+const sourceFiles=walk(root).filter(p=>/\.(js|mjs|html|md|json|css|yml|yaml)$/.test(p)&&path.relative(root,p)!=='qa/release-check.mjs');
 const supersededHits=[];
 for(const file of sourceFiles){
   const text=fs.readFileSync(file,'utf8');
