@@ -328,6 +328,7 @@
           <div><span class="muted small">Allowance period</span><strong id="ownerTripadvisorPeriod">—</strong></div>
         </div>
         <label>Owner paid-usage cap (AUD)<input id="ownerTripadvisorSpendCap" type="number" min="0" step="1" placeholder="Required before paid use" /></label>
+        <label>Owner spending cap (AUD, optional)<input id="ownerTripadvisorSpendCap" type="number" min="0" step="1" placeholder="No Pers cap set" /></label>
         <label class="check"><input id="ownerTripadvisorPaidApproval" type="checkbox" /> Owner approves paid TripAdvisor API usage</label>
         <p class="muted small">For safety, Owner approval alone cannot activate paid API calls. The System Administrator must also enable the protected Cloudflare paid-usage setting.</p>
         <div class="inline-actions">
@@ -408,6 +409,7 @@
           <div><span class="muted small">Period</span><strong id="tripadvisorQuotaPeriod">—</strong></div>
           <div><span class="muted small">Warning</span><strong id="tripadvisorWarningAt">—</strong></div>
           <div><span class="muted small">Automatic cutoff</span><strong id="tripadvisorCutoffAt">—</strong></div>
+          <div><span class="muted small">Owner paid approval</span><strong id="sysadminTripadvisorOwnerApproval">Not recorded</strong></div>
         </div>
         <p class="muted small">Use only the authorised TripAdvisor Terra API. API key, allowance, reset model, warning/cutoff percentages and paid-usage safeguard are Cloudflare secrets/variables. No scraping. Paid usage stays blocked unless both Owner approval and the protected Cloudflare setting permit it.</p>
         <div class="inline-actions">
