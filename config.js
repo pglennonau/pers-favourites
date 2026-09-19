@@ -1,11 +1,10 @@
 window.PERS_CONFIG = {
-  version: "0.27.21",
+  version: "0.27.22",
   deploymentId: "pers-favourites-per-trial",
   mode: "local",
+  backend: "cloudflare",
   appName: "Pers Favourites",
   ownerDisplayName: "Per",
-  homeRegion: "Melbourne / Travel",
-  supabaseUrl: "",
-  supabasePublishableKey: "",
+  homeRegion: "Melbourne / Travel",  cloudflareApiEndpoint: "",
   placesSearchEndpoint: "https://pers-places-search.pglennon-au.workers.dev"
 };
