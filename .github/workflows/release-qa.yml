@@ -28,6 +28,9 @@ jobs:
       - name: Release regression checks
         run: node qa/release-check.mjs
 
+      - name: Cloudflare worker unit tests
+        run: node qa/worker-unit.mjs
+
       - name: Build code package
         run: |
           mkdir -p release-package
@@ -50,6 +53,7 @@ jobs:
           path: |
             Pers_Favourites_v0.27.23_Code.zip
             qa-report.json
+            worker-unit-report.json
             package-contents.txt
           if-no-files-found: error
           retention-days: 30
