@@ -40,9 +40,30 @@ Cloudflare secrets/variables:
 - `ALLOWED_ORIGIN`.
 - `USAGE_DB`.
 
-v0.27.23 fixes the earlier behaviour where demo caps were applied regardless of mode. Demo mode keeps the trial rate caps. Production mode records usage but does not apply those demo caps.
+v0.27.23 fixes the earlier behaviour where demo caps were applied regardless of mode.
+
+- Demo mode: 10 Google API calls per minute and 100 per day.
+- Production mode: requires explicit positive `GOOGLE_PLACES_PRODUCTION_MINUTE_LIMIT` and `GOOGLE_PLACES_PRODUCTION_DAILY_LIMIT` variables. The Worker blocks production calls if these safeguards have not been configured.
+- `USAGE_DB` is mandatory for Google calls so rate/cost safeguards cannot silently be bypassed.
 
 The raw Google key must never be stored in the PWA, localStorage or GitHub.
+
+### Google Places data-handling rules
+
+The current Google Places policy permits indefinite storage of a Google Place ID, but restricts storage/caching of other Places content. Google photo resource names must not be cached and can expire.
+
+v0.27.23 therefore:
+
+- removes the old browser/localStorage Google photo-name cache;
+- strips legacy stored Google photo names/attribution and live ratings/opening status when local state is normalised;
+- obtains a fresh photo name from a live Places response immediately before requesting the photo;
+- displays Google Maps attribution, available author attribution, and the individual source-photo link returned by Google;
+- keeps Google/TripAdvisor live ratings and opening status in memory only for the active session;
+- when an Owner selects a Google result, keeps the Google Place ID but does not permanently copy unchanged Google-supplied name/address/phone/website/location values into Pers;
+- constructs the Google Maps link from the saved Place ID rather than storing the API-returned URI;
+- does not use Google-supplied coordinates as persistent pins on the Leaflet/OpenStreetMap map unless the Owner independently enters/edits coordinates.
+
+Google Maps Platform content must not be shown as though it were Pers content, and Google Maps attribution must remain visible.
 
 ## TripAdvisor Terra connection
 
@@ -52,7 +73,7 @@ Cloudflare configuration:
 
 - `TRIPADVISOR_API_KEY` — secret.
 - `TRIPADVISOR_ENABLED` — default `false`; set to `true` only after the account/API plan is confirmed.
-- `TRIPADVISOR_FREE_ALLOWANCE` — configurable numeric allowance. Do not assume 1,000 is permanent.
+- `TRIPADVISOR_FREE_ALLOWANCE` — configurable numeric allowance and defaults to zero when unset. Do not assume 1,000 is permanent. API use remains paused until the actual account allowance is entered, unless both paid-use gates are explicitly enabled.
 - `TRIPADVISOR_ALLOWANCE_PERIOD` — `one-time`, `monthly`, `daily` or `custom`.
 - `TRIPADVISOR_PERIOD_ID` — used when the allowance period is `custom`.
 - `TRIPADVISOR_WARNING_PERCENT` — normally `50`.
@@ -90,8 +111,8 @@ The API key itself is never returned.
 Venue card/detail image priority:
 
 1. Pers-approved photo;
-2. Google Places;
-3. TripAdvisor;
+2. live Google Maps/Places photo;
+3. live TripAdvisor photo;
 4. placeholder.
 
 TripAdvisor is deliberately last because it can consume a limited API allowance. External photos remain live provider content; do not copy them into Pers photo storage unless provider terms expressly permit it.
@@ -104,7 +125,7 @@ Render separate provider sections:
 - More places from Google
 - TripAdvisor results
 
-Do not produce a blended Google/TripAdvisor ranking. Keep source ratings separate.
+Do not produce a blended Google/TripAdvisor ranking. Keep source ratings separate. Google content containers use exact **Google Maps** attribution. TripAdvisor ratings use provider-supplied rating branding where available.
 
 ## OpenAI / Ask Pers
 
@@ -115,6 +136,15 @@ Owner controls whether Ask Pers is enabled. System Administrator controls the te
 The Owner view is a summary/control surface, not a payment processor. Pers must not store full card details.
 
 Transaction-level history is shown only when an authorised provider API exposes reliable billing transactions. Otherwise show usage/cost summaries and link to the provider billing portal.
+
+## Public Terms and Privacy pages
+
+The deployable PWA contains:
+
+- `terms.html`
+- `privacy.html`
+
+Both are linked from the app footer. They must stay publicly accessible with the PWA. The Terms page incorporates the Google Maps Platform terms by reference; the Privacy page incorporates the Google Privacy Policy by reference and describes current Cloudflare/location/provider processing.
 
 ## Deployment procedure
 
@@ -133,9 +163,9 @@ Transaction-level history is shown only when an authorised provider API exposes 
 
 ### v0.27.23
 
-- Owner Guide: added Costs & Payments, TripAdvisor safeguards, separated external search and photo-source priority.
-- System Administrator Guide: added full Google/TripAdvisor/Cloudflare connection instructions, quota settings, cost-control architecture and deployment checks.
-- User Guide: updated external-result sections, ratings and photo-source behaviour.
-- Code package: adds Worker and PWA changes described above.
+- Owner Guide: added Costs & Payments, TripAdvisor safeguards, separated external search, photo-source priority, Google live-content handling and legal-page summary.
+- System Administrator Guide: added full Google/TripAdvisor/Cloudflare connection instructions, Google demo/production safeguards, TripAdvisor quota settings, provider content/storage rules, legal pages and deployment checks.
+- User Guide: updated external-result sections, provider attribution, ratings, photo-source behaviour and Terms/Privacy access.
+- Code package: adds the PWA, Cloudflare Worker, Terms/Privacy pages and supporting deployment files.
 
 Every future release must update all affected guides before the release is considered complete.
