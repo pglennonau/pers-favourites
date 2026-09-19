@@ -436,6 +436,7 @@ async function tripadvisorSearch(query,loc,ctx){
   const endpoint=tripadvisorEndpoint();if(!endpoint)return [];
   const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
   let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
+  handleTripadvisorUsageStatus(j?.usage);
   const rows=Array.isArray(j?.places)?j.places:[];
   return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,tripadvisorPhotoUri:clean(x.photoUri),openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
 }
@@ -521,6 +522,16 @@ async function persistMasterLists(){state.settings.masterLists=normalizeMasterLi
 function openMasterLists(){
   if(!(hasOwnerAccess()||canManageSystem()))return toast('Owner or System Administrator access is required.');ensureMasterLists();$('masterListCategory').innerHTML=Object.entries(MASTER_LIST_META).map(([k,x])=>`<option value="${k}">${esc(x.label)}</option>`).join('');$('masterListNewValue').value='';renderMasterListManager();$('masterListsDialog').showModal();
 }
+function handleTripadvisorUsageStatus(usage){
+  if(!usage||!(hasOwnerAccess()||canManageSystem()))return;
+  const stateName=clean(usage.state);
+  if(stateName!=='warning'&&stateName!=='paused')return;
+  const key=`pers-ta-alert:${clean(usage.periodKey)||'current'}:${stateName}`;
+  if(localStorage.getItem(key))return;
+  localStorage.setItem(key,nowISO());
+  if(stateName==='warning')toast(`TripAdvisor API usage warning: ${usage.count}/${usage.allowance} calls used (${usage.percent}%).`);
+  else toast(`TripAdvisor API paused at the ${usage.cutoffPercent}% free-allowance cutoff.`);
+}
 async function refreshServiceCosts(){
   const endpoint=serviceStatusEndpoint();
   const set=(id,v)=>{if($(id))$(id).textContent=v;};
@@ -534,7 +545,7 @@ async function refreshServiceCosts(){
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     let j={};try{j=await r.json()}catch{}
     if(!r.ok)throw new Error(clean(j?.error)||`Service status failed (${r.status}).`);
-    const g=j.google||{},ta=j.tripadvisor||{};
+    const g=j.google||{},ta=j.tripadvisor||{};handleTripadvisorUsageStatus(ta);
     set('ownerGoogleConnection',g.connected?'Connected':'Not connected');
     set('ownerGoogleMode',clean(g.mode)||'—');
     set('ownerGoogleUsage',Number.isFinite(+g.callsToday)?`${+g.callsToday} calls today`:'Tracked in Cloudflare');
@@ -688,6 +699,7 @@ async function resolveTripadvisorPhoto(place){
     const endpoint=tripadvisorPhotoEndpoint();if(!endpoint)return null;
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locationId})});
     let j={};try{j=await r.json()}catch{}
+    handleTripadvisorUsageStatus(j?.usage);
     if(!r.ok||!clean(j?.photoUri))return null;
     const value={photoUri:clean(j.photoUri),url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
     tripadvisorPhotoCache.set(place.id,value);return value;
