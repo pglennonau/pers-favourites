@@ -89,6 +89,7 @@ let pendingOnlinePlaceMeta = null;
 const photoUrlCache = new Map();
 const googlePhotoCache = new Map();
 const googlePhotoPending = new Map();
+const liveExternalByPlace = new Map();
 const tripadvisorPhotoCache = new Map();
 const tripadvisorPhotoPending = new Map();
 let googlePhotoObserver = null;
@@ -458,22 +459,41 @@ function externalPassesFilters(p){
   if(filters.distance){const d=distanceFor(p);if(d==null||d>+filters.distance)return false;}
   return catalogueSearchMatches(p);
 }
+function liveProviderView(p){
+  const live=liveExternalByPlace.get(p?.id)||{};
+  const openValues=[];
+  if(Object.prototype.hasOwnProperty.call(live,'googleOpenNow'))openValues.push(live.googleOpenNow===true);
+  if(Object.prototype.hasOwnProperty.call(live,'tripadvisorOpenNow'))openValues.push(live.tripadvisorOpenNow===true);
+  return {
+    googleRating:Object.prototype.hasOwnProperty.call(live,'googleRating')?+live.googleRating||0:+p?.googleRating||0,
+    googleRatingCount:Object.prototype.hasOwnProperty.call(live,'googleRatingCount')?+live.googleRatingCount||0:+p?.googleRatingCount||0,
+    tripadvisorRating:Object.prototype.hasOwnProperty.call(live,'tripadvisorRating')?+live.tripadvisorRating||0:+p?.tripadvisorRating||0,
+    tripadvisorRatingCount:Object.prototype.hasOwnProperty.call(live,'tripadvisorRatingCount')?+live.tripadvisorRatingCount||0:+p?.tripadvisorRatingCount||0,
+    googleMapsUrl:clean(live.googleMapsUrl||p?.googleMapsUrl),
+    tripadvisorUrl:clean(live.tripadvisorUrl||p?.tripadvisorUrl),
+    openNow:openValues.length?openValues.some(Boolean):p?.openNow===true
+  };
+}
 function enrichSavedFromExternal(saved,p){
   if(!saved||!p)return;
+  const live={...(liveExternalByPlace.get(saved.id)||{})};
   if(p.provider==='Google Places'){
-    saved.googleRating=+p.googleRating||0;saved.googleRatingCount=+p.googleRatingCount||0;
-    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
-    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:[];
-    if(!saved.googlePlaceId&&p.googlePlaceId)saved.googlePlaceId=p.googlePlaceId;
-    if(!saved.googleMapsUrl&&p.googleMapsUrl)saved.googleMapsUrl=p.googleMapsUrl;
+    live.googleRating=+p.googleRating||0;
+    live.googleRatingCount=+p.googleRatingCount||0;
+    if(p.openNow===true||p.openNow===false)live.googleOpenNow=p.openNow;
+    live.googleOpeningHours=Array.isArray(p.openingHours)?p.openingHours:[];
+    if(p.googlePlaceId)live.googlePlaceId=clean(p.googlePlaceId);
+    if(p.googleMapsUrl)live.googleMapsUrl=clean(p.googleMapsUrl);
   }
   if(p.provider==='TripAdvisor'){
-    saved.tripadvisorRating=+p.tripadvisorRating||0;saved.tripadvisorRatingCount=+p.tripadvisorRatingCount||0;
-    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
-    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:(saved.openingHours||[]);
-    if(!saved.tripadvisorLocationId&&p.tripadvisorLocationId)saved.tripadvisorLocationId=p.tripadvisorLocationId;
-    if(!saved.tripadvisorUrl&&p.tripadvisorUrl)saved.tripadvisorUrl=p.tripadvisorUrl;
+    live.tripadvisorRating=+p.tripadvisorRating||0;
+    live.tripadvisorRatingCount=+p.tripadvisorRatingCount||0;
+    if(p.openNow===true||p.openNow===false)live.tripadvisorOpenNow=p.openNow;
+    live.tripadvisorOpeningHours=Array.isArray(p.openingHours)?p.openingHours:[];
+    if(p.tripadvisorLocationId)live.tripadvisorLocationId=clean(p.tripadvisorLocationId);
+    if(p.tripadvisorUrl)live.tripadvisorUrl=clean(p.tripadvisorUrl);
   }
+  liveExternalByPlace.set(saved.id,live);
 }
 function sortExternalRows(rows){
   const sort=$('sortSelect')?.value||'nearest';
@@ -775,6 +795,7 @@ async function boot(){
   await enterLocal();
 }
 async function enterLocal(){
+  liveExternalByPlace.clear();
   state=loadLocalState();currentUser=state.users.find(u=>u.id===state.activeUserId)||state.users[0];places=state.places;photos=state.photos||[];personal=state.personal;visits=state.visits;userRatings=state.userRatings||[];ratingSummaries={};preferences=normalizePreferences(state.preferences[currentUser.id]||{});filters=filtersFromPreferences(preferences);showApp();
 }
 function showApp(){
@@ -837,7 +858,7 @@ function placeMatchesFilter(p,key,value){
   switch(key){
     case'country':return geoSame(p.country,value);case'region':return geoSame(p.stateRegion,value);case'city':return geoSame(p.city,value);case'type':return p.placeType===value;case'cuisine':return p.cuisine===value;case'price':return p.price===value;
     case'meal':return (p.mealTypes||[]).includes(value);case'greatFor':return (p.greatFor||[]).includes(value);case'feature':return (p.features||[]).includes(value);case'dietary':return (p.dietary||[]).includes(value);case'tag':return (p.tags||[]).includes(value);
-    case'rating':return ratingFilterMatches(p,value);case'distance':{const d=distanceFor(p);return d!=null&&d<=+value;}case'openNow':return value!=='yes'||p.openNow===true;case'status':{const x=getPersonal(p.id);switch(value){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}}default:return true;
+    case'rating':return ratingFilterMatches(p,value);case'distance':{const d=distanceFor(p);return d!=null&&d<=+value;}case'openNow':return value!=='yes'||liveProviderView(p).openNow===true;case'status':{const x=getPersonal(p.id);switch(value){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}}default:return true;
   }
 }
 function rowsForFilterChoice(excludeKey=''){
@@ -938,7 +959,7 @@ function applyFilters(){
   xs=xs.filter(catalogueSearchMatches);
   if(filters.country) xs=xs.filter(p=>geoSame(p.country,filters.country));if(filters.region) xs=xs.filter(p=>geoSame(p.stateRegion,filters.region));if(filters.city) xs=xs.filter(p=>geoSame(p.city,filters.city));if(filters.type) xs=xs.filter(p=>p.placeType===filters.type);if(filters.cuisine) xs=xs.filter(p=>p.cuisine===filters.cuisine);if(filters.price) xs=xs.filter(p=>p.price===filters.price);
   if(filters.meal) xs=xs.filter(p=>(p.mealTypes||[]).includes(filters.meal));if(filters.greatFor) xs=xs.filter(p=>(p.greatFor||[]).includes(filters.greatFor));if(filters.feature) xs=xs.filter(p=>(p.features||[]).includes(filters.feature));if(filters.dietary) xs=xs.filter(p=>(p.dietary||[]).includes(filters.dietary));if(filters.tag) xs=xs.filter(p=>(p.tags||[]).includes(filters.tag));
-  if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>p.openNow===true);
+  if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>liveProviderView(p).openNow===true);
   if(filters.status){xs=xs.filter(p=>{const x=getPersonal(p.id);switch(filters.status){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}});}
   if(mapBoundsFilter && map){xs=xs.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&mapBoundsFilter.contains([+p.lat,+p.lng]));}
   const sort=$('sortSelect').value;
@@ -988,9 +1009,9 @@ function renderChips(){
 function renderList(){
   const box=$('listPanel');if(!filteredPlaces.length){box.innerHTML=`<div class="empty">${esc(t('noMatch'))}</div>`;return;}
   box.innerHTML=filteredPlaces.map(p=>{
-    const x=getPersonal(p.id),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
+    const x=getPersonal(p.id),pv=liveProviderView(p),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
     const visual=banner.length?`<div class="place-card-banner banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="google-fallback-frame place-card-google" data-google-photo-place="${p.id}"><div class="place-card-placeholder">${initials}</div></div>`;
-    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${p.googleRating?`<span class="rating-pill">Google ★ ${esc((+p.googleRating).toFixed(1))}${p.googleRatingCount?` (${p.googleRatingCount})`:''}</span>`:''}${p.tripadvisorRating?`<span class="rating-pill">TripAdvisor ★ ${esc((+p.tripadvisorRating).toFixed(1))}${p.tripadvisorRatingCount?` (${p.tripadvisorRatingCount})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(p.googleMapsUrl)?`<a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(p.tripadvisorUrl)?`<a href="${esc(safeUrl(p.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
+    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${pv.googleRating?`<span class="rating-pill">Google ★ ${esc((+pv.googleRating).toFixed(1))}${pv.googleRatingCount?` (${pv.googleRatingCount})`:''}</span>`:''}${pv.tripadvisorRating?`<span class="rating-pill">TripAdvisor ★ ${esc((+pv.tripadvisorRating).toFixed(1))}${pv.tripadvisorRatingCount?` (${pv.tripadvisorRatingCount})`:''}</span>`:''}${pv.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
   }).join('');hydratePhotoImages(box);hydrateGoogleFallbacks(box);
 }
 function ensureMap(){
@@ -1028,17 +1049,17 @@ function renderPhotoGallery(placeId){
   const contributionOpen=state?.settings?.allowUserPhotos!==false;const addButton=(canEdit()||contributionOpen)?`<button class="primary compact" data-add-photo="${placeId}">+ Add photos</button>`:'';const note=canEdit()?`Owner uploads appear immediately. User uploads require approval before other users see them.`:(contributionOpen?`You can contribute photos. If you are not signed in, the app will ask for your email only when you upload. The ${esc(ownerName)} collection Owner approves user photos before they appear to everyone.`:`User photo contributions are currently turned off by the Owner.`);return `<section class="photo-section"><div class="photo-section-head"><div><strong>Venue photos</strong><div class="muted small">${xs.length?`${xs.length} available to you`:'No photos yet'}</div></div>${addButton}</div><p class="photo-upload-note">${note}</p><div class="photo-strip">${tiles||'<div class="empty">No venue photos yet.</div>'}</div></section>`;
 }
 function openDetail(id){
-  const p=places.find(x=>x.id===id);if(!p)return;activeDetailPlaceId=id;const x=getPersonal(id);$('detailName').textContent=p.name;
+  const p=places.find(x=>x.id===id);if(!p)return;activeDetailPlaceId=id;const x=getPersonal(id),pv=liveProviderView(p);$('detailName').textContent=p.name;
   const d=distanceFor(p),banner=bannerPhotosForPlace(id),ownerName=state?.settings?.ownerDisplayName||CFG.ownerDisplayName||'Owner';const hero=banner.length?`<div class="detail-hero banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="detail-hero google-fallback-frame" data-google-photo-place="${p.id}"><div class="detail-hero-empty">${esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF')}</div></div>`;
   $('detailBody').innerHTML=`${hero}<div class="detail-grid"><div class="k">Type</div><div>${esc([p.placeType,p.cuisine].filter(Boolean).join(' · ')||'—')}</div><div class="k">Location</div><div>${esc([p.suburb,p.city,p.stateRegion,p.country].filter(Boolean).join(', ')||'—')}</div><div class="k">Distance</div><div>${d==null?'—':esc(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km')}</div><div class="k">Price</div><div>${esc(p.price||'—')}</div><div class="k">Must try</div><div>${esc(p.mustTry||'—')}</div><div class="k">${esc(ownerName)} says</div><div>${esc(p.notes||'—')}</div><div class="k">Tags</div><div>${esc((p.tags||[]).join(', ')||'—')}</div></div>
   ${renderPhotoGallery(id)}
   <div class="rating-panel"><strong>Ratings</strong>
     <div class="rating-row"><span>${esc(ownerName)}'s rating</span><div class="stars" data-pers-stars="${id}">${[1,2,3,4,5].map(n=>`<button data-pers-rate="${n}" class="${n<=+p.persRating?'on':''}" ${canEdit()?'':'disabled'} aria-label="${n} stars">★</button>`).join('')}</div><span>${p.persRating?`${(+p.persRating).toFixed(1)} / 5`:'Not rated'}</span></div>
-    <div class="rating-row"><span>User rating <span class="muted small">(excludes Owner/System Administrator)</span></span><div><strong>${(()=>{const r=userRatingSummary(id);return r.count?`${r.avg.toFixed(1)} / 5`:'No user ratings yet';})()}</strong> <span class="muted small">${(()=>{const r=userRatingSummary(id);return r.count?`(${r.count} rating${r.count===1?'':'s'})`:'';})()}</span></div></div>${p.googleRating?`<div class="rating-row"><span>Google Places</span><div><strong>${(+p.googleRating).toFixed(1)} / 5</strong>${p.googleRatingCount?` <span class="muted small">(${p.googleRatingCount})</span>`:''}</div></div>`:''}${p.tripadvisorRating?`<div class="rating-row"><span>TripAdvisor</span><div><strong>${(+p.tripadvisorRating).toFixed(1)} / 5</strong>${p.tripadvisorRatingCount?` <span class="muted small">(${p.tripadvisorRatingCount})</span>`:''}</div></div>`:''}
+    <div class="rating-row"><span>User rating <span class="muted small">(excludes Owner/System Administrator)</span></span><div><strong>${(()=>{const r=userRatingSummary(id);return r.count?`${r.avg.toFixed(1)} / 5`:'No user ratings yet';})()}</strong> <span class="muted small">${(()=>{const r=userRatingSummary(id);return r.count?`(${r.count} rating${r.count===1?'':'s'})`:'';})()}</span></div></div>${pv.googleRating?`<div class="rating-row"><span>Google Places</span><div><strong>${(+pv.googleRating).toFixed(1)} / 5</strong>${pv.googleRatingCount?` <span class="muted small">(${pv.googleRatingCount})</span>`:''}</div></div>`:''}${pv.tripadvisorRating?`<div class="rating-row"><span>TripAdvisor</span><div><strong>${(+pv.tripadvisorRating).toFixed(1)} / 5</strong>${pv.tripadvisorRatingCount?` <span class="muted small">(${pv.tripadvisorRatingCount})</span>`:''}</div></div>`:''}
     ${!canEdit()?`<div class="rating-row"><span>Your rating</span><div class="stars" data-user-stars="${id}">${[1,2,3,4,5].map(n=>`<button data-user-rate="${n}" class="${n<=myUserRating(id)?'on':''}" aria-label="${n} stars">★</button>`).join('')}</div></div>`:''}
   </div>
   <div class="personal-panel"><strong>My view</strong><label class="check"><input type="checkbox" data-personal="favourite" ${x.favourite?'checked':''}> Favourite</label><label class="check"><input type="checkbox" data-personal="want" ${x.want?'checked':''}> Want to Visit</label><label class="check"><input type="checkbox" data-personal="visited" ${x.visited?'checked':''}> Visited</label><label>Private note<textarea id="detailPrivateNote" rows="2">${esc(x.privateNote||'')}</textarea></label><button class="secondary" data-save-personal="${id}">Save my details</button>${x.visited?` <button class="secondary" data-log-visit="${id}">Log visit</button>`:''}</div>
-  <div class="card-actions">${safeUrl(p.googleMapsUrl)?`<a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a><a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Google reviews & photos</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(p.tripadvisorUrl)?`<a href="${esc(safeUrl(p.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}<button data-share="${p.id}">Share</button>${canEdit()?`<button data-edit="${p.id}">Edit venue</button>`:''}</div>`;
+  <div class="card-actions">${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a><a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Google reviews & photos</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}<button data-share="${p.id}">Share</button>${canEdit()?`<button data-edit="${p.id}">Edit venue</button>`:''}</div>`;
   if(!$('detailDialog').open)$('detailDialog').showModal();hydratePhotoImages($('detailBody'));hydrateGoogleFallbacks($('detailBody'));
 }
 
