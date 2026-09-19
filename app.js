@@ -92,6 +92,7 @@ const googlePhotoPending = new Map();
 const tripadvisorPhotoCache = new Map();
 const tripadvisorPhotoPending = new Map();
 let googlePhotoObserver = null;
+let tripadvisorSearchChain = Promise.resolve();
 let photoDbPromise = null;
 let askPersRecognition = null;
 let askPersListening = false;
@@ -434,11 +435,21 @@ function tripadvisorPhotoEndpoint(){
 }
 async function tripadvisorSearch(query,loc,ctx){
   const endpoint=tripadvisorEndpoint();if(!endpoint)return [];
-  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
-  let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
-  handleTripadvisorUsageStatus(j?.usage);
-  const rows=Array.isArray(j?.places)?j.places:[];
-  return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,tripadvisorPhotoUri:clean(x.photoUri),openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
+  const run=async()=>{
+    try{
+      const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
+      let j={};try{j=await r.json()}catch{}
+      if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
+      handleTripadvisorUsageStatus(j?.usage);
+      const rows=Array.isArray(j?.places)?j.places:[];
+      return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,tripadvisorPhotoUri:clean(x.photoUri),openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
+    }finally{
+      await new Promise(resolve=>setTimeout(resolve,1050));
+    }
+  };
+  const queued=tripadvisorSearchChain.catch(()=>{}).then(run);
+  tripadvisorSearchChain=queued.then(()=>{},()=>{});
+  return queued;
 }
 function externalPassesFilters(p){
   if(filters.country&&!geoSame(p.country,filters.country))return false;if(filters.region&&!geoSame(p.stateRegion,filters.region))return false;if(filters.city&&!geoSame(p.city,filters.city))return false;
@@ -498,7 +509,7 @@ async function searchExternalSources(){
   const rows=[],errors=[];
   try{if(preferences.externalSources.google){try{const gr=await googlePlacesSearch(q,loc,ctx,false,{openNow:filters.openNow==='yes'});rows.push(...(gr||[]).map(x=>Object.assign(googleWorkerResultToPlace(x),{provider:'Google Places'})));}catch(e){errors.push('Google: '+clean(e.message));}}
     if(preferences.externalSources.tripadvisor){try{rows.push(...await tripadvisorSearch(q,loc,ctx));}catch(e){errors.push('TripAdvisor: '+clean(e.message));}}
-    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),saved=matchesSavedPlace(p);if(saved){enrichSavedFromExternal(saved,p);continue;}const k=externalKey(p);if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
+    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),saved=matchesSavedPlace(p);if(saved){enrichSavedFromExternal(saved,p);continue;}const k=`${p.provider||'external'}|${externalKey(p)}`;if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
     externalPlaceResults=[...seen.values()];if(status)status.textContent=`${externalPlaceResults.length} external result${externalPlaceResults.length===1?'':'s'}${errors.length?' · '+errors.join(' · '):''}`;render();
   }finally{externalSearchBusy=false;}
 }
@@ -525,11 +536,14 @@ function openMasterLists(){
 function handleTripadvisorUsageStatus(usage){
   if(!usage||!(hasOwnerAccess()||canManageSystem()))return;
   const stateName=clean(usage.state);
-  if(stateName!=='warning'&&stateName!=='paused')return;
-  const key=`pers-ta-alert:${clean(usage.periodKey)||'current'}:${stateName}`;
+  const trueWarning=stateName==='warning'&&usage.connected&&usage.enabled&&+usage.allowance>0;
+  const trueCutoff=stateName==='paused'&&usage.connected&&usage.enabled&&!usage.paidUsageAuthorized&&+usage.allowance>0&&+usage.cutoffAt>0&&+usage.count>=+usage.cutoffAt;
+  if(!trueWarning&&!trueCutoff)return;
+  const kind=trueCutoff?'paused':'warning';
+  const key=`pers-ta-alert:${clean(usage.periodKey)||'current'}:${kind}`;
   if(localStorage.getItem(key))return;
   localStorage.setItem(key,nowISO());
-  if(stateName==='warning')toast(`TripAdvisor API usage warning: ${usage.count}/${usage.allowance} calls used (${usage.percent}%).`);
+  if(trueWarning)toast(`TripAdvisor API usage warning: ${usage.count}/${usage.allowance} calls used (${usage.percent}%).`);
   else toast(`TripAdvisor API paused at the ${usage.cutoffPercent}% free-allowance cutoff.`);
 }
 async function refreshServiceCosts(){
@@ -548,15 +562,15 @@ async function refreshServiceCosts(){
     const g=j.google||{},ta=j.tripadvisor||{};handleTripadvisorUsageStatus(ta);
     set('ownerGoogleConnection',g.connected?'Connected':'Not connected');
     set('ownerGoogleMode',clean(g.mode)||'—');
-    set('ownerGoogleUsage',Number.isFinite(+g.callsToday)?`${+g.callsToday} calls today`:'Tracked in Cloudflare');
+    set('ownerGoogleUsage',Number.isFinite(+g.callsToday)?`${+g.callsToday} calls today`:'Tracked in Cloudflare');set('ownerGooglePaidState',g.mode==='demo'?'Demo safeguards active':(g.configured?'Production safeguards active':'Production limits required'));
     set('ownerAskPersState',state?.settings?.askPersEnabled?'Enabled':'Disabled');
     set('ownerTripadvisorConnection',ta.connected?'Connected':'Not connected');
     set('ownerTripadvisorState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
-    set('ownerTripadvisorUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:`${+ta.count||0} calls`);
+    set('ownerTripadvisorUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:'Allowance not configured');
     set('ownerTripadvisorPeriod',clean(ta.allowancePeriod)||'—');
     set('tripadvisorConnectionState',ta.connected?'Connected':'Not connected');
     set('tripadvisorQuotaState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
-    set('tripadvisorQuotaUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:`${+ta.count||0} calls`);
+    set('tripadvisorQuotaUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:'Allowance not configured');
     set('tripadvisorQuotaPeriod',clean(ta.allowancePeriod)||'—');
     set('tripadvisorWarningAt',ta.allowance?`${ta.warningPercent}% · ${ta.warningAt} calls`:'—');
     set('tripadvisorCutoffAt',ta.allowance?`${ta.cutoffPercent}% · ${ta.cutoffAt} calls`:'—');
@@ -659,8 +673,8 @@ async function resolveGooglePhoto(place){
   if(googlePhotoPending.has(place.id))return googlePhotoPending.get(place.id);
   const pending=(async()=>{
     const saved=readGooglePhotoRefs()[place.id]||{};if(!place.googlePhotoRef&&saved.googlePhotoRef){place.googlePlaceId=clean(saved.googlePlaceId);place.googlePhotoRef=clean(saved.googlePhotoRef);place.googlePhotoAttribution=Array.isArray(saved.googlePhotoAttribution)?saved.googlePhotoAttribution:[];}
-    if(!place.googlePhotoRef){const loc=Number.isFinite(+place.lat)&&Number.isFinite(+place.lng)?{lat:+place.lat,lng:+place.lng}:null;const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};const rows=await googlePlacesSearch(place.name,loc,ctx,false);const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef)||(rows||[]).find(x=>x.photoRef);if(!exact)return null;rememberGooglePhotoRef(place,exact);}
-    const photoUri=await requestGooglePhotoUri(place.googlePhotoRef);if(!photoUri)return null;const value={photoUri,attribution:Array.isArray(place.googlePhotoAttribution)?place.googlePhotoAttribution:[]};googlePhotoCache.set(place.id,value);return value;
+    if(!place.googlePhotoRef){const loc=Number.isFinite(+place.lat)&&Number.isFinite(+place.lng)?{lat:+place.lat,lng:+place.lng}:null;const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};const rows=await googlePlacesSearch(place.name,loc,ctx,false);const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef)||(rows||[]).find(x=>x.photoRef);if(!exact){googlePhotoCache.set(place.id,null);return null;}rememberGooglePhotoRef(place,exact);}
+    const photoUri=await requestGooglePhotoUri(place.googlePhotoRef);if(!photoUri){googlePhotoCache.set(place.id,null);return null;}const value={photoUri,attribution:Array.isArray(place.googlePhotoAttribution)?place.googlePhotoAttribution:[]};googlePhotoCache.set(place.id,value);return value;
   })().catch(()=>null).finally(()=>googlePhotoPending.delete(place.id));googlePhotoPending.set(place.id,pending);return pending;
 }
 function googleAttributionHtml(items=[]){
@@ -686,7 +700,7 @@ async function resolveTripadvisorPhoto(place){
       const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
       let rows=[];try{rows=await tripadvisorSearch(place.name,null,ctx);}catch{return null;}
       const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name))||(rows||[])[0];
-      if(!exact)return null;
+      if(!exact){tripadvisorPhotoCache.set(place.id,null);return null;}
       locationId=clean(exact.tripadvisorLocationId);
       directPhoto=clean(exact.tripadvisorPhotoUri);
       rememberTripadvisorMatch(place,exact);
@@ -695,12 +709,13 @@ async function resolveTripadvisorPhoto(place){
       const value={photoUri:directPhoto,url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
       tripadvisorPhotoCache.set(place.id,value);return value;
     }
-    if(!locationId)return null;
+    if(!locationId){tripadvisorPhotoCache.set(place.id,null);return null;}
     const endpoint=tripadvisorPhotoEndpoint();if(!endpoint)return null;
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locationId})});
     let j={};try{j=await r.json()}catch{}
     handleTripadvisorUsageStatus(j?.usage);
-    if(!r.ok||!clean(j?.photoUri))return null;
+    if(!r.ok)return null;
+    if(!clean(j?.photoUri)){tripadvisorPhotoCache.set(place.id,null);return null;}
     const value={photoUri:clean(j.photoUri),url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
     tripadvisorPhotoCache.set(place.id,value);return value;
   })().catch(()=>null).finally(()=>tripadvisorPhotoPending.delete(place.id));
