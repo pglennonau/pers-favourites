@@ -1,11 +1,11 @@
 # Pers Favourites PWA
 
 Version: **0.27.23**  
-Date: **19 September 2026**
+Date: **20 September 2026**
 
 Pers Favourites is a curated PWA catalogue. The current release stores the Pers collection locally on the device/browser. Cloudflare is the only backend/service direction for this project.
 
-## 0.27.23 development scope
+## 0.27.23 release scope
 
 - Builds on v0.27.22 with **Cloudflare as the sole backend/service direction**.
 - Adds the v0.27.23 foundation for authorised TripAdvisor Terra API access; no scraping.
@@ -16,6 +16,8 @@ Pers Favourites is a curated PWA catalogue. The current release stores the Pers 
 - Adds Owner-facing Costs & Payments visibility while keeping API secrets and full payment-card details outside the PWA.
 - Corrects Google Places demo/production handling so demo caps are not incorrectly applied to production mode.
 - All third-party copyright, licensing, attribution, privacy, storage and rate-limit requirements remain mandatory.
+
+TripAdvisor may remain disabled at deployment until the actual developer/API entitlement, allowance period and credentials are confirmed. This does not block deployment of the rest of v0.27.23.
 
 ## Current architecture
 
