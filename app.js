@@ -29,6 +29,13 @@ const I18N={
   it:{searchPlaceholder:'Cerca ristoranti, luoghi, note…',location:'Posizione',allLocations:'Tutte le posizioni',setLocation:'Imposta posizione',change:'Cambia',hide:'Nascondi',clear:'Cancella',done:'Fatto',places:'Luoghi',place:'luogo',placesLower:'luoghi',filters:'Filtri',add:'+ Aggiungi',list:'Elenco',map:'Mappa',openNow:'Aperto ora',hours:'Orari',quickFilter:'Filtro rapido',moreFilters:'Altri filtri ▾',resetFilters:'Reimposta filtri',morePlaces:'Altri luoghi nelle vicinanze',searchOtherApps:'Cerca nelle app selezionate',externalSources:'Aggiungi altre ricerche app',language:'Lingua',noMatch:'Nessun luogo corrisponde a questi filtri.'},
   de:{searchPlaceholder:'Restaurants, Orte, Notizen suchen…',location:'Standort',allLocations:'Alle Standorte',setLocation:'Standort festlegen',change:'Ändern',hide:'Ausblenden',clear:'Löschen',done:'Fertig',places:'Orte',place:'Ort',placesLower:'Orte',filters:'Filter',add:'+ Hinzufügen',list:'Liste',map:'Karte',openNow:'Jetzt geöffnet',hours:'Öffnungszeiten',quickFilter:'Schnellfilter',moreFilters:'Mehr Filter ▾',resetFilters:'Filter zurücksetzen',morePlaces:'Weitere Orte in der Nähe',searchOtherApps:'Ausgewählte Apps durchsuchen',externalSources:'Weitere App-Suchen hinzufügen',language:'Sprache',noMatch:'Keine Orte entsprechen diesen Filtern.'}
 };
+const I18N_EXTRA={
+  en:{country:'Country',region:'Region',cityTown:'City/Town',placeType:'Place Type',cuisine:'Cuisine',rating:'Rating',distance:'Distance',price:'Price',meal:'Meal / Visit Type',greatFor:'Great For',feature:'Feature',status:'Status',dietary:'Dietary',personalTag:'Personal Tag',selectCountryFirst:'Select Country first',typeToSearch:'type to search'},
+  es:{country:'País',region:'Región',cityTown:'Ciudad/Pueblo',placeType:'Tipo de lugar',cuisine:'Cocina',rating:'Valoración',distance:'Distancia',price:'Precio',meal:'Comida / Tipo de visita',greatFor:'Ideal para',feature:'Característica',status:'Estado',dietary:'Dietario',personalTag:'Etiqueta personal',selectCountryFirst:'Seleccione primero el país',typeToSearch:'escriba para buscar'},
+  fr:{country:'Pays',region:'Région',cityTown:'Ville',placeType:'Type de lieu',cuisine:'Cuisine',rating:'Note',distance:'Distance',price:'Prix',meal:'Repas / Type de visite',greatFor:'Idéal pour',feature:'Caractéristique',status:'Statut',dietary:'Alimentation',personalTag:'Étiquette personnelle',selectCountryFirst:"Sélectionnez d’abord le pays",typeToSearch:'tapez pour rechercher'},
+  it:{country:'Paese',region:'Regione',cityTown:'Città',placeType:'Tipo di luogo',cuisine:'Cucina',rating:'Valutazione',distance:'Distanza',price:'Prezzo',meal:'Pasto / Tipo di visita',greatFor:'Ideale per',feature:'Caratteristica',status:'Stato',dietary:'Dieta',personalTag:'Etichetta personale',selectCountryFirst:'Seleziona prima il paese',typeToSearch:'digita per cercare'},
+  de:{country:'Land',region:'Region',cityTown:'Stadt/Ort',placeType:'Ortstyp',cuisine:'Küche',rating:'Bewertung',distance:'Entfernung',price:'Preis',meal:'Mahlzeit / Besuchstyp',greatFor:'Geeignet für',feature:'Merkmal',status:'Status',dietary:'Ernährung',personalTag:'Persönliches Tag',selectCountryFirst:'Zuerst Land auswählen',typeToSearch:'zum Suchen tippen'}
+};
 const MULTI_EDITOR_FIELDS={
   placeMeals:{picker:'placeMealsPicker',chips:'placeMealsChips',masterKey:'meal',prop:'mealTypes',label:'Meal / Visit Type'},
   placeGreatFor:{picker:'placeGreatForPicker',chips:'placeGreatForChips',masterKey:'greatFor',prop:'greatFor',label:'Great For'},
@@ -113,7 +120,7 @@ function normalizeMasterLists(raw){
 }
 function ensureMasterLists(){if(!state?.settings)return defaultMasterLists();state.settings.masterLists=normalizeMasterLists(state.settings.masterLists);return state.settings.masterLists;}
 function masterValues(key){const m=state?.settings?.masterLists?normalizeMasterLists(state.settings.masterLists):defaultMasterLists();return [...(m[key]?.active||[])];}
-function t(key,fallback=''){const lang=LANGUAGE_OPTIONS[preferences?.language]?preferences.language:'en';return I18N[lang]?.[key]||I18N.en[key]||fallback||key;}
+function t(key,fallback=''){const lang=LANGUAGE_OPTIONS[preferences?.language]?preferences.language:'en';return I18N[lang]?.[key]||I18N_EXTRA[lang]?.[key]||I18N.en[key]||I18N_EXTRA.en[key]||fallback||key;}
 function applyLanguage(){
   const lang=LANGUAGE_OPTIONS[preferences?.language]?preferences.language:'en';document.documentElement.lang=lang;
   if($('languageSelect'))$('languageSelect').value=lang;
@@ -819,19 +826,19 @@ async function installAppUpdate(){
   }catch(e){if(status)status.textContent=`Update could not be installed automatically: ${clean(e?.message)||'reload and try again'}.`;}
 }
 function populateFilterOptions(){
-  const dynamic=[['typeFilter','Place Type','type'],['cuisineFilter','Cuisine','cuisine'],['mealFilter','Meal / Visit Type','meal'],['greatForFilter','Great For','greatFor'],['featureFilter','Feature','feature'],['dietaryFilter','Dietary','dietary'],['tagFilter','Personal Tag','tag']];
+  const dynamic=[['typeFilter',t('placeType'),'type'],['cuisineFilter',t('cuisine'),'cuisine'],['mealFilter',t('meal'),'meal'],['greatForFilter',t('greatFor'),'greatFor'],['featureFilter',t('feature'),'feature'],['dietaryFilter',t('dietary'),'dietary'],['tagFilter',t('personalTag'),'tag']];
   for(let pass=0;pass<2;pass++){
     const countryOptions=counted(rowsForFilterChoice('country').map(p=>p.country));
     if(filters.country&&!optionContains(countryOptions,filters.country,true)){filters.country='';filters.region='';filters.city='';}
-    populateSearchChoice('countryFilter','Country - type to search',countryOptions,filters.country,!countryOptions.length);
+    populateSearchChoice('countryFilter',`${t('country')} - ${t('typeToSearch')}`,countryOptions,filters.country,!countryOptions.length);
     const term=regionTerm(filters.country);
-    if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter','Select Country first',[],'',true);populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
+    if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter',t('selectCountryFirst'),[],'',true);populateSearchChoice('cityFilter',`${t('region')} - ${t('selectCountryFirst')}`,[],'',true);}
     else{
       const regionOptions=counted(rowsForFilterChoice('region').filter(p=>geoSame(p.country,filters.country)).map(p=>p.stateRegion));
       if(filters.region&&!optionContains(regionOptions,filters.region,true)){filters.region='';filters.city='';}
-      populateSearchChoice('regionFilter',`${term} - type to search`,regionOptions,filters.region,!regionOptions.length);
+      populateSearchChoice('regionFilter',`${term} - ${t('typeToSearch')}`,regionOptions,filters.region,!regionOptions.length);
       if(!filters.region){filters.city='';populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
-      else{const cityOptions=counted(rowsForFilterChoice('city').filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter','City/Town - type to search',cityOptions,filters.city,!cityOptions.length);}
+      else{const cityOptions=counted(rowsForFilterChoice('city').filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter',`${t('cityTown')} - ${t('typeToSearch')}`,cityOptions,filters.city,!cityOptions.length);}
     }
     for(const [id,label,key] of dynamic){const rows=rowsForFilterChoice(key),counts=new Map(valuesForFilter(rows,key).filter(Boolean).map(v=>[v,0]));for(const v of valuesForFilter(rows,key).filter(Boolean))counts.set(v,(counts.get(v)||0)+1);const options=orderedUnique([...masterValues(key),...uniq([...counts.keys()])]).map(value=>({value,label:counts.get(value)?`${value} (${counts.get(value)})`:value}));if(filters[key]&&!optionContains(options,filters[key],false))filters[key]='';populateSelect(id,label,options,filters[key]);}
   }
@@ -887,7 +894,7 @@ async function setUserRating(placeId,n){
 }
 
 function renderChips(){
-  const labels={country:'Country',region:'Region',city:'City',type:'Type',cuisine:'Cuisine',rating:'Rating',distance:'Distance',openNow:t('openNow'),price:'Price',meal:'Meal',greatFor:'Great for',feature:'Feature',status:'Status',dietary:'Dietary',tag:'Tag'};
+  const labels={country:t('country'),region:t('region'),city:t('cityTown'),type:t('placeType'),cuisine:t('cuisine'),rating:t('rating'),distance:t('distance'),openNow:t('openNow'),price:t('price'),meal:t('meal'),greatFor:t('greatFor'),feature:t('feature'),status:t('status'),dietary:t('dietary'),tag:t('personalTag')};
   $('activeChips').innerHTML=Object.entries(filters).filter(([,v])=>v).map(([k,v])=>`<span class="chip">${esc(labels[k])}: ${esc(k==='rating'&&v==='combined5'?'Pers 5 or Users 4.5+':v)} <button data-clear-filter="${k}" aria-label="Clear">×</button></span>`).join('')+(mapBoundsFilter?`<span class="chip">Map area <button data-clear-area="1">×</button></span>`:'');
 }
 function renderList(){
