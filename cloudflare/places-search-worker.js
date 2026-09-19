@@ -14,10 +14,19 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function googleMode(env) {
   return clean(env.GOOGLE_PLACES_MODE).toLowerCase() === 'production' ? 'production' : 'demo';
 }
+function googleUsageLimits(env) {
+  const mode = googleMode(env);
+  if (mode === 'demo') return { mode, minuteLimit: 10, dayLimit: 100, configured: true };
+  const minuteLimit = Math.max(0, Math.floor(envNumber(env, 'GOOGLE_PLACES_PRODUCTION_MINUTE_LIMIT', 0)));
+  const dayLimit = Math.max(0, Math.floor(envNumber(env, 'GOOGLE_PLACES_PRODUCTION_DAILY_LIMIT', 0)));
+  return { mode, minuteLimit, dayLimit, configured: minuteLimit > 0 && dayLimit > 0 };
+}
 async function recordGoogleUsage(env) {
   const db = env.USAGE_DB;
   if (!db) return;
-  const mode = googleMode(env);
+  const limits = googleUsageLimits(env);
+  const mode = limits.mode;
+  if (!limits.configured) throw new Error('Google Places production limits are not configured. Set GOOGLE_PLACES_PRODUCTION_MINUTE_LIMIT and GOOGLE_PLACES_PRODUCTION_DAILY_LIMIT before using production mode.');
   await db.prepare('create table if not exists google_places_usage (bucket text primary key, call_count integer not null default 0, updated_at text not null)').run();
   const info = await db.prepare('pragma table_info(google_places_usage)').all();
   const cols = new Set((info?.results || []).map(x => x.name));
@@ -28,8 +37,8 @@ async function recordGoogleUsage(env) {
     const row = await db.prepare('select id,day_key,day_count,minute_key,minute_count from google_places_usage order by id limit 1').first();
     const dayCount = row?.day_key === day ? (+row.day_count || 0) : 0;
     const minuteCount = row?.minute_key === minute ? (+row.minute_count || 0) : 0;
-    if (mode === 'demo' && minuteCount >= 10) throw new Error('Google Places demo limit reached for this minute. Please retry shortly.');
-    if (mode === 'demo' && dayCount >= 100) throw new Error('Google Places demo daily limit reached. Please retry tomorrow.');
+    if (minuteCount >= limits.minuteLimit) throw new Error(`Google Places ${mode} minute limit reached. Please retry shortly.`);
+    if (dayCount >= limits.dayLimit) throw new Error(`Google Places ${mode} daily limit reached. Please retry after the configured daily window resets.`);
     if (row?.id != null) {
       await db.prepare('update google_places_usage set day_key=?,day_count=?,minute_key=?,minute_count=?,updated_at=? where id=?')
         .bind(day, dayCount + 1, minute, minuteCount + 1, now.toISOString(), row.id).run();
@@ -46,8 +55,8 @@ async function recordGoogleUsage(env) {
     db.prepare('select call_count from google_places_usage where bucket=?').bind(minuteKey).first(),
     db.prepare('select call_count from google_places_usage where bucket=?').bind(dayKey).first()
   ]);
-  if (mode === 'demo' && (m?.call_count || 0) >= 10) throw new Error('Google Places demo limit reached for this minute. Please retry shortly.');
-  if (mode === 'demo' && (d?.call_count || 0) >= 100) throw new Error('Google Places demo daily limit reached. Please retry tomorrow.');
+  if ((m?.call_count || 0) >= limits.minuteLimit) throw new Error(`Google Places ${mode} minute limit reached. Please retry shortly.`);
+  if ((d?.call_count || 0) >= limits.dayLimit) throw new Error(`Google Places ${mode} daily limit reached. Please retry after the configured daily window resets.`);
   await db.batch([
     db.prepare('insert into google_places_usage(bucket,call_count,updated_at) values(?,1,?) on conflict(bucket) do update set call_count=call_count+1,updated_at=excluded.updated_at').bind(minuteKey, now.toISOString()),
     db.prepare('insert into google_places_usage(bucket,call_count,updated_at) values(?,1,?) on conflict(bucket) do update set call_count=call_count+1,updated_at=excluded.updated_at').bind(dayKey, now.toISOString()),
@@ -159,7 +168,7 @@ function tripadvisorPeriodKey(env, now = new Date()) {
   return 'one-time';
 }
 function tripadvisorConfig(env) {
-  const allowance = Math.max(0, Math.floor(envNumber(env,'TRIPADVISOR_FREE_ALLOWANCE',1000)));
+  const allowance = Math.max(0, Math.floor(envNumber(env,'TRIPADVISOR_FREE_ALLOWANCE',0)));
   const warningPercent = clamp(envNumber(env,'TRIPADVISOR_WARNING_PERCENT',50),1,99);
   const cutoffPercent = clamp(envNumber(env,'TRIPADVISOR_CUTOFF_PERCENT',95),1,100);
   const ownerPaidApproved = envBool(env,'TRIPADVISOR_OWNER_PAID_APPROVED',false);
@@ -189,7 +198,7 @@ async function tripadvisorStatus(env) {
   const warningAt = cfg.allowance ? Math.floor(cfg.allowance * cfg.warningPercent / 100) : 0;
   const cutoffAt = cfg.allowance ? Math.floor(cfg.allowance * cfg.cutoffPercent / 100) : 0;
   const percent = cfg.allowance ? Math.min(999, Math.round((usage.count / cfg.allowance) * 1000) / 10) : 0;
-  const paused = !cfg.connected || !cfg.enabled || (!cfg.paidUsageAuthorized && cutoffAt > 0 && usage.count >= cutoffAt);
+  const paused = !cfg.connected || !cfg.enabled || (!cfg.paidUsageAuthorized && (cfg.allowance <= 0 || (cutoffAt > 0 && usage.count >= cutoffAt)));
   return { ...cfg, ...usage, warningAt, cutoffAt, percent, paused,
     state: paused ? 'paused' : (warningAt > 0 && usage.count >= warningAt ? 'warning' : 'active')
   };
@@ -199,6 +208,7 @@ async function recordTripadvisorUsage(env) {
   const status = await tripadvisorStatus(env);
   if (!status.connected) throw new Error('TRIPADVISOR_API_KEY secret is not configured.');
   if (!status.enabled) throw new Error('TripAdvisor API access is disabled by the System Administrator.');
+  if (!status.paidUsageAuthorized && status.allowance <= 0) throw new Error('TripAdvisor free allowance is not configured. Set TRIPADVISOR_FREE_ALLOWANCE before enabling API calls.');
   if (!status.paidUsageAuthorized && status.cutoffAt > 0 && status.count >= status.cutoffAt) {
     throw new Error(`TripAdvisor API paused at the ${status.cutoffPercent}% free-allowance cutoff (${status.count}/${status.allowance}).`);
   }
@@ -318,7 +328,7 @@ export default {
         const gu = await readGoogleUsageStatus(env);
         return new Response(JSON.stringify({
           provider:'pers-services',
-          google:{ connected:!!clean(env.GOOGLE_PLACES_API_KEY), mode:googleMode(env), ...gu },
+          google:{ connected:!!clean(env.GOOGLE_PLACES_API_KEY), ...googleUsageLimits(env), ...gu },
           tripadvisor:ta
         }), { status:200, headers });
       }
