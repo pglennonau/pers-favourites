@@ -244,7 +244,7 @@ function terraPhotoUrl(v) {
     for (const x of v) { const u = terraPhotoUrl(x); if (u) return u; }
     return '';
   }
-  for (const k of ['url','uri','photo_url','photoUrl','src','original','large','medium','small','images','image']) {
+  for (const k of ['url','uri','photo_url','photoUrl','image_url','imageUrl','src','original','large','medium','small','urls','images','image','cdn']) {
     const u = terraPhotoUrl(v[k]); if (u) return u;
   }
   return '';
@@ -297,6 +297,7 @@ function normaliseTripadvisorLocation(raw) {
     city: addressPart(addressObj,['city','town','locality','city_name']) || firstText(x?.city || x?.town),
     suburb: addressPart(addressObj,['neighborhood','neighbourhood','suburb']) || firstText(x?.neighborhood || x?.suburb),
     rating, ratingCount,
+    ratingIconUrl: terraPhotoUrl(overall?.icon_url || overall?.iconUrl),
     url: firstText(urls?.tripadvisor || urls?.tripadvisor_url || urls?.tripadvisorUrl || urls?.web || urls?.web_url || x?.web_url || x?.webUrl || x?.url),
     website: firstText(urls?.official || urls?.website || urls?.official_website || x?.website),
     phone: firstText(x?.phone_numbers || x?.phoneNumbers || x?.phone),
@@ -325,7 +326,7 @@ async function tripadvisorPhotoWithKey(env, locationId) {
   if (!/^\d+$/.test(id)) throw new Error('A valid TripAdvisor location ID is required.');
   await recordTripadvisorUsage(env);
   const u = new URL(`https://terra.tripadvisor.com/api/locations/${id}/photos`);
-  u.searchParams.set('page','1');u.searchParams.set('size','1');u.searchParams.append('locale','en-US');
+  u.searchParams.set('size','1');u.searchParams.append('locale','en-US');
   const r = await fetch(u.toString(), { headers: { 'Accept':'application/json', 'X-API-Key': clean(env.TRIPADVISOR_API_KEY) } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j?.message || j?.detail || `TripAdvisor photo request failed (${r.status}).`);
