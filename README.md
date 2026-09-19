@@ -22,7 +22,7 @@ Pers Favourites is a curated PWA catalogue. The current release stores the Pers 
 - **PWA hosting:** GitHub Pages.
 - **Pers venue data:** local browser/device storage.
 - **Google Places:** PWA → Cloudflare Worker → Google Places API.
-- **TripAdvisor:** optional future authorised service endpoint only.
+- **TripAdvisor:** optional authorised Terra API via the same Cloudflare service layer; disabled until configured and explicitly enabled.
 - **Photos:** local device storage in this release; future shared storage will use Cloudflare.
 - **Authentication:** local test roles only in this release; future production authentication will use a Cloudflare-based design.
 
@@ -53,6 +53,21 @@ For v0.27.23, configure these directly in Cloudflare:
 - `ALLOWED_ORIGIN` to the deployed Pers Favourites site where appropriate.
 - `USAGE_DB` D1 binding if usage tracking/rate limiting is enabled.
 
+For v0.27.23 TripAdvisor support, also configure:
+
+- `TRIPADVISOR_API_KEY` as a Worker secret.
+- `TRIPADVISOR_ENABLED` — default `false`.
+- `TRIPADVISOR_FREE_ALLOWANCE` — configurable; do not assume the current advertised allowance will remain unchanged.
+- `TRIPADVISOR_ALLOWANCE_PERIOD` — `one-time`, `monthly`, `daily` or `custom`.
+- `TRIPADVISOR_PERIOD_ID` when using a custom period.
+- `TRIPADVISOR_WARNING_PERCENT` — normally `50`.
+- `TRIPADVISOR_CUTOFF_PERCENT` — normally `95`.
+- `TRIPADVISOR_OWNER_PAID_APPROVED` — default `false`.
+- `TRIPADVISOR_ALLOW_PAID` — default `false`.
+- `TRIPADVISOR_BILLING_URL` — optional non-secret billing-management link.
+
+The Worker requires `USAGE_DB` before making TripAdvisor API calls so the cost cutoff cannot be bypassed accidentally.
+
 The PWA stores only the Worker URL.
 
 ## Third-party compliance
@@ -82,6 +97,16 @@ Before release:
 - The deployable ZIP contains `index.html`, app assets, icons and Cloudflare Worker source.
 - Filter/master-list, language, Open Now, external search, ratings, archive, import/export and local photo paths remain wired.
 - The package is generated from the release branch by GitHub Actions and its required-file checks pass.
+
+## Release documentation
+
+The current release documentation is limited to three role-based guides:
+
+- `docs/OWNER_GUIDE.md`
+- `docs/SYSTEM_ADMINISTRATOR_GUIDE.md`
+- `docs/USER_GUIDE.md`
+
+The System Administrator Guide contains the documentation change log. Every release must update all affected guides as part of the release QA gate.
 
 ## Core file discipline
 
