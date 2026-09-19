@@ -48,23 +48,15 @@ create table if not exists public.places (
   features text[] not null default '{}', dietary text[] not null default '{}', tags text[] not null default '{}',
   must_try text, notes text, website text, google_maps_url text,
   google_place_id text, google_photo_ref text, google_photo_attribution jsonb not null default '[]'::jsonb,
-  google_rating numeric(2,1) check (google_rating between 0 and 5), google_rating_count integer,
-  open_now boolean, opening_hours jsonb not null default '[]'::jsonb,
-  tripadvisor_location_id text, tripadvisor_url text, tripadvisor_rating numeric(2,1) check (tripadvisor_rating between 0 and 5), tripadvisor_rating_count integer,
+  tripadvisor_location_id text, tripadvisor_url text,
   phone text, booking_url text,
   archived_at timestamptz,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 create index if not exists places_name_idx on public.places(lower(name));
 create index if not exists places_city_idx on public.places(lower(city));
-alter table public.places add column if not exists google_rating numeric(2,1);
-alter table public.places add column if not exists google_rating_count integer;
-alter table public.places add column if not exists open_now boolean;
-alter table public.places add column if not exists opening_hours jsonb not null default '[]'::jsonb;
 alter table public.places add column if not exists tripadvisor_location_id text;
 alter table public.places add column if not exists tripadvisor_url text;
-alter table public.places add column if not exists tripadvisor_rating numeric(2,1);
-alter table public.places add column if not exists tripadvisor_rating_count integer;
 
 create table if not exists public.venue_photos (
   id uuid primary key default gen_random_uuid(),
