@@ -152,7 +152,9 @@ async function readGoogleUsageStatus(env){
   return {tracking:false,callsToday:0};
 }
 function envNumber(env, name, fallback) {
-  const n = Number(clean(env[name]));
+  const raw = clean(env[name]);
+  if (!raw) return fallback;
+  const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 function envBool(env, name, fallback = false) {
@@ -200,7 +202,7 @@ async function tripadvisorStatus(env) {
   const percent = cfg.allowance ? Math.min(999, Math.round((usage.count / cfg.allowance) * 1000) / 10) : 0;
   const paused = !cfg.connected || !cfg.enabled || (!cfg.paidUsageAuthorized && (cfg.allowance <= 0 || (cutoffAt > 0 && usage.count >= cutoffAt)));
   return { ...cfg, ...usage, warningAt, cutoffAt, percent, paused,
-    state: paused ? 'paused' : (warningAt > 0 && usage.count >= warningAt ? 'warning' : 'active')
+    state: paused ? 'paused' : (!cfg.paidUsageAuthorized && warningAt > 0 && usage.count >= warningAt ? 'warning' : 'active')
   };
 }
 async function recordTripadvisorUsage(env) {
