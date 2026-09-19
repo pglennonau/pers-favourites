@@ -249,29 +249,56 @@ function terraPhotoUrl(v) {
   }
   return '';
 }
-function normaliseTripadvisorLocation(x) {
-  const coords = x?.coordinates || x?.location || x?.geo || {};
+function firstAddressObject(v) {
+  if (Array.isArray(v)) return v.find(x => x && typeof x === 'object') || {};
+  return v && typeof v === 'object' ? v : {};
+}
+function addressText(v) {
+  const a = firstAddressObject(v);
+  const direct = firstText(a.formatted_address || a.formattedAddress || a.address_string || a.addressString || a.full_address || a.fullAddress);
+  if (direct) return direct;
+  return [
+    firstText(a.address1 || a.address_line_1 || a.addressLine1 || a.street),
+    firstText(a.address2 || a.address_line_2 || a.addressLine2),
+    firstText(a.city || a.town || a.locality),
+    firstText(a.state || a.region || a.province),
+    firstText(a.postal_code || a.postalCode || a.zip),
+    firstText(a.country)
+  ].filter(Boolean).join(', ');
+}
+function addressPart(v, keys=[]) {
+  const a = firstAddressObject(v);
+  for (const k of keys) {
+    const t = firstText(a?.[k]);
+    if (t) return t;
+  }
+  return '';
+}
+function normaliseTripadvisorLocation(raw) {
+  const x = raw?.location && raw.location?.tripadvisor_id ? raw.location : raw;
+  const coords = x?.coordinates || x?.geo || {};
   const addressObj = x?.addresses || x?.address || {};
-  const ratingObj = x?.traveler_ratings || x?.travelerRatings || x?.rating || {};
-  const rating = Number(ratingObj?.overall ?? ratingObj?.rating ?? ratingObj?.value ?? x?.rating ?? x?.bubble_rating ?? x?.bubbleRating) || 0;
-  const ratingCount = Number(ratingObj?.review_count ?? ratingObj?.reviewCount ?? ratingObj?.count ?? x?.review_count ?? x?.reviewCount ?? x?.num_reviews ?? x?.numReviews) || 0;
+  const traveler = x?.traveler_ratings || x?.travelerRatings || {};
+  const overall = traveler?.overall || traveler || {};
+  const rating = Number(overall?.rating ?? overall?.value ?? x?.rating ?? x?.bubble_rating ?? x?.bubbleRating) || 0;
+  const ratingCount = Number(overall?.count ?? overall?.review_count ?? overall?.reviewCount ?? x?.review_count ?? x?.reviewCount ?? x?.num_reviews ?? x?.numReviews) || 0;
   const urls = x?.urls || {};
   const category = firstText(x?.categories || x?.category || x?.type);
   const photo = terraPhotoUrl(x?.representative_photo || x?.representativePhoto || x?.photos);
   return {
     id: firstText(x?.tripadvisor_id || x?.tripadvisorId || x?.location_id || x?.locationId || x?.id),
     name: firstText(x?.names || x?.name || x?.display_name || x?.displayName),
-    address: firstText(addressObj?.formatted_address || addressObj?.formattedAddress || addressObj?.address_string || addressObj?.addressString || addressObj),
+    address: addressText(addressObj),
     lat: Number(coords?.latitude ?? coords?.lat ?? x?.latitude ?? x?.lat),
     lng: Number(coords?.longitude ?? coords?.lng ?? coords?.lon ?? x?.longitude ?? x?.lng ?? x?.lon),
     placeType: category,
-    country: firstText(addressObj?.country || x?.country),
-    stateRegion: firstText(addressObj?.state || addressObj?.region || x?.state || x?.region),
-    city: firstText(addressObj?.city || addressObj?.town || x?.city || x?.town),
-    suburb: firstText(addressObj?.neighborhood || addressObj?.suburb || x?.neighborhood || x?.suburb),
+    country: addressPart(addressObj,['country','country_name','countryName']) || firstText(x?.country),
+    stateRegion: addressPart(addressObj,['state','region','province','state_name','region_name']) || firstText(x?.state || x?.region),
+    city: addressPart(addressObj,['city','town','locality','city_name']) || firstText(x?.city || x?.town),
+    suburb: addressPart(addressObj,['neighborhood','neighbourhood','suburb']) || firstText(x?.neighborhood || x?.suburb),
     rating, ratingCount,
-    url: firstText(urls?.tripadvisor || urls?.tripadvisor_url || urls?.web || x?.web_url || x?.webUrl || x?.url),
-    website: firstText(urls?.official || urls?.website || x?.website),
+    url: firstText(urls?.tripadvisor || urls?.tripadvisor_url || urls?.tripadvisorUrl || urls?.web || urls?.web_url || x?.web_url || x?.webUrl || x?.url),
+    website: firstText(urls?.official || urls?.website || urls?.official_website || x?.website),
     phone: firstText(x?.phone_numbers || x?.phoneNumbers || x?.phone),
     photoUri: photo
   };
