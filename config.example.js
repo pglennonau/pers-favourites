@@ -1,11 +1,10 @@
 window.PERS_CONFIG = {
-  version: "0.27.21",
+  version: "0.27.22",
   deploymentId: "CHANGE-TO-A-UNIQUE-ROLLOUT-ID",
-  mode: "supabase",
+  mode: "local",
+  backend: "cloudflare",
   appName: "Your Favourites",
   ownerDisplayName: "Owner",
-  homeRegion: "Your city / region",
-  supabaseUrl: "https://YOUR-PROJECT.supabase.co",
-  supabasePublishableKey: "sb_publishable_YOUR_PROJECT_KEY",
+  homeRegion: "Your city / region",  cloudflareApiEndpoint: "",
   placesSearchEndpoint: ""
 };
