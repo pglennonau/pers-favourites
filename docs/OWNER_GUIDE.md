@@ -14,7 +14,7 @@ v0.27.23 adds an Owner-facing **Costs & Payments** area. It is intended to show 
 
 Services currently represented:
 
-- Google Places
+- Google Places / Google Maps
 - TripAdvisor
 - Cloudflare
 - OpenAI / Ask Pers
@@ -48,20 +48,26 @@ Search results are kept visually separate:
 
 Google and TripAdvisor ratings are never blended into a single Pers rating.
 
+Google Maps content is treated as live provider information. The app may show Google-supplied details while the Owner is selecting a place, but unchanged Google-supplied details are not permanently copied into the Pers catalogue. Pers retains the permitted Google Place ID and the Owner's own existing or edited Pers fields. This also prevents Google Places coordinates from being reused on the app's OpenStreetMap/Leaflet map.
+
 ## Venue photo priority
 
 When a venue card/detail has no approved Pers photo, v0.27.23 uses this order:
 
 1. approved Pers photo;
-2. live Google Places photo;
+2. live Google Maps/Places photo;
 3. live TripAdvisor photo only if Google has no usable photo and TripAdvisor API access is enabled;
 4. Pers placeholder.
 
-TripAdvisor photo fallback can consume API calls, so it remains subject to the TripAdvisor quota safeguard.
+TripAdvisor photo fallback can consume API calls, so it remains subject to the TripAdvisor quota safeguard. Google photo resource names are used live and are not stored in Pers. Google photo/source attribution and a source-photo link are displayed when supplied by Google.
 
 ## Owner payment approval
 
 Before approving paid usage, check the provider's current plan, free allowance, expected usage and spending limit. The System Administrator should confirm that the provider's billing and API terms still match the values shown in Pers.
+
+## Terms and privacy
+
+v0.27.23 includes publicly accessible **Terms of Use** and **Privacy Policy** links in the app. These pages describe current local storage, location use, Cloudflare service routing and external provider handling. They are support pages inside the code package, not additional Owner manuals.
 
 ## Documentation discipline
 
