@@ -301,6 +301,45 @@
       <button id="saveSettingsBtn" class="primary">Save collection settings</button>
       <button id="restoreBackupBtn" class="secondary">Restore backup (local trial)</button>
       <input id="restoreFile" type="file" accept="application/json,.json" class="hidden" />
+      <hr />
+      <h3>Costs &amp; Payments</h3>
+      <p class="muted small">Summary of services that can create external charges. Pers never stores full payment-card details. Provider billing remains with the provider.</p>
+      <fieldset class="external-service-card">
+        <legend>Google Places</legend>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="ownerGoogleConnection">Checking…</strong></div>
+          <div><span class="muted small">Mode</span><strong id="ownerGoogleMode">—</strong></div>
+          <div><span class="muted small">Usage</span><strong id="ownerGoogleUsage">—</strong></div>
+          <div><span class="muted small">Paid usage</span><strong id="ownerGooglePaidState">Provider billing applies</strong></div>
+        </div>
+        <p class="muted small">API key and billing account are managed securely outside the PWA.</p>
+      </fieldset>
+      <fieldset class="external-service-card">
+        <legend>TripAdvisor</legend>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="ownerTripadvisorConnection">Checking…</strong></div>
+          <div><span class="muted small">API status</span><strong id="ownerTripadvisorState">—</strong></div>
+          <div><span class="muted small">Allowance usage</span><strong id="ownerTripadvisorUsage">—</strong></div>
+          <div><span class="muted small">Allowance period</span><strong id="ownerTripadvisorPeriod">—</strong></div>
+        </div>
+        <label class="check"><input id="ownerTripadvisorPaidApproval" type="checkbox" /> Owner approves paid TripAdvisor API usage</label>
+        <p class="muted small">For safety, Owner approval alone cannot activate paid API calls. The System Administrator must also enable the protected Cloudflare paid-usage setting.</p>
+        <div class="inline-actions">
+          <button id="saveCostControlsBtn" type="button" class="secondary compact">Save Owner cost controls</button>
+          <button id="refreshCostStatusBtn" type="button" class="secondary compact">Refresh usage</button>
+          <a id="tripadvisorBillingLink" class="secondary compact hidden" target="_blank" rel="noopener">Manage TripAdvisor billing</a>
+        </div>
+        <p id="ownerCostStatus" class="muted small"></p>
+      </fieldset>
+      <fieldset class="external-service-card">
+        <legend>Cloudflare</legend>
+        <div class="connection-grid"><div><span class="muted small">Backend</span><strong>Connected platform</strong></div><div><span class="muted small">Billing</span><strong>Manage at Cloudflare</strong></div></div>
+        <p class="muted small">Workers, D1, future shared data/auth and photo storage are Cloudflare services. Detailed transaction data is shown only where an authorised provider API makes it available.</p>
+      </fieldset>
+      <fieldset class="external-service-card">
+        <legend>OpenAI / Ask Pers</legend>
+        <div class="connection-grid"><div><span class="muted small">Ask Pers</span><strong id="ownerAskPersState">—</strong></div><div><span class="muted small">Billing</span><strong>Provider billing applies when enabled</strong></div></div>
+      </fieldset>
     </section>
 
     <section id="sysadminSettingsPane" class="account-pane hidden">
@@ -340,10 +379,21 @@
         <span id="placesEndpointStatus" class="small muted"></span>
       </fieldset>
       <fieldset class="external-service-card">
-        <legend>External Services - TripAdvisor</legend>
-        <label>TripAdvisor service endpoint<input id="settingTripadvisorEndpoint" type="url" placeholder="https://your-compliant-service.example.com/tripadvisor-search" /></label>
-        <p class="muted small">Use only an authorised TripAdvisor integration. Pers must comply with current API, licensing, attribution, storage and branding requirements; no scraping.</p>
-        <button id="saveTripadvisorEndpointBtn" type="button" class="secondary compact">Save endpoint</button>
+        <legend>External Services - TripAdvisor Terra API</legend>
+        <label>TripAdvisor Worker endpoint<input id="settingTripadvisorEndpoint" type="url" placeholder="https://your-worker.example.com/tripadvisor-search" /></label>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="tripadvisorConnectionState">Not connected</strong></div>
+          <div><span class="muted small">State</span><strong id="tripadvisorQuotaState">Not checked</strong></div>
+          <div><span class="muted small">Usage</span><strong id="tripadvisorQuotaUsage">—</strong></div>
+          <div><span class="muted small">Period</span><strong id="tripadvisorQuotaPeriod">—</strong></div>
+          <div><span class="muted small">Warning</span><strong id="tripadvisorWarningAt">—</strong></div>
+          <div><span class="muted small">Automatic cutoff</span><strong id="tripadvisorCutoffAt">—</strong></div>
+        </div>
+        <p class="muted small">Use only the authorised TripAdvisor Terra API. API key, allowance, reset model, warning/cutoff percentages and paid-usage safeguard are Cloudflare secrets/variables. No scraping. Paid usage stays blocked unless both Owner approval and the protected Cloudflare setting permit it.</p>
+        <div class="inline-actions">
+          <button id="saveTripadvisorEndpointBtn" type="button" class="secondary compact">Save endpoint</button>
+          <button id="testTripadvisorEndpointBtn" type="button" class="secondary compact">Test / refresh status</button>
+        </div>
         <span id="tripadvisorEndpointStatus" class="small muted"></span>
       </fieldset>
       <hr />
