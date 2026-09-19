@@ -1,5 +1,5 @@
 {
   "version": "0.27.23",
-  "published": "2026-09-19",
-  "notes": "Development release: TripAdvisor cost-control integration, separate provider result sections, Owner costs/payments visibility, Google demo/production usage handling, and photo fallback priority Pers → Google Places → TripAdvisor."
+  "published": "2026-09-20",
+  "notes": "Release: TripAdvisor cost-control foundation, separate provider result sections, Owner Costs & Payments controls, Google demo/production safeguards, and photo priority Pers → Google Places → TripAdvisor → placeholder. TripAdvisor can remain disabled until account/API entitlement is configured."
 }
