@@ -114,7 +114,7 @@ async function textSearchWithKey(env, apiKey, textQuery, location, context, wide
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents,places.photos,places.photos.googleMapsUri,places.photos.flagContentUri,places.rating,places.userRatingCount,places.currentOpeningHours'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents,places.photos,places.rating,places.userRatingCount,places.currentOpeningHours'
     },
     body: JSON.stringify(body)
   });
