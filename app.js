@@ -521,11 +521,69 @@ async function persistMasterLists(){state.settings.masterLists=normalizeMasterLi
 function openMasterLists(){
   if(!(hasOwnerAccess()||canManageSystem()))return toast('Owner or System Administrator access is required.');ensureMasterLists();$('masterListCategory').innerHTML=Object.entries(MASTER_LIST_META).map(([k,x])=>`<option value="${k}">${esc(x.label)}</option>`).join('');$('masterListNewValue').value='';renderMasterListManager();$('masterListsDialog').showModal();
 }
-async function saveTripadvisorEndpoint(){
-  if(!canManageSystem())return toast('System Administrator access is required.');const endpoint=clean($('settingTripadvisorEndpoint').value);if(endpoint){try{new URL(endpoint);}catch{return toast('Enter a valid TripAdvisor service endpoint.');}}
-  state.settings.tripadvisorEndpoint=endpoint;saveLocalState();
-  $('tripadvisorEndpointStatus').textContent=endpoint?'Endpoint saved. Use only an authorised, compliant integration.':'Not configured.';toast('TripAdvisor endpoint saved.');
+async function refreshServiceCosts(){
+  const endpoint=serviceStatusEndpoint();
+  const set=(id,v)=>{if($(id))$(id).textContent=v;};
+  if(!endpoint){
+    set('ownerGoogleConnection','Not connected');set('ownerGoogleMode','—');set('ownerGoogleUsage','—');
+    set('ownerTripadvisorConnection','Not connected');set('ownerTripadvisorState','Paused');set('ownerTripadvisorUsage','—');set('ownerTripadvisorPeriod','—');
+    set('tripadvisorConnectionState','Not connected');set('tripadvisorQuotaState','Not checked');set('tripadvisorQuotaUsage','—');set('tripadvisorQuotaPeriod','—');set('tripadvisorWarningAt','—');set('tripadvisorCutoffAt','—');
+    return null;
+  }
+  try{
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    let j={};try{j=await r.json()}catch{}
+    if(!r.ok)throw new Error(clean(j?.error)||`Service status failed (${r.status}).`);
+    const g=j.google||{},ta=j.tripadvisor||{};
+    set('ownerGoogleConnection',g.connected?'Connected':'Not connected');
+    set('ownerGoogleMode',clean(g.mode)||'—');
+    set('ownerGoogleUsage',Number.isFinite(+g.callsToday)?`${+g.callsToday} calls today`:'Tracked in Cloudflare');
+    set('ownerAskPersState',state?.settings?.askPersEnabled?'Enabled':'Disabled');
+    set('ownerTripadvisorConnection',ta.connected?'Connected':'Not connected');
+    set('ownerTripadvisorState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
+    set('ownerTripadvisorUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:`${+ta.count||0} calls`);
+    set('ownerTripadvisorPeriod',clean(ta.allowancePeriod)||'—');
+    set('tripadvisorConnectionState',ta.connected?'Connected':'Not connected');
+    set('tripadvisorQuotaState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
+    set('tripadvisorQuotaUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:`${+ta.count||0} calls`);
+    set('tripadvisorQuotaPeriod',clean(ta.allowancePeriod)||'—');
+    set('tripadvisorWarningAt',ta.allowance?`${ta.warningPercent}% · ${ta.warningAt} calls`:'—');
+    set('tripadvisorCutoffAt',ta.allowance?`${ta.cutoffPercent}% · ${ta.cutoffAt} calls`:'—');
+    if($('tripadvisorEndpointStatus'))$('tripadvisorEndpointStatus').textContent=ta.connected?`TripAdvisor API ${ta.enabled?'enabled':'disabled'} · paid usage ${ta.paidUsageAuthorized?'enabled server-side':'blocked server-side'}.`:'TripAdvisor API key not configured.';
+    const billing=safeUrl(ta.manageBillingUrl||'');
+    if($('tripadvisorBillingLink')){
+      $('tripadvisorBillingLink').classList.toggle('hidden',!billing);
+      if(billing)$('tripadvisorBillingLink').href=billing;
+    }
+    if($('ownerCostStatus'))$('ownerCostStatus').textContent=ta.state==='warning'?'TripAdvisor usage has passed the warning threshold.':(ta.state==='paused'&&ta.connected?'TripAdvisor API is paused by the server-side safeguard.':'');
+    return j;
+  }catch(e){
+    set('ownerTripadvisorState','Status unavailable');set('tripadvisorQuotaState','Status unavailable');
+    if($('ownerCostStatus'))$('ownerCostStatus').textContent=clean(e.message)||'Could not refresh service usage.';
+    if($('tripadvisorEndpointStatus'))$('tripadvisorEndpointStatus').textContent=clean(e.message)||'Could not refresh TripAdvisor status.';
+    return null;
+  }
 }
+function saveOwnerCostControls(){
+  if(!hasOwnerAccess())return toast('Owner access is required to change cost controls.');
+  state.settings.tripadvisorPaidUsageAuthorized=!!$('ownerTripadvisorPaidApproval')?.checked;
+  saveLocalState();
+  toast(state.settings.tripadvisorPaidUsageAuthorized?'Owner approval recorded. Paid API calls still require the protected Cloudflare setting.':'Owner paid-usage approval removed.');
+  refreshServiceCosts();
+}
+async function saveTripadvisorEndpoint(){
+  if(!canManageSystem())return toast('System Administrator access is required.');
+  const endpoint=clean($('settingTripadvisorEndpoint').value);
+  if(endpoint){
+    try{const u=new URL(endpoint);if(u.protocol!=='https:')throw new Error();}
+    catch{return toast('Enter a valid HTTPS TripAdvisor Worker endpoint.');}
+  }
+  state.settings.tripadvisorEndpoint=endpoint;saveLocalState();
+  $('tripadvisorEndpointStatus').textContent=endpoint?'Endpoint saved. Checking authorised service…':'Using the shared Cloudflare Worker when available.';
+  await refreshServiceCosts();
+  toast('TripAdvisor endpoint setting saved.');
+}
+async function testTripadvisorEndpoint(){await refreshServiceCosts();}
 function splitCsvLine(line){
   const out=[];let cur='',q=false;
   for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===','&&!q){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;
