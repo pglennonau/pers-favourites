@@ -1,110 +1,88 @@
 # Pers Favourites PWA
 
-Version: **0.27.21**  
+Version: **0.27.22**  
 Date: **19 September 2026**
 
-Pers Favourites is a curated PWA catalogue. Pers remains the primary catalogue. v0.27.21 can optionally add authorised Google Places and TripAdvisor search results to a combined discovery view while keeping Pers records first and clearly identifying each source.
+Pers Favourites is a curated PWA catalogue. The current release stores the Pers collection locally on the device/browser. Cloudflare is the only backend/service direction for this project.
 
-## 0.27.21 update
+## 0.27.22 architecture cleanup
 
-- Adds a per-user **Language** choice under User settings. The preference is remembered for that user/device and changes the core catalogue/navigation wording immediately; venue names, addresses, reviews and Owner-authored content are not machine-translated.
-- Repairs catalogue filter selectors so the controlled taxonomy lists used by **Filters** and **Add/Edit** come from one shared master-list model.
-- Adds **Manage lists** for Owner and System Administrator. Controlled lists can be added to, renamed, reordered, archived and restored. A rename also updates venues already using that value.
-- Adds **Open Now**. Google Places Text Search receives Google's official `openNow` refinement when the Google source is selected/available; opening status is treated as live provider data rather than permanently cached.
-- Adds optional **Google Places** and **TripAdvisor** source selectors. Pers results remain first; external-only results appear under **More Places Nearby**, are de-duplicated against Pers, and use the same applicable filters/sort.
-- Adds Google and TripAdvisor rating display alongside Pers/User ratings when authorised live provider data is available. Provider ratings remain source-specific; Pers does not create a synthetic combined score.
-- Adds stored TripAdvisor Location ID / TripAdvisor URL fields and a one-tap TripAdvisor link where a compliant match exists.
-- Third-party data is accessed only through authorised integrations. No TripAdvisor scraping is implemented. Provider ratings/opening-hours data is treated as live/transient; only stable identifiers/links are stored by Pers.
-- Existing production Supabase rollouts must apply `supabase/migration_v02720_to_v02721.sql`.
-- The Cloudflare Places Worker source changed in this version to request Google rating/current opening-hours fields and to pass `openNow`. Deploy that Worker update intentionally; a GitHub Pages update alone does not update Cloudflare.
+- Removes the unused legacy database/authentication backend code and all related migration/schema files.
+- Removes obsolete configuration fields for that backend.
+- Keeps **local mode** as the active Pers data store for this release.
+- Keeps **Cloudflare Workers** as the service layer for Google Places and future authorised external integrations.
+- Future shared catalogue storage, authentication, photo storage and service configuration are to be implemented with Cloudflare components only.
+- Google Places API credentials remain server-side as Cloudflare Worker secrets. They are not stored in the PWA or GitHub.
+- Browser-based API-key replacement/removal is disabled until a Cloudflare-native protected administration method is implemented. Manage those secrets in the Cloudflare dashboard.
+- TripAdvisor remains an optional authorised integration only. No scraping is used.
+- Third-party copyright, licensing, attribution, privacy, storage and rate-limit requirements remain mandatory.
 
-### v0.27.21 QA gate
+## Current architecture
 
-Before release, verify JavaScript syntax, HTML control IDs, version consistency, list management permissions, filter/list sharing, country-region-city cascade regression, Open Now, external-source de-duplication, ratings/links, service-worker cache version and package contents.
+- **PWA hosting:** GitHub Pages.
+- **Pers venue data:** local browser/device storage.
+- **Google Places:** PWA → Cloudflare Worker → Google Places API.
+- **TripAdvisor:** optional future authorised service endpoint only.
+- **Photos:** local device storage in this release; future shared storage will use Cloudflare.
+- **Authentication:** local test roles only in this release; future production authentication will use a Cloudflare-based design.
 
-## 0.27.20 update
+## v0.27.21 functionality retained
 
-### Opening screen
+- Per-user language selector.
+- Shared managed lists for Filters and Add/Edit.
+- Owner/System Administrator list management.
+- Open Now.
+- Optional Google Places and TripAdvisor source selectors.
+- Pers results first, with external-only results under More Places Nearby.
+- De-duplication of external results against Pers.
+- Source-specific ratings, never a synthetic combined rating.
+- One-tap TripAdvisor link when a compliant listing match is available.
+- Country → State/Region → City/Town cascades and searchable selectors.
+- Existing archive, ratings, photos, imports, backups and map/list features.
 
-- Removes the large opening-screen quick-action button row.
-- Keeps optional presets in one compact **Quick filter** selector inside **Filters**.
-- Makes **Location** explicit and compact: tap **Set location / Change**, then choose **Country → State/Region → City/Town** and tap **Done**. The controls collapse after selection.
-- **Places** and the venue list now sit directly under the compact location/toolbar area rather than being pushed below large shortcut controls.
-- When **Remember my filters** is off, Pers opens showing all saved places. The last location may still be retained as context for Find Place Online, but it is not silently reapplied as an opening catalogue filter.
-- Location/filter choices immediately re-render the count, list and map.
+## Cloudflare Google Places Worker
 
-### User / Owner / System Administrator separation
+The Worker source is in:
 
-**User**
-- Browse/search/filter the Pers catalogue.
-- Set personal Near Me radius and filter-memory preference.
-- Rate venues and contribute photos where Owner permits.
-- Check/install PWA updates.
+`cloudflare/places-search-worker.js`
 
-**Owner**
-- Controls Pers data and collection presentation: add/edit/archive/delete venues, Pers ratings, photo moderation, import/export, collection name, Owner name, default Near Me radius and whether Ask Pers/user photos are enabled.
-- Does not receive technical Google/Cloudflare configuration controls.
+For v0.27.22, configure these directly in Cloudflare:
 
-**System Administrator**
-- Controls technical/system functions: Google Places/Cloudflare endpoint and API-key connection management, Ask Pers technical endpoint, technical import/export and diagnostics.
-- Does not receive private Owner commercial/payment controls merely because of the technical role.
-- System Administrator assignment is intended to be protected backend administration, not something an Owner can self-assign in the PWA.
-- Owner controls whether Ask Pers is enabled; System Administrator controls the Ask Pers technical endpoint.
+- `GOOGLE_PLACES_API_KEY` as a Worker secret.
+- `GOOGLE_PLACES_MODE` as a Worker secret, typically `demo` or `production`.
+- `ALLOWED_ORIGIN` to the deployed Pers Favourites site where appropriate.
+- `USAGE_DB` D1 binding if usage tracking/rate limiting is enabled.
 
-During the local trial, the test identity selector remains available so Pat can test Owner and System Administrator paths. It is explicitly test-only and hidden in production mode.
+The PWA stores only the Worker URL.
 
-### Production role hardening
+## Third-party compliance
 
-The Supabase source now supports separate `owner`, `sysadmin`, legacy `admin`, and `viewer` roles plus a protected multi-role field. This allows Pat to hold **System Administrator + temporary Owner access** during setup, then have Owner access removed at handover while retaining technical rights.
+Pers Favourites must use official or otherwise authorised APIs and links. Do not scrape, republish or permanently cache third-party content unless the provider expressly permits it. Provider-specific ratings and opening status are treated as live/transient data. Required source attribution and links must be preserved.
 
-Direct browser role changes are blocked. Owner collection settings and System Administrator technical endpoints use separate scoped RPCs rather than a shared unrestricted settings update.
+## Deployment
 
-For an existing production/shared Supabase rollout, apply:
+1. Export a current backup from Pers Favourites before a material update.
+2. Replace the files in the local GitHub repository folder with the v0.27.22 package contents.
+3. Do not copy the ZIP itself into the repository.
+4. In GitHub Desktop confirm repository **pers-favourites** and branch **main**.
+5. Review the changed files.
+6. Commit with a message such as `Deploy v0.27.22`.
+7. Push origin.
+8. Open the PWA and confirm the displayed version is **0.27.22**.
+9. Use **Account & Settings → App Updates** if the installed PWA still shows an older cached version.
 
-`supabase/migration_v02719_to_v02720.sql`
+## v0.27.22 QA gate
 
-before enabling the new production role model. The current local trial does not require this migration.
+Before release:
 
-### Cloudflare / Google Places
-
-The Worker source now tolerates both the older D1 usage-counter schema and the newer `bucket / call_count / updated_at` schema. This prevents an old D1 table from taking Google Places offline after a Worker update.
-
-The live D1 database was repaired separately during testing. Copying this repository to GitHub does **not** automatically redeploy the Cloudflare Worker; redeploy Worker source only when intentionally updating Cloudflare.
-
-### Photos
-
-- Users have an obvious **+ Add photos** action on venue details when contributions are enabled.
-- Owner retains approval/moderation control.
-- Up to four approved Pers photos can be selected/reordered for venue banners. The previously wired but missing Move earlier/later routine is implemented in this build.
-- If no approved Pers banner photo exists, the app can request a temporary Google Places fallback photo via the deployed `/photo` Worker; initials remain the final fallback.
-
-## Known items not falsely represented as complete
-
-- True production **Passkey/WebAuthn / Face ID** authentication is not implemented by this local-trial build. Password-manager biometric autofill is not treated as a passkey.
-- Photo crop/reposition controls are not yet implemented; current photo controls cover approval, cover/banner selection, ordering, caption and removal.
-- The compact Quick filter presets are retained as fixed presets in this build; full Owner editing of arbitrary preset names/order/criteria remains a separate enhancement.
-
-## Update / deployment
-
-1. Export a current device backup before a material update.
-2. Replace the existing GitHub working-folder files with this version's files, preserving the repository itself.
-3. Commit and push to the existing `pglennonau/pers-favourites` `main` branch.
-4. On the PWA, use **☰ → User → App Updates → Check for Update → Install Update**.
-5. Confirm the displayed version is **0.27.21** and verify existing venues remain present.
-
-## 0.27.20 acceptance checks
-
-1. Opening screen has no large quick-action button row.
-2. **Places** is visible high on the opening screen and all venues appear when no filters are active.
-3. Tap **Set location**, choose Country then State/Region then City/Town, and confirm the catalogue updates immediately.
-4. With **Remember my filters** off, close/reopen and confirm the catalogue is not silently restricted to the previous location.
-5. Open **☰ → Account & Settings** and confirm three areas: **User / Owner / System Administrator**.
-6. User cannot open protected Owner/System Administrator controls in production without the appropriate authenticated role.
-7. Owner can change collection settings but cannot manage Google/Cloudflare or the Ask Pers technical endpoint.
-8. System Administrator can manage technical endpoints but does not automatically gain Owner content-edit rights in production.
-9. Verify **Find Place Online** still finds Massamore Pizzeria after the repaired Cloudflare/D1 backend.
-10. For a Google-linked venue with no Pers photos, verify the temporary Google photo fallback is attempted.
+- JavaScript and Cloudflare Worker syntax pass.
+- No duplicate or missing static HTML control IDs.
+- Version is 0.27.22 consistently in app, config, service worker and version file.
+- No legacy backend name, URL, key, schema or migration file remains anywhere in the release tree.
+- The deployable ZIP contains `index.html`, app assets, icons and Cloudflare Worker source.
+- Filter/master-list, language, Open Now, external search, ratings, archive, import/export and local photo paths remain wired.
+- The package is generated from the release branch by GitHub Actions and its required-file checks pass.
 
 ## Core file discipline
 
-Keep two current master deliverables for each release: the deployable PWA package and the consolidated Master Documentation. Older versions should be treated as archive/history, not as parallel current copies.
+Keep one current deployable PWA package and one current consolidated documentation set. Older versions are archive/history rather than parallel current copies.
