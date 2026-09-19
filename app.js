@@ -425,6 +425,7 @@ function applyGooglePersistenceGuard(p,meta){
   const snap=meta.googleSourceSnapshot||{},before=meta.preGoogleForm||{};
   const props=['name','placeType','cuisine','country','stateRegion','city','suburb','address','price','phone','website'];
   for(const prop of props)if(sameProviderValue(p[prop],snap[prop]))p[prop]=clean(before[prop]);
+  if(!p.name)p.name=clean(before.name||lastFindPlaceRaw);
   for(const prop of ['mealTypes','greatFor','features','dietary','tags']){
     const current=arr(p[prop]).join(', '),source=clean(snap[prop]);
     if(sameProviderValue(current,source))p[prop]=arr(before[prop]);
