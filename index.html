@@ -313,8 +313,11 @@
           <div><span class="muted small">Mode</span><strong id="ownerGoogleMode">—</strong></div>
           <div><span class="muted small">Usage</span><strong id="ownerGoogleUsage">—</strong></div>
           <div><span class="muted small">Paid usage</span><strong id="ownerGooglePaidState">Provider billing applies</strong></div>
+          <div><span class="muted small">Payment method</span><strong>Managed at Google Cloud</strong></div>
         </div>
-        <p class="muted small">API key and billing account are managed securely outside the PWA.</p>
+        <label>Owner monthly budget cap (AUD)<input id="ownerGoogleSpendCap" type="number" min="0" step="1" placeholder="Optional" /></label>
+        <div class="inline-actions"><a class="secondary compact" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener">Manage Google billing</a></div>
+        <p class="muted small">The Owner cap is a governance record in Pers; provider-side budget alerts/limits must also be configured by the System Administrator. API keys remain outside the PWA.</p>
       </fieldset>
       <fieldset class="external-service-card">
         <legend>TripAdvisor</legend>
@@ -324,6 +327,7 @@
           <div><span class="muted small">Allowance usage</span><strong id="ownerTripadvisorUsage">—</strong></div>
           <div><span class="muted small">Allowance period</span><strong id="ownerTripadvisorPeriod">—</strong></div>
         </div>
+        <label>Owner paid-usage cap (AUD)<input id="ownerTripadvisorSpendCap" type="number" min="0" step="1" placeholder="Required before paid use" /></label>
         <label class="check"><input id="ownerTripadvisorPaidApproval" type="checkbox" /> Owner approves paid TripAdvisor API usage</label>
         <p class="muted small">For safety, Owner approval alone cannot activate paid API calls. The System Administrator must also enable the protected Cloudflare paid-usage setting.</p>
         <div class="inline-actions">
@@ -335,12 +339,26 @@
       </fieldset>
       <fieldset class="external-service-card">
         <legend>Cloudflare</legend>
-        <div class="connection-grid"><div><span class="muted small">Backend</span><strong>Connected platform</strong></div><div><span class="muted small">Billing</span><strong>Manage at Cloudflare</strong></div></div>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="ownerCloudflareConnection">Checking…</strong></div>
+          <div><span class="muted small">Services</span><strong>Workers / D1</strong></div>
+          <div><span class="muted small">Usage / charges</span><strong id="ownerCloudflareUsage">See provider dashboard</strong></div>
+          <div><span class="muted small">Payment method</span><strong>Managed at Cloudflare</strong></div>
+        </div>
+        <label>Owner monthly budget cap (AUD)<input id="ownerCloudflareSpendCap" type="number" min="0" step="1" placeholder="Optional" /></label>
+        <div class="inline-actions"><a class="secondary compact" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Manage Cloudflare billing</a></div>
         <p class="muted small">Workers, D1, future shared data/auth and photo storage are Cloudflare services. Detailed transaction data is shown only where an authorised provider API makes it available.</p>
       </fieldset>
       <fieldset class="external-service-card">
         <legend>OpenAI / Ask Pers</legend>
-        <div class="connection-grid"><div><span class="muted small">Ask Pers</span><strong id="ownerAskPersState">—</strong></div><div><span class="muted small">Billing</span><strong>Provider billing applies when enabled</strong></div></div>
+        <div class="connection-grid">
+          <div><span class="muted small">Connection</span><strong id="ownerAskPersConnection">—</strong></div>
+          <div><span class="muted small">Ask Pers</span><strong id="ownerAskPersState">—</strong></div>
+          <div><span class="muted small">Usage / charges</span><strong id="ownerAskPersUsage">See provider dashboard</strong></div>
+          <div><span class="muted small">Payment method</span><strong>Managed at OpenAI</strong></div>
+        </div>
+        <label>Owner monthly budget cap (AUD)<input id="ownerOpenAiSpendCap" type="number" min="0" step="1" placeholder="Optional" /></label>
+        <div class="inline-actions"><a class="secondary compact" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">Manage OpenAI API billing</a></div>
       </fieldset>
     </section>
 
