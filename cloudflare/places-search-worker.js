@@ -76,6 +76,8 @@ function normalisePlace(p) {
     placeType: p.primaryTypeDisplayName?.text || p.primaryType || (p.types || [])[0] || '',
     primaryType: p.primaryType || '', country, stateRegion, city, suburb,
     website: p.websiteUri || '', phone: p.internationalPhoneNumber || '', googleMapsUrl: p.googleMapsUri || '',
+    rating: Number(p.rating) || 0, userRatingCount: Number(p.userRatingCount) || 0,
+    openNow: p.currentOpeningHours?.openNow === true, weekdayDescriptions: Array.isArray(p.currentOpeningHours?.weekdayDescriptions) ? p.currentOpeningHours.weekdayDescriptions : [],
     photoRef: photo.name || '', photoAttribution: Array.isArray(photo.authorAttributions) ? photo.authorAttributions.map(x => ({ displayName: x.displayName || '', uri: x.uri || '', photoUri: x.photoUri || '' })) : []
   };
 }
@@ -96,7 +98,7 @@ async function textSearchWithKey(env, apiKey, textQuery, location, context, wide
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents,places.photos'
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.internationalPhoneNumber,places.googleMapsUri,places.addressComponents,places.photos,places.rating,places.userRatingCount,places.currentOpeningHours'
     },
     body: JSON.stringify(body)
   });
