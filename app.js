@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.20',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.21',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const SUPABASE_PUBLIC_KEY = CFG.supabasePublishableKey || CFG.supabaseAnonKey || ''; // legacy anon key remains accepted for older rollouts
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
@@ -8,7 +8,7 @@ const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || locatio
 const LS_GOOGLE_PHOTO_REFS = `pers-v02716-google-photo-refs:${CFG.deploymentId || location.pathname}`;
 const LEGACY_SESSION = `pers-v025-session:${CFG.deploymentId || location.pathname}`;
 const PHOTO_BUCKET = 'venue-photos';
-const FILTER_KEYS = ['country','region','city','type','cuisine','rating','distance','price','meal','greatFor','feature','status','dietary','tag'];
+const FILTER_KEYS = ['country','region','city','type','cuisine','rating','distance','openNow','price','meal','greatFor','feature','status','dietary','tag'];
 const PLACE_TYPES=['Restaurant','Bar','Wine Bar','Cafe','Cafe - Specialty Coffee','Bakery','Pub','Bistro','Brasserie','Winery','Cellar Door','Hotel','Accommodation','Attraction','Market','Shop','Beach','Park','Other'];
 const CUISINES=['Australian','Basque','Catalan','Chinese','French','Greek','Indian','Italian','Japanese','Korean','Mediterranean','Mexican','Middle Eastern','Modern Australian','Modern European','Seafood','Spanish','Steakhouse','Tapas','Thai','Vegetarian','Vietnamese','Other'];
 const MEALS=['Breakfast','Brunch','Lunch','Dinner','Drinks','Coffee','Dessert','Tasting','Takeaway'];
@@ -16,12 +16,25 @@ const GREAT_FOR=['Casual','Coffee','Couples','Family','Groups','Local Favourite'
 const FEATURES=['Bar Seating','Beachfront','BYO','Historic','Outdoor Seating','Rooftop','Waterfront','Wheelchair Access','Wine List'];
 const DIETARY=['Gluten Free','Halal','Kosher','Vegan','Vegetarian'];
 const TAGS=['Great Wine','Local Favourite','Old Town','Special Occasion','Visitors','Views'];
+const MASTER_LIST_DEFAULTS={type:PLACE_TYPES,cuisine:CUISINES,meal:MEALS,greatFor:GREAT_FOR,feature:FEATURES,dietary:DIETARY,tag:TAGS};
+const MASTER_LIST_META={
+  type:{label:'Place Type'},cuisine:{label:'Cuisine'},meal:{label:'Meal / Visit Type'},greatFor:{label:'Great For'},
+  feature:{label:'Feature'},dietary:{label:'Dietary'},tag:{label:'Personal Tag'}
+};
+const LANGUAGE_OPTIONS={en:'English',es:'Español',fr:'Français',it:'Italiano',de:'Deutsch'};
+const I18N={
+  en:{searchPlaceholder:'Search restaurants, places, notes…',location:'Location',allLocations:'All locations',setLocation:'Set location',change:'Change',hide:'Hide',clear:'Clear',done:'Done',places:'Places',place:'place',placesLower:'places',filters:'Filters',add:'+ Add',list:'List',map:'Map',openNow:'Open Now',hours:'Hours',quickFilter:'Quick filter',moreFilters:'More Filters ▾',resetFilters:'Reset filters',morePlaces:'More Places Nearby',searchOtherApps:'Search selected apps',externalSources:'Add other app searches',language:'Language',noMatch:'No places match these filters.'},
+  es:{searchPlaceholder:'Buscar restaurantes, lugares, notas…',location:'Ubicación',allLocations:'Todas las ubicaciones',setLocation:'Elegir ubicación',change:'Cambiar',hide:'Ocultar',clear:'Borrar',done:'Listo',places:'Lugares',place:'lugar',placesLower:'lugares',filters:'Filtros',add:'+ Añadir',list:'Lista',map:'Mapa',openNow:'Abierto ahora',hours:'Horario',quickFilter:'Filtro rápido',moreFilters:'Más filtros ▾',resetFilters:'Restablecer filtros',morePlaces:'Más lugares cercanos',searchOtherApps:'Buscar en apps seleccionadas',externalSources:'Añadir búsquedas de otras apps',language:'Idioma',noMatch:'Ningún lugar coincide con estos filtros.'},
+  fr:{searchPlaceholder:'Rechercher restaurants, lieux, notes…',location:'Emplacement',allLocations:'Tous les emplacements',setLocation:'Définir le lieu',change:'Modifier',hide:'Masquer',clear:'Effacer',done:'Terminé',places:'Lieux',place:'lieu',placesLower:'lieux',filters:'Filtres',add:'+ Ajouter',list:'Liste',map:'Carte',openNow:'Ouvert maintenant',hours:'Horaires',quickFilter:'Filtre rapide',moreFilters:'Plus de filtres ▾',resetFilters:'Réinitialiser les filtres',morePlaces:'Plus de lieux à proximité',searchOtherApps:'Rechercher dans les apps sélectionnées',externalSources:'Ajouter d’autres recherches',language:'Langue',noMatch:'Aucun lieu ne correspond à ces filtres.'},
+  it:{searchPlaceholder:'Cerca ristoranti, luoghi, note…',location:'Posizione',allLocations:'Tutte le posizioni',setLocation:'Imposta posizione',change:'Cambia',hide:'Nascondi',clear:'Cancella',done:'Fatto',places:'Luoghi',place:'luogo',placesLower:'luoghi',filters:'Filtri',add:'+ Aggiungi',list:'Elenco',map:'Mappa',openNow:'Aperto ora',hours:'Orari',quickFilter:'Filtro rapido',moreFilters:'Altri filtri ▾',resetFilters:'Reimposta filtri',morePlaces:'Altri luoghi nelle vicinanze',searchOtherApps:'Cerca nelle app selezionate',externalSources:'Aggiungi altre ricerche app',language:'Lingua',noMatch:'Nessun luogo corrisponde a questi filtri.'},
+  de:{searchPlaceholder:'Restaurants, Orte, Notizen suchen…',location:'Standort',allLocations:'Alle Standorte',setLocation:'Standort festlegen',change:'Ändern',hide:'Ausblenden',clear:'Löschen',done:'Fertig',places:'Orte',place:'Ort',placesLower:'Orte',filters:'Filter',add:'+ Hinzufügen',list:'Liste',map:'Karte',openNow:'Jetzt geöffnet',hours:'Öffnungszeiten',quickFilter:'Schnellfilter',moreFilters:'Mehr Filter ▾',resetFilters:'Filter zurücksetzen',morePlaces:'Weitere Orte in der Nähe',searchOtherApps:'Ausgewählte Apps durchsuchen',externalSources:'Weitere App-Suchen hinzufügen',language:'Sprache',noMatch:'Keine Orte entsprechen diesen Filtern.'}
+};
 const MULTI_EDITOR_FIELDS={
-  placeMeals:{picker:'placeMealsPicker',chips:'placeMealsChips',values:MEALS,prop:'mealTypes',label:'Meal / Visit Type'},
-  placeGreatFor:{picker:'placeGreatForPicker',chips:'placeGreatForChips',values:GREAT_FOR,prop:'greatFor',label:'Great For'},
-  placeFeatures:{picker:'placeFeaturesPicker',chips:'placeFeaturesChips',values:FEATURES,prop:'features',label:'Feature'},
-  placeDietary:{picker:'placeDietaryPicker',chips:'placeDietaryChips',values:DIETARY,prop:'dietary',label:'Dietary'},
-  placeTags:{picker:'placeTagsPicker',chips:'placeTagsChips',values:TAGS,prop:'tags',label:'Personal Tag'}
+  placeMeals:{picker:'placeMealsPicker',chips:'placeMealsChips',masterKey:'meal',prop:'mealTypes',label:'Meal / Visit Type'},
+  placeGreatFor:{picker:'placeGreatForPicker',chips:'placeGreatForChips',masterKey:'greatFor',prop:'greatFor',label:'Great For'},
+  placeFeatures:{picker:'placeFeaturesPicker',chips:'placeFeaturesChips',masterKey:'feature',prop:'features',label:'Feature'},
+  placeDietary:{picker:'placeDietaryPicker',chips:'placeDietaryChips',masterKey:'dietary',prop:'dietary',label:'Dietary'},
+  placeTags:{picker:'placeTagsPicker',chips:'placeTagsChips',masterKey:'tag',prop:'tags',label:'Personal Tag'}
 };
 const $ = id => document.getElementById(id);
 const nowISO = () => new Date().toISOString();
@@ -52,6 +65,8 @@ let importCandidates = [];
 let userRatings = [];
 let ratingSummaries = {};
 let onlinePlaceResults = [];
+let externalPlaceResults = [];
+let externalSearchBusy = false;
 let pendingRating = null;
 let archiveMode = false;
 let photos = [];
@@ -81,7 +96,33 @@ let locationEditorOpen=false;
 let catalogueFiltersOpen=false;
 
 function defaultFilters(){ return Object.fromEntries(FILTER_KEYS.map(k=>[k,''])); }
-function defaultPreferences(){ return {view:'list',sort:'nearest',preferredDistance:'1',rememberFilters:false,lastLocation:{country:'',region:'',city:''},filters:defaultFilters()}; }
+function defaultPreferences(){ return {view:'list',sort:'nearest',preferredDistance:'1',rememberFilters:false,language:'en',externalSources:{google:false,tripadvisor:false},lastLocation:{country:'',region:'',city:''},filters:defaultFilters()}; }
+function defaultMasterLists(){const out={};for(const [k,vals] of Object.entries(MASTER_LIST_DEFAULTS))out[k]={active:[...vals],archived:[]};return out;}
+function normalizeMasterLists(raw){
+  const base=defaultMasterLists(),out={};
+  for(const key of Object.keys(MASTER_LIST_DEFAULTS)){
+    if(!raw||!Object.prototype.hasOwnProperty.call(raw,key)){out[key]=base[key];continue;}
+    const src=raw[key];
+    if(Array.isArray(src)){out[key]={active:uniq(src),archived:[]};continue;}
+    const active=Array.isArray(src?.active)?uniq(src.active):base[key].active;
+    const archived=Array.isArray(src?.archived)?uniq(src.archived.filter(x=>!active.includes(x))):[];
+    out[key]={active,archived};
+  }
+  return out;
+}
+function ensureMasterLists(){if(!state?.settings)return defaultMasterLists();state.settings.masterLists=normalizeMasterLists(state.settings.masterLists);return state.settings.masterLists;}
+function masterValues(key){const m=state?.settings?.masterLists?normalizeMasterLists(state.settings.masterLists):defaultMasterLists();return [...(m[key]?.active||[])];}
+function t(key,fallback=''){const lang=LANGUAGE_OPTIONS[preferences?.language]?preferences.language:'en';return I18N[lang]?.[key]||I18N.en[key]||fallback||key;}
+function applyLanguage(){
+  const lang=LANGUAGE_OPTIONS[preferences?.language]?preferences.language:'en';document.documentElement.lang=lang;
+  if($('languageSelect'))$('languageSelect').value=lang;
+  if($('searchInput'))$('searchInput').placeholder=t('searchPlaceholder');
+  const set=(id,key)=>{if($(id))$(id).textContent=t(key);};
+  set('coreLocationTitle','location');set('clearLocationBtn','clear');set('locationDoneBtn','done');set('filtersToggleBtn','filters');set('addPlaceBtn','add');set('listViewBtn','list');set('mapViewBtn','map');set('moreFiltersBtn','moreFilters');set('resetFiltersBtn','resetFilters');
+  if($('externalSourcesLabel'))$('externalSourcesLabel').textContent=t('externalSources');
+  if($('searchExternalBtn'))$('searchExternalBtn').textContent=t('searchOtherApps');
+  syncLocationBanner();syncCatalogueFilters();
+}
 function defaultPublicViewerState(){return {id:uid(),personal:{},visits:[],preferences:defaultPreferences(),updatedAt:nowISO()};}
 function loadPublicViewerState(){try{const raw=JSON.parse(localStorage.getItem(LS_PUBLIC_VIEWER)||'null');if(raw&&raw.id)return {id:raw.id,personal:raw.personal||{},visits:Array.isArray(raw.visits)?raw.visits:[],preferences:normalizePreferences(raw.preferences||{})};}catch{}const d=defaultPublicViewerState();localStorage.setItem(LS_PUBLIC_VIEWER,JSON.stringify(d));return d;}
 function savePublicViewerState(){if(CFG.mode==='local'||session)return;const id=(currentUser?.id||'').replace(/^public:/,'')||loadPublicViewerState().id;localStorage.setItem(LS_PUBLIC_VIEWER,JSON.stringify({id,personal,visits,preferences:normalizePreferences(preferences),updatedAt:nowISO()}));}
@@ -90,6 +131,8 @@ function normalizePreferences(raw={}){
   const p=Object.assign(defaultPreferences(),raw||{});
   p.lastLocation=Object.assign({country:'',region:'',city:''},raw?.lastLocation||{});
   p.filters=Object.assign(defaultFilters(),raw?.filters||{});
+  p.language=LANGUAGE_OPTIONS[raw?.language]?raw.language:'en';
+  p.externalSources=Object.assign({google:false,tripadvisor:false},raw?.externalSources||{});
   p.lastLocation.country=clean(p.lastLocation.country);p.lastLocation.region=clean(p.lastLocation.region);p.lastLocation.city=clean(p.lastLocation.city);
   FILTER_KEYS.forEach(k=>p.filters[k]=clean(p.filters[k]));
   return p;
@@ -99,7 +142,7 @@ function defaultLocalState(){
   const ownerId='local-owner';
   return {
     schema:276, appVersion:CFG.version, createdAt:nowISO(), updatedAt:nowISO(),
-    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint)},
+    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint),masterLists:defaultMasterLists()},
     users:[
       {id:ownerId,email:'owner@local.test',displayName:CFG.ownerDisplayName || 'Owner',role:'owner'},
       {id:'local-sysadmin',email:'sysadmin@local.test',displayName:'Pat (System Administrator)',role:'sysadmin'},
@@ -119,7 +162,7 @@ function normalizeLegacyPlace(p={}){
     address:clean(p.address), lat:lat===''?null:(lat==null?null:+lat), lng:lng===''?null:(lng==null?null:+lng), price:clean(p.price), persRating:+(p.persRating??p.pers_rating??0)||0,
     mealTypes:arr(p.mealTypes||p.meals), greatFor:arr(p.greatFor), features:arr(p.features), dietary:arr(p.dietary), tags:arr(p.tags),
     mustTry:clean(p.mustTry||p.whatToOrder||p.favouriteDish||p.favoriteDish), notes:clean(p.notes||p.listNotes||p.comment), website:clean(p.website),
-    googleMapsUrl:clean(p.googleMapsUrl||p.googleUrl||p.mapsUrl||p.url),googlePlaceId:clean(p.googlePlaceId||p.google_place_id),googlePhotoRef:clean(p.googlePhotoRef||p.google_photo_ref),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:(Array.isArray(p.google_photo_attribution)?p.google_photo_attribution:[]),phone:clean(p.phone), bookingUrl:clean(p.bookingUrl||p.reservationUrl),
+    googleMapsUrl:clean(p.googleMapsUrl||p.googleUrl||p.mapsUrl||p.url),googlePlaceId:clean(p.googlePlaceId||p.google_place_id),googlePhotoRef:clean(p.googlePhotoRef||p.google_photo_ref),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:(Array.isArray(p.google_photo_attribution)?p.google_photo_attribution:[]),tripadvisorLocationId:clean(p.tripadvisorLocationId||p.tripadvisor_location_id),tripadvisorUrl:clean(p.tripadvisorUrl||p.tripadvisor_url),phone:clean(p.phone), bookingUrl:clean(p.bookingUrl||p.reservationUrl),
     createdAt:p.createdAt||p.created_at||nowISO(), updatedAt:p.updatedAt||p.updated_at||nowISO(),
     archivedAt:p.archivedAt||p.archived_at||(p.archived||status==='archived'?nowISO():'')
   };
@@ -158,7 +201,7 @@ function normalizeLocalState(d,sourceKey=''){
   const ownerName=clean(settings.ownerDisplayName||settings.owner_display_name||d?.displayName||CFG.ownerDisplayName||'Owner');
   const result={
     ...d, schema:276, appVersion:CFG.version,
-    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint)},
+    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint),masterLists:normalizeMasterLists(settings.masterLists||settings.master_lists)},
     users, activeUserId:d?.activeUserId||users[0]?.id||'local-owner', places:normalizedPlaces, photos:Array.isArray(d?.photos)?d.photos.map(normalizePhotoMeta):[],
     personal:normalizeLegacyPersonal(d?.personal,rawPlaces), userRatings:Array.isArray(d?.userRatings)?d.userRatings:Array.isArray(d?.venueRatings)?d.venueRatings:[], visits:Array.isArray(d?.visits)?d.visits.map(v=>({id:v.id||uid(),placeId:v.placeId||v.place_id,userId:v.userId||v.user_id||'local-owner',visitedAt:v.visitedAt||v.visited_at||v.date||nowISO(),rating:+(v.rating||0),comment:clean(v.comment||v.note)})):[],
     preferences:d?.preferences&&typeof d.preferences==='object'?d.preferences:{}, history:Array.isArray(d?.history)?d.history:[],
