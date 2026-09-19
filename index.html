@@ -26,8 +26,8 @@
 
   <main>
     <dialog id="authScreen" class="modal auth-card">
-      <div class="modal-head"><h2 id="authTitle">Owner / Admin sign in</h2><button id="authClose" class="icon-button" aria-label="Close">×</button></div>
-      <p id="authIntro" class="muted">Owner/Admin controls are protected.</p>
+      <div class="modal-head"><h2 id="authTitle">Protected sign in</h2><button id="authClose" class="icon-button" aria-label="Close">×</button></div>
+      <p id="authIntro" class="muted">Protected role controls require an authorised account.</p>
       <label>Email<input id="loginEmail" type="email" autocomplete="email" /></label>
       <label id="loginPasswordWrap">Password<input id="loginPassword" type="password" autocomplete="current-password" /></label>
       <button id="loginBtn" class="primary">Sign in securely</button>
@@ -51,25 +51,26 @@
 
       <section class="core-location-banner" aria-labelledby="coreLocationTitle">
         <div class="core-location-head">
-          <div><strong id="coreLocationTitle">Your location filters</strong><div id="locationScopeLabel" class="small muted">All locations</div></div>
-          <button id="clearLocationBtn" class="link-button compact" type="button">Clear location</button>
+          <div><strong id="coreLocationTitle">Location</strong><div id="locationScopeLabel" class="small muted">All locations</div></div>
+          <div class="location-head-actions">
+            <button id="editLocationBtn" class="secondary compact" type="button">Set location</button>
+            <button id="clearLocationBtn" class="link-button compact" type="button">Clear</button>
+          </div>
         </div>
-        <div class="core-location-fields">
-          <div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div>
-          <div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div>
-          <div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div>
+        <div id="coreLocationFields" class="core-location-fields hidden">
+          <label>Country<div class="geo-choice-wrap"><input id="countryFilter" class="geo-choice" list="countryFilterList" placeholder="Type country" autocomplete="off" inputmode="search" /><datalist id="countryFilterList"></datalist></div></label>
+          <label><span id="filterRegionLabel">State/Region</span><div class="geo-choice-wrap"><input id="regionFilter" class="geo-choice" list="regionFilterList" placeholder="Select Country first" autocomplete="off" inputmode="search" disabled /><datalist id="regionFilterList"></datalist></div></label>
+          <label>City/Town<div class="geo-choice-wrap"><input id="cityFilter" class="geo-choice" list="cityFilterList" placeholder="Select State/Region first" autocomplete="off" inputmode="search" disabled /><datalist id="cityFilterList"></datalist></div></label>
+          <div class="location-actions"><button id="locationDoneBtn" class="primary compact" type="button">Done</button></div>
         </div>
       </section>
 
-      <div class="quick-actions" id="quickActions">
-        <button data-quick="near">📍 Near Me</button>
-        <button data-quick="favourite">♥ Favourites</button>
-        <button data-quick="want">○ Want to Visit</button>
-        <button data-quick="coffee">☕ Coffee</button>
-        <button data-quick="five">★ 5 Star</button>
-        <button id="askPersBtn" class="hidden">Ask Pers</button>
-        <button data-quick="restaurant">Restaurant</button>
-        <button data-quick="winebar">Wine Bar</button>
+      <div class="results-head catalogue-head">
+        <div><strong>Places</strong><span id="resultCount" class="result-count">0 places</span></div>
+        <div class="catalogue-head-actions">
+          <button id="filtersToggleBtn" class="secondary compact" type="button">Filters</button>
+          <div class="admin-actions" id="adminActions"><button id="addPlaceBtn" class="primary compact">+ Add</button></div>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -87,40 +88,38 @@
         </select>
       </div>
 
-      <div class="filter-row" id="primaryFilters">
-        <select id="typeFilter"><option value="">Place Type</option></select>
-        <select id="cuisineFilter"><option value="">Cuisine</option></select>
-        <select id="ratingFilter">
-          <option value="">Rating</option><option value="combined5">5 Star: Pers 5 or Users 4.5+</option><option value="5">Users 5★ only</option><option value="4">Users 4★+</option><option value="3">Users 3★+</option>
-        </select>
-        <select id="distanceFilter">
-          <option value="">Distance</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
-        </select>
-        <button id="moreFiltersBtn" class="secondary compact">More Filters ▾</button>
-      </div>
-
-      <div id="moreFiltersPanel" class="more-filters hidden">
-        <select id="priceFilter"><option value="">Price</option><option value="$">$</option><option value="$$">$$</option><option value="$$$">$$$</option><option value="$$$$">$$$$</option></select>
-        <select id="mealFilter"><option value="">Meal / Visit Type</option></select>
-        <select id="greatForFilter"><option value="">Great For</option></select>
-        <select id="featureFilter"><option value="">Feature</option></select>
-        <select id="statusFilter"><option value="">Status</option><option value="favourite">Favourite</option><option value="want">Want to Visit</option><option value="visited">Visited</option><option value="regular">Regular/Favourite</option><option value="unrated">Not Yet Rated</option></select>
-        <select id="dietaryFilter"><option value="">Dietary</option></select>
-        <select id="tagFilter"><option value="">Personal Tag</option></select>
-      </div>
-
-      <div class="filter-summary">
-        <div id="activeChips" class="chips"></div>
-        <button id="resetFiltersBtn" class="link-button">Reset filters</button>
-      </div>
-
-      <div class="results-head">
-        <strong id="resultCount">0 places</strong>
-        <div class="admin-actions" id="adminActions">
-          <button id="addPlaceBtn" class="primary compact">+ Add</button>
-
+      <section id="catalogueFiltersPanel" class="catalogue-filters hidden" aria-label="Catalogue filters">
+        <div class="filter-row" id="primaryFilters">
+          <select id="quickPresetSelect" aria-label="Quick filter">
+            <option value="">Quick filter</option><option value="near">Near Me</option><option value="coffee">Coffee</option><option value="favourite">Favourites</option><option value="want">Want to Visit</option><option value="restaurant">Restaurant</option><option value="winebar">Wine Bar</option><option value="five">5 Star</option>
+          </select>
+          <select id="typeFilter"><option value="">Place Type</option></select>
+          <select id="cuisineFilter"><option value="">Cuisine</option></select>
+          <select id="ratingFilter">
+            <option value="">Rating</option><option value="combined5">5 Star: Pers 5 or Users 4.5+</option><option value="5">Users 5★ only</option><option value="4">Users 4★+</option><option value="3">Users 3★+</option>
+          </select>
+          <select id="distanceFilter">
+            <option value="">Distance</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
+          </select>
+          <button id="moreFiltersBtn" class="secondary compact">More Filters ▾</button>
+          <button id="askPersBtn" class="secondary compact hidden">Ask Pers</button>
         </div>
-      </div>
+
+        <div id="moreFiltersPanel" class="more-filters hidden">
+          <select id="priceFilter"><option value="">Price</option><option value="$">$</option><option value="$$">$$</option><option value="$$$">$$$</option><option value="$$$$">$$$$</option></select>
+          <select id="mealFilter"><option value="">Meal / Visit Type</option></select>
+          <select id="greatForFilter"><option value="">Great For</option></select>
+          <select id="featureFilter"><option value="">Feature</option></select>
+          <select id="statusFilter"><option value="">Status</option><option value="favourite">Favourite</option><option value="want">Want to Visit</option><option value="visited">Visited</option><option value="regular">Regular/Favourite</option><option value="unrated">Not Yet Rated</option></select>
+          <select id="dietaryFilter"><option value="">Dietary</option></select>
+          <select id="tagFilter"><option value="">Personal Tag</option></select>
+        </div>
+
+        <div class="filter-summary">
+          <div id="activeChips" class="chips"></div>
+          <button id="resetFiltersBtn" class="link-button">Reset filters</button>
+        </div>
+      </section>
 
       <section id="listPanel" class="list-panel"></section>
       <section id="mapPanel" class="map-panel hidden">
@@ -205,7 +204,7 @@
 
   <dialog id="photoModerationDialog" class="modal">
     <div class="modal-head"><h2>Photo moderation</h2><button id="photoModerationClose" class="icon-button">×</button></div>
-    <p class="muted small">Owner/Admin controls shown here affect what users can see. User-contributed photos remain pending until approved.</p>
+    <p class="muted small">Owner controls shown here affect what users can see. User-contributed photos remain pending until approved.</p>
     <div class="toolbar moderation-toolbar"><select id="photoModerationFilter"><option value="pending">Pending approval</option><option value="all">All photos</option><option value="approved">Approved</option><option value="hidden">Hidden</option></select><strong id="photoModerationCount">0 photos</strong></div>
     <div id="photoModerationList" class="moderation-list"></div>
   </dialog>
@@ -228,47 +227,82 @@
     <div class="modal-head"><h2>Account & Settings</h2><button id="accountClose" class="icon-button">×</button></div>
     <div id="accountSummary" class="account-summary"></div>
     <div class="account-login-actions">
-      <button id="ownerSigninBtn" class="primary hidden">Owner / Admin sign in</button>
+      <button id="ownerSigninBtn" class="primary hidden">Protected sign in</button>
       <button id="contributorSigninBtn" class="secondary hidden">Sign in to contribute photos</button>
     </div>
-    <hr />
-    <h3>My Settings</h3>
-    <label>Preferred distance radius
-      <select id="prefDistance"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select>
-    </label>
-    <label class="check"><input id="rememberFilters" type="checkbox" /> Remember my filters between visits</label>
-    <hr />
-    <section class="app-update-card">
-      <h3>App Updates</h3>
-      <div class="connection-grid">
-        <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.9</strong></div>
-        <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
-      </div>
-      <div class="inline-actions">
-        <button id="checkUpdateBtn" type="button" class="secondary compact">Check for Update</button>
-        <button id="installUpdateBtn" type="button" class="primary compact hidden">Install Update</button>
-      </div>
-      <p id="appUpdateStatus" class="muted small">Pers checks automatically when opened. A manual check is available here.</p>
-      <p class="muted small">Updates refresh the PWA code and preserve the Pers database, ratings and settings. A new release must first be published to the hosting site.</p>
+
+    <nav class="account-role-tabs" aria-label="Account areas">
+      <button id="accountTabUser" class="active" type="button">User</button>
+      <button id="accountTabOwner" type="button">Owner <span id="ownerTabLock" class="tab-lock">🔒</span></button>
+      <button id="accountTabSysadmin" type="button">System Administrator <span id="sysadminTabLock" class="tab-lock">🔒</span></button>
+    </nav>
+
+    <section id="userSettingsPane" class="account-pane">
+      <h3>User settings</h3>
+      <label>Preferred distance radius
+        <select id="prefDistance"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select>
+      </label>
+      <label class="check"><input id="rememberFilters" type="checkbox" /> Remember my filters between visits</label>
+      <p class="muted small">When this is off, Pers opens showing all saved places. Your last location is retained only to help Find Place Online.</p>
+      <hr />
+      <section class="app-update-card">
+        <h3>App Updates</h3>
+        <div class="connection-grid">
+          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.20</strong></div>
+          <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
+        </div>
+        <div class="inline-actions">
+          <button id="checkUpdateBtn" type="button" class="secondary compact">Check for Update</button>
+          <button id="installUpdateBtn" type="button" class="primary compact hidden">Install Update</button>
+        </div>
+        <p id="appUpdateStatus" class="muted small">Pers checks automatically when opened. A manual check is available here.</p>
+      </section>
+      <section id="localRoleSettings" class="hidden local-test-box">
+        <hr /><h3>Local trial identity</h3>
+        <p class="muted small">Testing only. Production access is controlled by authenticated account roles; this selector is never shown in a production rollout.</p>
+        <label>Test role<select id="localRoleSelect"><option value="owner">Owner</option><option value="sysadmin">System Administrator</option><option value="viewer">User</option></select></label>
+      </section>
     </section>
-    <hr />
-    <section id="editorSettings" class="hidden">
-      <h3 id="roleAreaTitle">Owner</h3>
-      <p class="muted small">Role-based management area. Import is available only here, not on the normal catalogue screen.</p>
-      <button id="importBtn" class="secondary">Import places</button>
-      <hr />
-      <h3>Shared content controls</h3>
-      <button id="managePhotosBtn" class="secondary">Manage venue photos <span id="pendingPhotoBadge" class="count-badge hidden">0</span></button>
-      <p class="muted small">User photos require approval before they appear to other users. Owner/Admin can approve, hide, change captions, choose cover photos, reorder visible photos and remove photos.</p>
-      <hr />
-      <h3>Archive</h3>
-      <button id="showArchiveBtn" class="secondary">View archived places</button>
-      <hr />
-      <h3>Backup & version history</h3>
-      <button id="exportBackupBtn" class="secondary">Export full database + photos backup</button>
-      <p class="muted small">Includes venue records, ratings, settings, visit data, photo metadata and the photo files themselves where accessible.</p>
+
+    <section id="ownerSettingsPane" class="account-pane hidden">
+      <h3>Owner</h3>
+      <p class="owner-callout">Owner controls Pers data and collection presentation. Technical service configuration remains in System Administrator.</p>
+      <div class="owner-tool-grid">
+        <button id="importBtn" class="secondary">Import places</button>
+        <button id="managePhotosBtn" class="secondary">Manage venue photos <span id="pendingPhotoBadge" class="count-badge hidden">0</span></button>
+        <button id="showArchiveBtn" class="secondary">View archived places</button>
+        <button id="exportBackupBtn" class="secondary">Export full backup</button>
+      </div>
       <button id="exportHistoryBtn" class="secondary">Export version history</button>
       <hr />
+      <h3>Collection settings</h3>
+      <label>App / collection name<input id="settingAppName" /></label>
+      <p class="muted small">This name is also used for new Home Screen/PWA installs.</p>
+      <label>Owner display name<input id="settingOwnerName" placeholder="e.g. Per" /></label>
+      <label>Home city/region<input id="settingHomeRegion" /></label>
+      <label class="check"><input id="settingAllowUserPhotos" type="checkbox" /> Allow users to contribute venue photos</label>
+      <label>Default Near Me radius<select id="settingDefaultNearMe"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label>
+      <label class="check"><input id="settingAskPersEnabled" type="checkbox" /> Enable Ask Pers natural-language search</label>
+      <p class="muted small">Owner can enable/disable Ask Pers. Its technical server endpoint is managed by System Administrator.</p>
+      <button id="saveSettingsBtn" class="primary">Save collection settings</button>
+      <button id="restoreBackupBtn" class="secondary">Restore backup (local trial)</button>
+      <input id="restoreFile" type="file" accept="application/json,.json" class="hidden" />
+    </section>
+
+    <section id="sysadminSettingsPane" class="account-pane hidden">
+      <h3>System Administrator</h3>
+      <p class="muted small">Technical/system controls only. Owner collection settings and private commercial/payment information are not managed here.</p>
+      <div class="owner-tool-grid">
+        <button id="sysadminImportBtn" class="secondary">Import places</button>
+        <button id="sysadminExportBackupBtn" class="secondary">Export full backup</button>
+      </div>
+      <hr />
+      <fieldset class="external-service-card">
+        <legend>External Services - Ask Pers</legend>
+        <label>Ask Pers server endpoint<input id="sysadminAskPersEndpoint" type="url" placeholder="https://your-worker.example.com/ask-pers" /></label>
+        <div class="inline-actions"><button id="saveAskPersEndpointBtn" type="button" class="secondary compact">Save endpoint</button></div>
+        <p class="muted small">The Owner decides whether Ask Pers is enabled; System Administrator controls the technical endpoint.</p>
+      </fieldset>
       <fieldset class="external-service-card">
         <legend>External Services - Google Maps / Places</legend>
         <label>Google Places Worker endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
@@ -279,7 +313,7 @@
         </div>
         <label>Connection mode<select id="googleModeSelect"><option value="demo">Demo</option><option value="production">Production</option></select></label>
         <label id="googleKeyEntryWrap" class="hidden">New Google API key<input id="googleApiKeyInput" type="password" autocomplete="new-password" placeholder="Paste the new key" /></label>
-        <p class="muted small">The raw key is sent directly to the secure Cloudflare Worker and saved as an encrypted Worker secret. Pers does not store it in localStorage, Supabase or GitHub.</p>
+        <p class="muted small">The raw key is sent directly to the secure Cloudflare Worker and stored as a Worker secret. Pers does not store it in localStorage or GitHub.</p>
         <div class="inline-actions">
           <button id="saveGoogleEndpointBtn" type="button" class="secondary compact">Save endpoint</button>
           <button id="testPlacesEndpointBtn" type="button" class="secondary compact">Test connection</button>
@@ -290,36 +324,15 @@
         </div>
         <span id="placesEndpointStatus" class="small muted"></span>
       </fieldset>
-    </section>
-    <section id="ownerSettings" class="hidden">
       <hr />
-      <h3>Owner controls</h3>
-      <p class="owner-callout">The Owner has final control over the collection identity, permanent deletion and all content shown in the app.</p>
-      <label>App / collection name<input id="settingAppName" /></label>
-      <p class="muted small">This name is also used for new Home Screen/PWA installs. If an icon was installed before the rename, remove and add it again to refresh its label.</p>
-      <label>Owner display name<input id="settingOwnerName" placeholder="e.g. Per" /></label>
-      <p class="muted small">This is the name shown with the Pers/Owner rating. Owner and System Administrator rights come from protected account roles, not from typing a name here.</p>
-      <label>Home city/region<input id="settingHomeRegion" /></label>
-      <label class="check"><input id="settingAllowUserPhotos" type="checkbox" /> Allow users to contribute venue photos</label>
-      <label>Default Near Me radius<select id="settingDefaultNearMe"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select></label>
-      <label class="check"><input id="settingQuickCoffee" type="checkbox" /> Show Coffee quick-filter button</label>
-      <label class="check"><input id="settingAskPersEnabled" type="checkbox" /> Enable Ask Pers natural-language search</label>
-      <label>Ask Pers server endpoint<input id="settingAskPersEndpoint" type="url" placeholder="https://your-worker.example.com/ask-pers" /></label>
-      <p class="muted small">The OpenAI/API key belongs in the server/Cloudflare secret store, never in this browser app. The endpoint may return controlled filters only.</p>
+      <h3>Authentication status</h3>
+      <p class="muted small"><strong>Production:</strong> protected account roles are required. Passkey/WebAuthn + Face ID remains a production-authentication item; this local trial does not pretend that password autofill is a true passkey implementation.</p>
+    </section>
 
-      <p class="muted small">User contributions remain pending until Owner/Admin approval. Turn this off at any time to stop new user uploads.</p>
-      <button id="saveSettingsBtn" class="primary">Save collection settings</button>
-      <button id="restoreBackupBtn" class="secondary">Restore backup (local trial)</button>
-      <input id="restoreFile" type="file" accept="application/json,.json" class="hidden" />
-    </section>
-    <section id="localRoleSettings" class="hidden">
-      <hr /><h3>Local test identity</h3>
-      <label>Test role<select id="localRoleSelect"><option value="owner">Owner</option><option value="sysadmin">System Administrator</option><option value="viewer">User</option></select></label>
-    </section>
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.19</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.20</span></p>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

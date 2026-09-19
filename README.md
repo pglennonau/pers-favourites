@@ -1,78 +1,93 @@
 # Pers Favourites PWA
 
-Version: **0.27.19**
-Date: 18 September 2026
+Version: **0.27.20**  
+Date: **19 September 2026**
 
-0.27.12 corrects the geography controls reported during iPhone testing. It is a patch release and does not change the Pers database schema or localStorage keys.
+Pers Favourites is a curated PWA catalogue. Normal catalogue search/filtering searches **Pers data only**. Google Places is an Owner/System Administrator enrichment service used when adding or matching venues; it is not a replacement for the Pers catalogue.
 
-## What changed
+## 0.27.20 update
 
-### Searchable geography on the opening page
+### Opening screen
 
-Country, State/Region and City/Town are now searchable single-choice fields rather than long scrolling selectors. Start typing a name such as `Spa` and Pers resolves it to **Spain** when it is the unique match. A small typo such as `Spsin` is also resolved when there is one clear match.
+- Removes the large opening-screen quick-action button row.
+- Keeps optional presets in one compact **Quick filter** selector inside **Filters**.
+- Makes **Location** explicit and compact: tap **Set location / Change**, then choose **Country → State/Region → City/Town** and tap **Done**. The controls collapse after selection.
+- **Places** and the venue list now sit directly under the compact location/toolbar area rather than being pushed below large shortcut controls.
+- When **Remember my filters** is off, Pers opens showing all saved places. The last location may still be retained as context for Find Place Online, but it is not silently reapplied as an opening catalogue filter.
+- Location/filter choices immediately re-render the count, list and map.
 
-The opening filters continue to show geography that actually exists in the Pers catalogue. Selecting Country rebuilds State/Region from matching Pers venues; selecting State/Region rebuilds City/Town. Changing a parent clears an incompatible child selection.
+### User / Owner / System Administrator separation
 
-### Searchable geography in + Add / Edit
+**User**
+- Browse/search/filter the Pers catalogue.
+- Set personal Near Me radius and filter-memory preference.
+- Rate venues and contribute photos where Owner permits.
+- Check/install PWA updates.
 
-The same type-to-search interaction is used when adding or editing a venue. Add/Edit uses the master country/region geography data and keeps an on-device fallback (`geo-fallback.js`) so iPhone PWA operation does not depend on a third-party geography CDN being reachable. Existing stored venue geography is preserved and merged into choices.
+**Owner**
+- Controls Pers data and collection presentation: add/edit/archive/delete venues, Pers ratings, photo moderation, import/export, collection name, Owner name, default Near Me radius and whether Ask Pers/user photos are enabled.
+- Does not receive technical Google/Cloudflare configuration controls.
 
-### Retained 0.27.11 behaviour
+**System Administrator**
+- Controls technical/system functions: Google Places/Cloudflare endpoint and API-key connection management, Ask Pers technical endpoint, technical import/export and diagnostics.
+- Does not receive private Owner commercial/payment controls merely because of the technical role.
+- System Administrator assignment is intended to be protected backend administration, not something an Owner can self-assign in the PWA.
+- Owner controls whether Ask Pers is enabled; System Administrator controls the Ask Pers technical endpoint.
 
-Controlled Place Type and Cuisine selectors, picker/chip multi-fields, safe Cancel/× handling, archive/restore, ratings, photos, import, Ask Pers, Google Places connection controls, App Updates, backups and existing Pers data remain compatible.
+During the local trial, the test identity selector remains available so Pat can test Owner and System Administrator paths. It is explicitly test-only and hidden in production mode.
 
-## Update
+### Production role hardening
 
-Use **☰ → Account & Settings → App Updates → Check for Update → Install Update** after 0.27.12 has been published to the live static deployment. Existing venues, ratings, photos, preferences and settings are preserved.
+The Supabase source now supports separate `owner`, `sysadmin`, legacy `admin`, and `viewer` roles plus a protected multi-role field. This allows Pat to hold **System Administrator + temporary Owner access** during setup, then have Owner access removed at handover while retaining technical rights.
 
-## Acceptance test
+Direct browser role changes are blocked. Owner collection settings and System Administrator technical endpoints use separate scoped RPCs rather than a shared unrestricted settings update.
 
-1. On the opening page type `Spa` into Country and choose/resolve **Spain**.
-2. Confirm State/Region immediately offers only regions present in saved Spanish Pers venues.
-3. Choose **Andalusia** and confirm City/Town offers the matching saved cities such as Granada/Malaga.
-4. Open **+ Add**. Type `Spa` or `Spsin` into Country and resolve **Spain**.
-5. Choose **Andalusia**, then **Granada**, save the venue, reopen it and confirm all three values round-trip correctly.
+For an existing production/shared Supabase rollout, apply:
 
-No database migration is required from 0.27.11.
+`supabase/migration_v02719_to_v02720.sql`
 
-## 0.27.15 update
-- Home quick actions now include Coffee and remove Tonight.
-- Near Me and Coffee force a fresh device location before filtering; default radius is 1 km and users can choose 250 m, 500 m, 1 km, 2 km, 5 km or 10 km.
-- Import is moved from the catalogue into protected role management.
-- Account & Settings is separated conceptually into My Settings, Owner and System Administrator responsibilities.
-- Venue photo contribution remains available to users from venue details, subject to Owner moderation.
-- Up to four approved photos can be selected for the venue banner; the banner falls back to initials when no Pers photo exists.
-- Google Places photos are intended as a temporary compliant fallback once the deployed Worker photo endpoint is enabled; they are not copied into Pers storage.
-- Passkey/WebAuthn is the target protected-authentication method for production. The local trial still uses its existing local-role/test authentication path; no biometric data is stored by Pers.
+before enabling the new production role model. The current local trial does not require this migration.
 
-## 0.27.17 update
-- Country, State/Region and City/Town are prominent per-User location filters. Each committed change immediately refreshes the result count, catalogue and map.
-- Opening quick actions begin Near Me, Favourites, Want to Visit, Coffee and 5 Star, followed by the remaining actions in their prior order.
-- 5 Star includes a place when the Pers/Owner rating is exactly 5.0 or the non-Owner User Rating average is 4.5 to 5.0.
-- All selected banner photos appear on both the opening catalogue card and venue detail, using split/collage layouts for two to four photos.
-- When no approved Pers photo exists, the app may show an attributed Google Places photo without copying it into Pers storage; initials remain the safe final fallback.
-- Account & Settings verifies the configured Google Places service instead of falsely reporting a disconnected local trial.
-- New Home Screen installs use the Owner-controlled App / collection name. Remove and reinstall an existing icon to refresh its label.
+### Cloudflare / Google Places
 
+The Worker source now tolerates both the older D1 usage-counter schema and the newer `bucket / call_count / updated_at` schema. This prevents an old D1 table from taking Google Places offline after a Worker update.
 
-## 0.27.19 update
+The live D1 database was repaired separately during testing. Copying this repository to GitHub does **not** automatically redeploy the Cloudflare Worker; redeploy Worker source only when intentionally updating Cloudflare.
 
-- Fixes the failed Massamore Pizzeria acceptance test from 0.27.18.
-- Find Place Online > Search Nearby now actually performs an automatic second Google Places search when the first city/region lookup returns no result.
-- A fresh phone location is requested in parallel, so a successful city/region lookup does not wait for GPS.
-- The automatic second search uses a wide location bias around the fresh phone position. Saved venue coordinates are only a last-resort broad bias, not a hard restriction.
-- Search status now reports the Google stages and result counts to make future diagnosis straightforward.
-- OpenStreetMap fallbacks are capped to avoid the previous 30+ second wait.
-- No Cloudflare Worker redeployment is required for 0.27.19; the existing Worker supports both city-context and wide-location searches.
+### Photos
 
-## 0.27.18 update
-- Fixes the failed Massamore Pizzeria, Córdoba acceptance case from 0.27.17.
-- Edit Place > Find Place Online > Search Nearby now uses the venue's City/Region/Country immediately when that geography is known, instead of making Google Places depend on a phone or saved coordinate.
-- If the venue has no usable geography, Pers requests a fresh phone location with a wait capped at about 4.5 seconds.
-- Google Place matching therefore sends contextual text such as `Massamore Pizzeria, Córdoba, Andalusia, Spain` to the existing secure Cloudflare Worker. This avoids the previous hard geographic restriction being driven by an inaccurate or stale coordinate.
-- Slow OpenStreetMap fallback calls are capped so Find Place Online should no longer sit for 30+ seconds waiting for fallback services.
-- Google Place ID and photo reference metadata remain preserved when a result is selected, allowing the temporary Google banner-photo fallback to operate through the already deployed `/photo` Worker.
-- No Cloudflare Worker redeployment is required for 0.27.18; the currently deployed Worker remains compatible.
+- Users have an obvious **+ Add photos** action on venue details when contributions are enabled.
+- Owner retains approval/moderation control.
+- Up to four approved Pers photos can be selected/reordered for venue banners. The previously wired but missing Move earlier/later routine is implemented in this build.
+- If no approved Pers banner photo exists, the app can request a temporary Google Places fallback photo via the deployed `/photo` Worker; initials remain the final fallback.
 
-Acceptance test: from Massamore Pizzeria in Córdoba, Edit Place > Find Place Online > Search Nearby should return the Google Places record promptly. Select Use, save the venue, reopen it, and verify a Google fallback banner appears if there is no approved Pers photo.
+## Known items not falsely represented as complete
 
+- True production **Passkey/WebAuthn / Face ID** authentication is not implemented by this local-trial build. Password-manager biometric autofill is not treated as a passkey.
+- Photo crop/reposition controls are not yet implemented; current photo controls cover approval, cover/banner selection, ordering, caption and removal.
+- The compact Quick filter presets are retained as fixed presets in this build; full Owner editing of arbitrary preset names/order/criteria remains a separate enhancement.
+
+## Update / deployment
+
+1. Export a current device backup before a material update.
+2. Replace the existing GitHub working-folder files with this version's files, preserving the repository itself.
+3. Commit and push to the existing `pglennonau/pers-favourites` `main` branch.
+4. On the PWA, use **☰ → User → App Updates → Check for Update → Install Update**.
+5. Confirm the displayed version is **0.27.20** and verify existing venues remain present.
+
+## 0.27.20 acceptance checks
+
+1. Opening screen has no large quick-action button row.
+2. **Places** is visible high on the opening screen and all venues appear when no filters are active.
+3. Tap **Set location**, choose Country then State/Region then City/Town, and confirm the catalogue updates immediately.
+4. With **Remember my filters** off, close/reopen and confirm the catalogue is not silently restricted to the previous location.
+5. Open **☰ → Account & Settings** and confirm three areas: **User / Owner / System Administrator**.
+6. User cannot open protected Owner/System Administrator controls in production without the appropriate authenticated role.
+7. Owner can change collection settings but cannot manage Google/Cloudflare or the Ask Pers technical endpoint.
+8. System Administrator can manage technical endpoints but does not automatically gain Owner content-edit rights in production.
+9. Verify **Find Place Online** still finds Massamore Pizzeria after the repaired Cloudflare/D1 backend.
+10. For a Google-linked venue with no Pers photos, verify the temporary Google photo fallback is attempted.
+
+## Core file discipline
+
+Keep two current master deliverables for each release: the deployable PWA package and the consolidated Master Documentation. Older versions should be treated as archive/history, not as parallel current copies.

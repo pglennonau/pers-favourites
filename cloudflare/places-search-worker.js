@@ -15,7 +15,29 @@ async function recordGoogleUsage(env) {
   const db = env.USAGE_DB;
   if (!db) return;
   await db.prepare('create table if not exists google_places_usage (bucket text primary key, call_count integer not null default 0, updated_at text not null)').run();
+  const info = await db.prepare('pragma table_info(google_places_usage)').all();
+  const cols = new Set((info?.results || []).map(x => x.name));
   const now = new Date(), minute = now.toISOString().slice(0, 16), day = now.toISOString().slice(0, 10);
+
+  // Compatibility with the first demo D1 schema used before call_count/bucket were introduced.
+  // This prevents a Worker upgrade from taking Google Places offline on an existing rollout.
+  if (!cols.has('bucket') && cols.has('day_key') && cols.has('day_count') && cols.has('minute_key') && cols.has('minute_count')) {
+    const row = await db.prepare('select id,day_key,day_count,minute_key,minute_count from google_places_usage order by id limit 1').first();
+    const dayCount = row?.day_key === day ? (+row.day_count || 0) : 0;
+    const minuteCount = row?.minute_key === minute ? (+row.minute_count || 0) : 0;
+    if (minuteCount >= 10) throw new Error('Google Places demo limit reached for this minute. Please retry shortly.');
+    if (dayCount >= 100) throw new Error('Google Places demo daily limit reached. Please retry tomorrow.');
+    if (row?.id != null) {
+      await db.prepare('update google_places_usage set day_key=?,day_count=?,minute_key=?,minute_count=?,updated_at=? where id=?')
+        .bind(day, dayCount + 1, minute, minuteCount + 1, now.toISOString(), row.id).run();
+    } else {
+      await db.prepare('insert into google_places_usage(day_key,day_count,minute_key,minute_count,updated_at) values(?,?,?,?,?)')
+        .bind(day, 1, minute, 1, now.toISOString()).run();
+    }
+    return;
+  }
+
+  if (!cols.has('bucket') || !cols.has('call_count')) throw new Error('Google Places usage database schema is not recognised.');
   const minuteKey = `minute:${minute}`, dayKey = `day:${day}`;
   const [m, d] = await Promise.all([
     db.prepare('select call_count from google_places_usage where bucket=?').bind(minuteKey).first(),
@@ -99,7 +121,7 @@ async function photoUriWithKey(env, apiKey, photoRef, maxWidthPx = 1200) {
 
 async function verifyEditor(request, env) {
   const bearer = clean(request.headers.get('Authorization'));
-  if (!bearer.toLowerCase().startsWith('bearer ')) throw new Error('Owner/Admin sign-in is required.');
+  if (!bearer.toLowerCase().startsWith('bearer ')) throw new Error('System Administrator sign-in is required.');
   const token = bearer.slice(7).trim();
   const base = clean(env.SUPABASE_URL).replace(/\/$/, '');
   const key = clean(env.SUPABASE_PUBLISHABLE_KEY);
@@ -110,7 +132,7 @@ async function verifyEditor(request, env) {
   const pRes = await fetch(`${base}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(user.id)}`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
   const rows = await pRes.json().catch(() => []);
   const role = rows?.[0]?.role || '';
-  if (!['owner', 'admin'].includes(role)) throw new Error('Owner/Admin permission is required.');
+  if (!['sysadmin', 'admin'].includes(role)) throw new Error('System Administrator permission is required.');
   return { id: user.id, role };
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "0.27.19",
+  "version": "0.27.20",
   "published": "2026-09-19",
-  "notes": "Repairs the 0.27.18 Massamore Search Nearby failure by actually performing the automatic second Google Places lookup: Pers first searches by venue city/region when available, obtains a fresh phone location in parallel, then automatically retries with a wide nearby bias if Google returns no result. Saved venue coordinates are only a last-resort broad bias, and OpenStreetMap fallbacks are capped to avoid long waits."
+  "notes": "Opening-screen and permissions audit: removes the large quick-action row, makes Country/State-Region/City explicit and collapsible so Places appear immediately, prevents stale location filters from being silently restored, splits Account & Settings into User/Owner/System Administrator areas, separates Owner collection settings from technical endpoints, adds protected multi-role production schema support, hardens Cloudflare D1 usage-schema compatibility, and repairs venue-photo Move earlier/later ordering."
 }

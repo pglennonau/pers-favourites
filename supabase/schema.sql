@@ -1,5 +1,5 @@
--- Pers Favourites v027h - one isolated Supabase project per rollout.
--- v027h retains separate Pers/User ratings and full backup support, and adds corrected nearby-first online search and cascading geography filters. Ordinary browsing remains public/read-only.
+-- Pers Favourites 0.27.20 - one isolated Supabase project per rollout.
+-- Separates Owner, System Administrator and User permissions while retaining backwards compatibility with legacy admin accounts. Ordinary browsing remains public/read-only.
 -- Run in a NEW Supabase project for each separately deployed GitHub instance.
 
 create extension if not exists pgcrypto;
@@ -8,7 +8,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   display_name text,
-  role text not null default 'viewer' check (role in ('owner','admin','viewer')),
+  role text not null default 'viewer' constraint profiles_role_check check (role in ('owner','sysadmin','admin','viewer')),
+  roles text[] not null default array['viewer']::text[] constraint profiles_roles_check check (roles <@ array['owner','sysadmin','admin','viewer']::text[] and cardinality(roles) >= 1),
   created_at timestamptz not null default now()
 );
 
@@ -55,7 +56,7 @@ create table if not exists public.venue_photos (
   place_id uuid not null references public.places(id) on delete cascade,
   uploaded_by uuid not null references auth.users(id) on delete cascade,
   uploader_display_name text,
-  uploader_role text not null default 'viewer' check (uploader_role in ('owner','admin','viewer')),
+  uploader_role text not null default 'viewer' constraint venue_photos_uploader_role_check check (uploader_role in ('owner','sysadmin','admin','viewer')),
   caption text,
   storage_path text not null unique,
   mime_type text not null default 'image/jpeg',
@@ -123,13 +124,29 @@ create table if not exists public.audit_snapshots (
   created_at timestamptz not null default now()
 );
 
+create or replace function public.has_role(p_role text)
+returns boolean language sql stable security definer set search_path=''
+as $$
+  select exists(
+    select 1 from public.profiles p
+    where p.id=auth.uid()
+      and (p.role=p_role or p_role=any(coalesce(p.roles,'{}'::text[])))
+  );
+$$;
+
+-- Owner/editor permissions are deliberately separate from System Administrator technical permissions.
+-- Legacy admin remains an editor + technical administrator for backwards compatibility only.
 create or replace function public.is_editor()
 returns boolean language sql stable security definer set search_path=''
-as $$ select exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('owner','admin')); $$;
+as $$ select public.has_role('owner') or public.has_role('admin'); $$;
 
 create or replace function public.is_owner()
 returns boolean language sql stable security definer set search_path=''
-as $$ select exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='owner'); $$;
+as $$ select public.has_role('owner'); $$;
+
+create or replace function public.is_system_admin()
+returns boolean language sql stable security definer set search_path=''
+as $$ select public.has_role('sysadmin') or public.has_role('admin'); $$;
 
 alter table public.profiles enable row level security;
 alter table public.app_settings enable row level security;
@@ -147,7 +164,7 @@ revoke all on table public.profiles, public.app_settings, public.places, public.
 grant usage on schema public to anon, authenticated;
 grant select on table public.app_settings, public.places, public.venue_photos, public.venue_rating_summary to anon;
 grant select, update on table public.profiles to authenticated;
-grant select, update on table public.app_settings to authenticated;
+grant select on table public.app_settings to authenticated;
 grant select, insert, update, delete on table public.places to authenticated;
 grant select, insert, update, delete on table public.venue_photos to authenticated;
 grant select, insert, update, delete on table public.personal_place_data to authenticated;
@@ -157,19 +174,38 @@ grant select, insert, update, delete on table public.visits to authenticated;
 grant select, insert, update, delete on table public.user_preferences to authenticated;
 grant select, insert on table public.audit_snapshots to authenticated;
 
+revoke all on function public.has_role(text) from public, anon;
 revoke all on function public.is_editor() from public, anon;
 revoke all on function public.is_owner() from public, anon;
+revoke all on function public.is_system_admin() from public, anon;
+grant execute on function public.has_role(text) to authenticated;
 grant execute on function public.is_editor() to authenticated;
 grant execute on function public.is_owner() to authenticated;
+grant execute on function public.is_system_admin() to authenticated;
 
--- v027h: Owner/Admin may update only the Google Places Worker endpoint without gaining
--- permission to alter the rest of app_settings. The Google API key itself never enters Supabase.
+-- Ask Pers technical endpoint belongs to System Administrator; Owner only controls enable/disable.
+create or replace function public.set_ask_pers_endpoint(p_endpoint text)
+returns void language plpgsql security definer set search_path='public'
+as $$
+begin
+  if not public.is_system_admin() then
+    raise exception 'System Administrator permission required';
+  end if;
+  update public.app_settings
+     set ask_pers_endpoint=nullif(btrim(p_endpoint),''), updated_at=now()
+   where id=1;
+end; $$;
+revoke all on function public.set_ask_pers_endpoint(text) from public, anon;
+grant execute on function public.set_ask_pers_endpoint(text) to authenticated;
+
+-- Google Places technical configuration belongs to System Administrator, not Owner.
+-- The Google API key itself never enters Supabase.
 create or replace function public.set_places_search_endpoint(p_endpoint text)
 returns void language plpgsql security definer set search_path='public'
 as $$
 begin
-  if not exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('owner','admin')) then
-    raise exception 'Owner/Admin permission required';
+  if not public.is_system_admin() then
+    raise exception 'System Administrator permission required';
   end if;
   update public.app_settings
      set places_search_endpoint=nullif(btrim(p_endpoint),''), updated_at=now()
@@ -178,11 +214,35 @@ end; $$;
 revoke all on function public.set_places_search_endpoint(text) from public, anon;
 grant execute on function public.set_places_search_endpoint(text) to authenticated;
 
--- App identity is public/read-only.
+-- App identity is public/read-only through direct table access. Changes use scoped RPCs so Owner cannot alter technical fields.
 drop policy if exists app_settings_read on public.app_settings;
 create policy app_settings_read on public.app_settings for select to anon, authenticated using (true);
 drop policy if exists app_settings_write on public.app_settings;
-create policy app_settings_write on public.app_settings for update to authenticated using (public.is_owner()) with check (public.is_owner());
+
+create or replace function public.set_owner_collection_settings(
+  p_app_name text,
+  p_owner_display_name text,
+  p_home_region text,
+  p_allow_user_photos boolean,
+  p_ask_pers_enabled boolean
+)
+returns void language plpgsql security definer set search_path='public'
+as $$
+begin
+  if not public.is_owner() then
+    raise exception 'Owner permission required';
+  end if;
+  update public.app_settings
+     set app_name=coalesce(nullif(btrim(p_app_name),''),'Pers Favourites'),
+         owner_display_name=nullif(btrim(p_owner_display_name),''),
+         home_region=nullif(btrim(p_home_region),''),
+         allow_user_photos=coalesce(p_allow_user_photos,true),
+         ask_pers_enabled=coalesce(p_ask_pers_enabled,false),
+         updated_at=now()
+   where id=1;
+end; $$;
+revoke all on function public.set_owner_collection_settings(text,text,text,boolean,boolean) from public, anon;
+grant execute on function public.set_owner_collection_settings(text,text,text,boolean,boolean) to authenticated;
 
 drop policy if exists places_read on public.places;
 drop policy if exists places_public_read on public.places;
@@ -190,14 +250,14 @@ drop policy if exists places_authenticated_read on public.places;
 create policy places_public_read on public.places for select to anon using (archived_at is null);
 create policy places_authenticated_read on public.places for select to authenticated using (archived_at is null or public.is_editor());
 drop policy if exists places_insert on public.places;
-create policy places_insert on public.places for insert to authenticated with check (public.is_editor());
+create policy places_insert on public.places for insert to authenticated with check (public.is_editor() or public.is_system_admin());
 drop policy if exists places_update on public.places;
 create policy places_update on public.places for update to authenticated using (public.is_editor()) with check (public.is_editor());
 drop policy if exists places_delete on public.places;
 create policy places_delete on public.places for delete to authenticated using (public.is_owner() and archived_at is not null);
 
 -- Venue photos: viewers may contribute, but their photos stay pending until an editor approves them.
--- Editors (Owner/Admin) can moderate all venue photos. The Owner retains final control and can also
+-- Owner/editor accounts can moderate all venue photos. System Administrator does not gain content rights unless separately assigned Owner access. The Owner retains final control and can also
 -- permanently delete the venue itself, which cascades the photo metadata after storage cleanup.
 drop policy if exists venue_photos_read on public.venue_photos;
 drop policy if exists venue_photos_public_read on public.venue_photos;
@@ -219,8 +279,8 @@ drop policy if exists venue_photos_delete on public.venue_photos;
 create policy venue_photos_delete on public.venue_photos for delete to authenticated
 using (public.is_editor() or uploaded_by=auth.uid());
 
--- Public User Ratings are separate from the Pers/Administrator rating.
--- Only ordinary viewer accounts may create User Ratings; Owner/Admin ratings are stored in places.pers_rating instead.
+-- Public User Ratings are separate from the Pers Owner rating.
+-- Only ordinary User/viewer accounts may create User Ratings; Owner/editor ratings are stored in places.pers_rating instead.
 drop policy if exists venue_ratings_self on public.venue_ratings;
 create policy venue_ratings_self on public.venue_ratings for all to authenticated
 using (user_id=auth.uid()) with check (user_id=auth.uid());
@@ -233,7 +293,7 @@ as $$
 declare r text;
 begin
   select p.role into r from public.profiles p where p.id=auth.uid();
-  if r is distinct from 'viewer' then raise exception 'Owner/Admin ratings do not count as User Ratings'; end if;
+  if r is distinct from 'viewer' then raise exception 'Owner/System accounts do not count as User Ratings'; end if;
   new.user_id=auth.uid(); new.updated_at=now(); return new;
 end; $$;
 revoke all on function public.validate_viewer_rating() from public, anon, authenticated;
@@ -263,18 +323,33 @@ create policy visits_self_all on public.visits for all to authenticated using (u
 drop policy if exists prefs_self_all on public.user_preferences;
 create policy prefs_self_all on public.user_preferences for all to authenticated using (user_id=auth.uid()) with check (user_id=auth.uid());
 
--- Users can read their own profile. Editors may read profiles for administration.
+-- Users can read their own profile. Owner/editor and System Administrator may read profiles for authorised administration.
 drop policy if exists profile_read on public.profiles;
-create policy profile_read on public.profiles for select to authenticated using (id=auth.uid() or public.is_editor());
+create policy profile_read on public.profiles for select to authenticated using (id=auth.uid() or public.is_editor() or public.is_system_admin());
 drop policy if exists profile_owner_update on public.profiles;
-create policy profile_owner_update on public.profiles for update to authenticated using (public.is_owner()) with check (public.is_owner());
+drop policy if exists profile_self_update on public.profiles;
+create policy profile_self_update on public.profiles for update to authenticated using (id=auth.uid()) with check (id=auth.uid());
+
+-- Protected roles cannot be promoted/demoted from the browser. Use a trusted backend/admin SQL process.
+create or replace function public.protect_profile_roles()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+begin
+  if auth.uid() is not null and (new.role is distinct from old.role or new.roles is distinct from old.roles) then
+    raise exception 'Role changes require protected backend administration';
+  end if;
+  return new;
+end; $$;
+revoke all on function public.protect_profile_roles() from public, anon, authenticated;
+drop trigger if exists profile_roles_protect on public.profiles;
+create trigger profile_roles_protect before update on public.profiles for each row execute procedure public.protect_profile_roles();
 
 -- Snapshots are append/read only for editors from the browser.
 drop policy if exists snapshots_editor on public.audit_snapshots;
 drop policy if exists snapshots_editor_read on public.audit_snapshots;
 drop policy if exists snapshots_editor_insert on public.audit_snapshots;
-create policy snapshots_editor_read on public.audit_snapshots for select to authenticated using (public.is_editor());
-create policy snapshots_editor_insert on public.audit_snapshots for insert to authenticated with check (public.is_editor());
+create policy snapshots_editor_read on public.audit_snapshots for select to authenticated using (public.is_editor() or public.is_system_admin());
+create policy snapshots_editor_insert on public.audit_snapshots for insert to authenticated with check (public.is_editor() or public.is_system_admin());
 
 -- Do not trust uploader role/display-name fields supplied by the browser. Derive them from the profile.
 create or replace function public.prepare_venue_photo_insert()
@@ -287,7 +362,7 @@ begin
   new.uploaded_by=auth.uid();
   new.uploader_role=coalesce(r,'viewer');
   new.uploader_display_name=coalesce(nullif(n,''),'User');
-  if coalesce(r,'viewer') not in ('owner','admin') then
+  if coalesce(r,'viewer') not in ('owner','admin') and not public.is_owner() then
     new.status='pending'; new.is_cover=false; new.moderated_by=null; new.moderated_at=null;
   end if;
   new.updated_at=now();
@@ -317,13 +392,13 @@ revoke all on function public.protect_venue_photo_update() from public, anon, au
 drop trigger if exists venue_photo_before_update on public.venue_photos;
 create trigger venue_photo_before_update before update on public.venue_photos for each row execute procedure public.protect_venue_photo_update();
 
--- New sign-ups default to VIEWER. Promote the first owner/admin manually in the SQL editor.
+-- New sign-ups default to User/viewer. Assign Owner/System Administrator only through protected backend administration.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path=''
 as $$
 begin
-  insert into public.profiles(id,email,display_name,role)
-  values(new.id,new.email,coalesce(new.raw_user_meta_data->>'display_name',split_part(new.email,'@',1)),'viewer')
+  insert into public.profiles(id,email,display_name,role,roles)
+  values(new.id,new.email,coalesce(new.raw_user_meta_data->>'display_name',split_part(new.email,'@',1)),'viewer',array['viewer']::text[])
   on conflict(id) do nothing;
   return new;
 end; $$;
@@ -357,14 +432,14 @@ using (bucket_id='venue-photos' and (owner_id=(select auth.uid()::text) or publi
 
 
 
--- v027e full logical database export. This does not expose Supabase Auth password hashes or secrets.
--- Owner/Admin may create an explicit backup that includes all application tables; photo binaries are
+-- Full logical database export. This does not expose Supabase Auth password hashes or secrets.
+-- Owner/editor or System Administrator may create an explicit backup that includes all application tables; photo binaries are
 -- downloaded separately by the PWA and embedded in the exported backup file.
 create or replace function public.export_full_backup()
 returns jsonb language plpgsql security definer set search_path=''
 as $$
 begin
-  if not public.is_editor() then raise exception 'Administrator access required'; end if;
+  if not (public.is_editor() or public.is_system_admin()) then raise exception 'Owner or System Administrator access required'; end if;
   return jsonb_build_object(
     'schema_version', 276,
     'exported_at', now(),
@@ -387,7 +462,10 @@ grant execute on function public.export_full_backup() to authenticated;
 -- update public.app_settings set deployment_id='YOUR-UNIQUE-ROLLOUT-ID' where id=1;
 -- The PWA refuses to read catalogue data when the backend deployment_id and config.js deploymentId differ.
 
--- After creating the Owner account in Authentication > Users, run:
--- update public.profiles set role='owner', display_name='Per' where email='OWNER_EMAIL_HERE';
--- After creating Pat's testing/admin account, run:
--- update public.profiles set role='admin', display_name='Pat' where email='PAT_EMAIL_HERE';
+-- Protected role assignment examples (run only in trusted SQL/admin tooling, never from the PWA):
+-- Per as Owner:
+-- update public.profiles set role='owner', roles=array['owner']::text[], display_name='Per' where email='OWNER_EMAIL_HERE';
+-- Pat during setup/handover (technical System Administrator + temporary Owner access):
+-- update public.profiles set role='sysadmin', roles=array['sysadmin','owner']::text[], display_name='Pat' where email='PAT_EMAIL_HERE';
+-- After handover, remove Pat's Owner access while retaining technical control:
+-- update public.profiles set roles=array['sysadmin']::text[] where email='PAT_EMAIL_HERE';
