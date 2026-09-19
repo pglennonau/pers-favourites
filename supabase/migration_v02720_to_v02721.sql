@@ -4,14 +4,8 @@
 alter table public.app_settings add column if not exists tripadvisor_endpoint text;
 alter table public.app_settings add column if not exists master_lists jsonb not null default '{}'::jsonb;
 
-alter table public.places add column if not exists google_rating numeric(2,1);
-alter table public.places add column if not exists google_rating_count integer;
-alter table public.places add column if not exists open_now boolean;
-alter table public.places add column if not exists opening_hours jsonb not null default '[]'::jsonb;
 alter table public.places add column if not exists tripadvisor_location_id text;
 alter table public.places add column if not exists tripadvisor_url text;
-alter table public.places add column if not exists tripadvisor_rating numeric(2,1);
-alter table public.places add column if not exists tripadvisor_rating_count integer;
 
 create or replace function public.set_master_lists(p_master_lists jsonb)
 returns void language plpgsql security definer set search_path='public'
