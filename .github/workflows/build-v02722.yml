@@ -1,0 +1,39 @@
+name: Build PWA 0.27.22 package
+
+on:
+  push:
+    branches:
+      - release/0.27.22
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate v0.27.22
+        run: |
+          test -f index.html
+          test -f app.js
+          test -f styles.css
+          test -f manifest.webmanifest
+          test -f sw.js
+          test -f version.json
+          test -f config.js
+          test -f icons/icon-192.png
+          test -f icons/icon-512.png
+          test -f cloudflare/places-search-worker.js
+          test ! -d supabase
+          grep -q '0.27.22' version.json
+          grep -q '0.27.22' config.js
+          ! grep -Rni --exclude-dir=.git 'supabase' .
+      - name: Create deployment ZIP
+        run: |
+          zip -r Pers_Favourites_PWA_0.27.22.zip             .nojekyll README.md index.html app.js styles.css branding.js             config.js config.example.js geo-fallback.js manifest.webmanifest sw.js version.json             icons cloudflare
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pers_Favourites_PWA_0.27.22
+          path: Pers_Favourites_PWA_0.27.22.zip
+          if-no-files-found: error
