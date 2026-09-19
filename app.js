@@ -594,12 +594,75 @@ async function resolveGooglePhoto(place){
     const photoUri=await requestGooglePhotoUri(place.googlePhotoRef);if(!photoUri)return null;const value={photoUri,attribution:Array.isArray(place.googlePhotoAttribution)?place.googlePhotoAttribution:[]};googlePhotoCache.set(place.id,value);return value;
   })().catch(()=>null).finally(()=>googlePhotoPending.delete(place.id));googlePhotoPending.set(place.id,pending);return pending;
 }
-function googleAttributionHtml(items=[]){const authors=items.slice(0,3).map(x=>{const name=esc(x.displayName||'Contributor'),url=safeUrl(x.uri||'');return url?`<a href="${esc(url)}" target="_blank" rel="noopener">${name}</a>`:name;}).join(', ');return `Google Places photo${authors?` · Photo by ${authors}`:''}`;}
+function googleAttributionHtml(items=[]){
+  const authors=items.slice(0,3).map(x=>{
+    const name=esc(x.displayName||'Contributor'),url=safeUrl(x.uri||'');
+    return url?`<a href="${esc(url)}" target="_blank" rel="noopener">${name}</a>`:name;
+  }).join(', ');
+  return `Google Places photo${authors?` · Photo by ${authors}`:''}`;
+}
+function rememberTripadvisorMatch(place,match){
+  if(!place||!match)return;
+  if(!place.tripadvisorLocationId&&match.tripadvisorLocationId)place.tripadvisorLocationId=clean(match.tripadvisorLocationId);
+  if(!place.tripadvisorUrl&&match.tripadvisorUrl)place.tripadvisorUrl=clean(match.tripadvisorUrl);
+  if(CFG.mode==='local'&&state){state.places=places;saveLocalState();}
+}
+async function resolveTripadvisorPhoto(place){
+  if(!place||approvedPhotosForPlace(place.id).length||!tripadvisorEndpoint())return null;
+  if(tripadvisorPhotoCache.has(place.id))return tripadvisorPhotoCache.get(place.id);
+  if(tripadvisorPhotoPending.has(place.id))return tripadvisorPhotoPending.get(place.id);
+  const pending=(async()=>{
+    let locationId=clean(place.tripadvisorLocationId),directPhoto='';
+    if(!locationId){
+      const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
+      let rows=[];try{rows=await tripadvisorSearch(place.name,null,ctx);}catch{return null;}
+      const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name))||(rows||[])[0];
+      if(!exact)return null;
+      locationId=clean(exact.tripadvisorLocationId);
+      directPhoto=clean(exact.tripadvisorPhotoUri);
+      rememberTripadvisorMatch(place,exact);
+    }
+    if(directPhoto){
+      const value={photoUri:directPhoto,url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
+      tripadvisorPhotoCache.set(place.id,value);return value;
+    }
+    if(!locationId)return null;
+    const endpoint=tripadvisorPhotoEndpoint();if(!endpoint)return null;
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locationId})});
+    let j={};try{j=await r.json()}catch{}
+    if(!r.ok||!clean(j?.photoUri))return null;
+    const value={photoUri:clean(j.photoUri),url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
+    tripadvisorPhotoCache.set(place.id,value);return value;
+  })().catch(()=>null).finally(()=>tripadvisorPhotoPending.delete(place.id));
+  tripadvisorPhotoPending.set(place.id,pending);return pending;
+}
+function tripadvisorAttributionHtml(place,photo){
+  const url=safeUrl(photo?.url||place?.tripadvisorUrl||'');
+  return url?`TripAdvisor photo · <a href="${esc(url)}" target="_blank" rel="noopener">View on TripAdvisor</a>`:'TripAdvisor photo';
+}
 async function loadGoogleFallback(frame){
-  if(!frame||frame.dataset.googlePhotoLoaded==='1')return;frame.dataset.googlePhotoLoaded='1';const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace);if(!place||approvedPhotosForPlace(place.id).length)return;const photo=await resolveGooglePhoto(place);if(!photo)return;frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="Google Places photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(photo.attribution)}</div>`;frame.classList.add('loaded');
+  if(!frame||frame.dataset.googlePhotoLoaded==='1')return;
+  frame.dataset.googlePhotoLoaded='1';
+  const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace);
+  if(!place||approvedPhotosForPlace(place.id).length)return;
+  const google=await resolveGooglePhoto(place);
+  if(google){
+    frame.innerHTML=`<img class="google-place-photo" src="${esc(google.photoUri)}" alt="Google Places photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(google.attribution)}</div>`;
+    frame.classList.add('loaded');return;
+  }
+  const ta=await resolveTripadvisorPhoto(place);
+  if(ta){
+    frame.innerHTML=`<img class="google-place-photo" src="${esc(ta.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,ta)}</div>`;
+    frame.classList.add('loaded');
+  }
 }
 function hydrateGoogleFallbacks(root=document){
-  const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;if(!('IntersectionObserver' in window)){frames.forEach(loadGoogleFallback);return;}if(!googlePhotoObserver)googlePhotoObserver=new IntersectionObserver(entries=>{entries.filter(x=>x.isIntersecting).forEach(x=>{googlePhotoObserver.unobserve(x.target);loadGoogleFallback(x.target);});},{rootMargin:'250px 0px'});frames.forEach(x=>googlePhotoObserver.observe(x));
+  const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;
+  if(!('IntersectionObserver' in window)){frames.forEach(loadGoogleFallback);return;}
+  if(!googlePhotoObserver)googlePhotoObserver=new IntersectionObserver(entries=>{
+    entries.filter(x=>x.isIntersecting).forEach(x=>{googlePhotoObserver.unobserve(x.target);loadGoogleFallback(x.target);});
+  },{rootMargin:'250px 0px'});
+  frames.forEach(x=>googlePhotoObserver.observe(x));
 }
 function updatePendingPhotoBadge(){const n=photos.filter(x=>x.status==='pending').length;const b=$('pendingPhotoBadge');if(b){b.textContent=n;b.classList.toggle('hidden',!n);}}
 function fileToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
