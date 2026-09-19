@@ -42,6 +42,10 @@ assert(index.includes('>My Settings</button>'),'My Settings role label present')
 assert(index.includes('>Owner <span'),'Owner role label present');
 assert(index.includes('>System Administrator <span'),'System Administrator role label present');
 assert(index.includes('Costs &amp; Payments'),'Owner Costs & Payments present');
+for(const id of ['ownerGoogleSpendCap','ownerTripadvisorSpendCap','ownerCloudflareSpendCap','ownerOpenAiSpendCap']){
+  assert(index.includes(`id="${id}"`),`Owner cost control present: ${id}`);
+}
+assert(index.includes('id="sysadminTripadvisorOwnerApproval"'),'System Administrator can see Owner TripAdvisor approval record');
 
 assert(app.includes('externalGoogleResultsPanel'),'separate Google results section present');
 assert(app.includes('externalTripadvisorResultsPanel'),'separate TripAdvisor results section present');
@@ -83,6 +87,18 @@ for(const p of ['docs/OWNER_GUIDE.md','docs/SYSTEM_ADMINISTRATOR_GUIDE.md','docs
   const d=read(p);assert(d.includes('0.27.23'),`${p} updated for v0.27.23`);
 }
 assert(read('docs/SYSTEM_ADMINISTRATOR_GUIDE.md').includes('Documentation Change Log'),'System Administrator Guide contains documentation change log');
+const ownerGuide=read('docs/OWNER_GUIDE.md');
+const adminGuide=read('docs/SYSTEM_ADMINISTRATOR_GUIDE.md');
+const userGuide=read('docs/USER_GUIDE.md');
+for(const section of ['Collection settings','Adding and editing a venue','Venue photos','Managed lists','Archive and permanent deletion','Import and backup','Costs & Payments','Owner handover']){
+  assert(ownerGuide.includes(section),`Owner Guide section present: ${section}`);
+}
+for(const section of ['Role model and responsibilities','Owner functions the System Administrator must understand','Cloudflare Worker','Google Places connection','TripAdvisor Terra connection','Costs & Payments architecture','Authentication and handover','Deployment procedure','Troubleshooting']){
+  assert(adminGuide.includes(section),`System Administrator Guide section present: ${section}`);
+}
+for(const section of ['Add Pers Favourites to an iPhone Home Screen','Add Pers Favourites to an Android Home Screen','Browse the collection','Set your location','Filters','External results','Photos','My Settings','App updates']){
+  assert(userGuide.includes(section),`User Guide section present: ${section}`);
+}
 
 function walk(dir){
   const out=[];
