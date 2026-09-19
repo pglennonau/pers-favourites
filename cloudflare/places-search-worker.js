@@ -122,64 +122,10 @@ async function photoUriWithKey(env, apiKey, photoRef, maxWidthPx = 1200) {
   return json.photoUri;
 }
 
-async function verifyEditor(request, env) {
-  const bearer = clean(request.headers.get('Authorization'));
-  if (!bearer.toLowerCase().startsWith('bearer ')) throw new Error('System Administrator sign-in is required.');
-  const token = bearer.slice(7).trim();
-  const base = clean(env.SUPABASE_URL).replace(/\/$/, '');
-  const key = clean(env.SUPABASE_PUBLISHABLE_KEY);
-  if (!base || !key) throw new Error('Worker admin verification is not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.');
-  const userRes = await fetch(`${base}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
-  const user = await userRes.json().catch(() => ({}));
-  if (!userRes.ok || !user?.id) throw new Error('Your Pers sign-in could not be verified.');
-  const pRes = await fetch(`${base}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(user.id)}`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
-  const rows = await pRes.json().catch(() => []);
-  const role = rows?.[0]?.role || '';
-  if (!['sysadmin', 'admin'].includes(role)) throw new Error('System Administrator permission is required.');
-  return { id: user.id, role };
-}
-
-function keyHint(key) { const s = clean(key); return s ? `••••${s.slice(-4)}` : ''; }
-async function changeWorkerSecret(env, key, mode, remove = false) {
-  const accountId = clean(env.CLOUDFLARE_ACCOUNT_ID);
-  const scriptName = clean(env.CLOUDFLARE_WORKER_SCRIPT_NAME);
-  const token = clean(env.CLOUDFLARE_API_TOKEN);
-  if (!accountId || !scriptName || !token) throw new Error('Cloudflare key replacement is not configured. Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_WORKER_SCRIPT_NAME and the CLOUDFLARE_API_TOKEN secret.');
-  const secrets = remove ? {
-    GOOGLE_PLACES_API_KEY: null,
-    GOOGLE_PLACES_MODE: null
-  } : {
-    GOOGLE_PLACES_API_KEY: { type: 'secret_text', name: 'GOOGLE_PLACES_API_KEY', text: key },
-    GOOGLE_PLACES_MODE: { type: 'secret_text', name: 'GOOGLE_PLACES_MODE', text: mode }
-  };
-  const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/workers/scripts/${encodeURIComponent(scriptName)}/secrets-bulk`, {
-    method: 'PATCH', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ secrets })
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j?.success === false) throw new Error(j?.errors?.[0]?.message || `Cloudflare secret update failed (${r.status}).`);
-  return j;
-}
-
 async function handleAdminGoogleConnection(request, env, headers) {
-  await verifyEditor(request, env);
-  const input = await request.json().catch(() => ({}));
-  const action = clean(input?.action).toLowerCase();
-  if (action === 'status') {
-    const key = clean(env.GOOGLE_PLACES_API_KEY);
-    return new Response(JSON.stringify({ connected: !!key, mode: clean(env.GOOGLE_PLACES_MODE) || '', keyHint: keyHint(key) }), { status: 200, headers });
-  }
-  if (action === 'replace') {
-    const key = clean(input?.key); const mode = clean(input?.mode).toLowerCase();
-    if (!key || key.length < 12) return new Response(JSON.stringify({ error: 'A valid Google API key is required.' }), { status: 400, headers });
-    if (!['demo', 'production'].includes(mode)) return new Response(JSON.stringify({ error: 'Mode must be demo or production.' }), { status: 400, headers });
-    await changeWorkerSecret(env, key, mode, false);
-    return new Response(JSON.stringify({ connected: true, mode, keyHint: keyHint(key) }), { status: 200, headers });
-  }
-  if (action === 'remove') {
-    await changeWorkerSecret(env, '', '', true);
-    return new Response(JSON.stringify({ connected: false, mode: '', keyHint: '' }), { status: 200, headers });
-  }
-  return new Response(JSON.stringify({ error: 'Unknown Google connection action.' }), { status: 400, headers });
+  return new Response(JSON.stringify({
+    error: 'Browser-based Google API key management is disabled in v0.27.22. Manage GOOGLE_PLACES_API_KEY and GOOGLE_PLACES_MODE as Cloudflare Worker secrets in the Cloudflare dashboard.'
+  }), { status: 403, headers });
 }
 
 export default {
