@@ -28,7 +28,7 @@ jobs:
           test ! -d supabase
           grep -q '0.27.22' version.json
           grep -q '0.27.22' config.js
-          ! grep -Rni --exclude-dir=.git 'supabase' .
+          ! grep -Rni --exclude-dir=.git --exclude='build-v02722.yml' 'supabase' .
       - name: Create deployment ZIP
         run: |
           zip -r Pers_Favourites_PWA_0.27.22.zip             .nojekyll README.md index.html app.js styles.css branding.js             config.js config.example.js geo-fallback.js manifest.webmanifest sw.js version.json             icons cloudflare
