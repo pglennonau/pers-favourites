@@ -93,3 +93,5 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .master-list-row button{padding:5px 8px}
 
 .tripadvisor-rating-icon{height:16px;max-width:92px;vertical-align:-3px;object-fit:contain}
+
+.app-legal-footer{padding:18px 8px 8px;text-align:center;font-size:.82rem;color:var(--muted)}.app-legal-footer a{color:inherit}.legal-page{width:min(780px,calc(100% - 32px));margin:0 auto;padding:28px 0 48px;line-height:1.55}.legal-page h1,.legal-page h2{color:var(--accent)}.legal-page a{color:var(--accent)}
