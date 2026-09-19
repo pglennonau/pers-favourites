@@ -57,7 +57,8 @@ Cloudflare configuration:
 - `TRIPADVISOR_PERIOD_ID` — used when the allowance period is `custom`.
 - `TRIPADVISOR_WARNING_PERCENT` — normally `50`.
 - `TRIPADVISOR_CUTOFF_PERCENT` — normally `95`.
-- `TRIPADVISOR_ALLOW_PAID` — default `false`.
+- `TRIPADVISOR_OWNER_PAID_APPROVED` — default `false`; set to `true` only after explicit Owner approval is recorded.
+- `TRIPADVISOR_ALLOW_PAID` — default `false`; separate System Administrator enablement for paid calls.
 - `TRIPADVISOR_BILLING_URL` — optional provider billing-management link.
 - `USAGE_DB` — mandatory for TripAdvisor cost protection.
 
@@ -69,8 +70,10 @@ The Worker keeps the authoritative count in D1.
 
 - Below 50%: Active.
 - At/above 50%: Warning.
-- At/above 95%: Paused unless server-side paid usage has been explicitly authorised.
-- Owner approval in the PWA is a separate approval record. It must not by itself override the Cloudflare safeguard.
+- At/above 95%: Paused unless both protected paid-use gates are true.
+- `TRIPADVISOR_OWNER_PAID_APPROVED=true` confirms explicit Owner approval.
+- `TRIPADVISOR_ALLOW_PAID=true` is the separate System Administrator enablement.
+- Owner approval in the PWA is the human approval record; the System Administrator mirrors that approval to Cloudflare before enabling paid use.
 
 The allowance period must reflect the actual commercial entitlement in the TripAdvisor developer account. Do not automatically reset a one-time allowance each month.
 
