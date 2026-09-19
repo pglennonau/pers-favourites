@@ -38,13 +38,48 @@ jobs:
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude 'release-package/' \
-            --exclude 'qa-report.json'
+            --exclude 'qa-report.json' \
+            --exclude 'worker-unit-report.json' \
+            --exclude 'package-contents.txt'
           cd release-package
           zip -qr "../Pers_Favourites_v0.27.23_Code.zip" .
           cd ..
           unzip -l Pers_Favourites_v0.27.23_Code.zip | tee package-contents.txt
           test -f Pers_Favourites_v0.27.23_Code.zip
           test -s Pers_Favourites_v0.27.23_Code.zip
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'index.html'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/USER_GUIDE.md'
+          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -q '^qa-report.json
+
+      - name: Upload QA evidence and code ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pers_Favourites_v0.27.23_QA
+          path: |
+            Pers_Favourites_v0.27.23_Code.zip
+            qa-report.json
+            worker-unit-report.json
+            package-contents.txt
+          if-no-files-found: error
+          retention-days: 30
+
+          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -q '^worker-unit-report.json
+
+      - name: Upload QA evidence and code ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pers_Favourites_v0.27.23_QA
+          path: |
+            Pers_Favourites_v0.27.23_Code.zip
+            qa-report.json
+            worker-unit-report.json
+            package-contents.txt
+          if-no-files-found: error
+          retention-days: 30
+
 
       - name: Upload QA evidence and code ZIP
         uses: actions/upload-artifact@v4
