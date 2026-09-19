@@ -1,6 +1,6 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.23 development**
+Version: **0.27.23**
 
 This guide is for ordinary Users of Pers Favourites. You do not need an Owner/System Administrator account just to browse the collection.
 
@@ -12,7 +12,7 @@ Your Owner/System Administrator will give you the Pers Favourites web address.
 2. Wait for the collection to load.
 3. The current collection name appears at the top of the screen.
 
-The current development release may show a **Local test** screen because it is still being tested. Production browsing is intended to open without requiring an ordinary User login.
+The current v0.27.23 local rollout may show a **Local test** screen. Production browsing is intended to open without requiring an ordinary User login.
 
 ## 2. Add Pers Favourites to an iPhone Home Screen
 
