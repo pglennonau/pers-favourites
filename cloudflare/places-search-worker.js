@@ -23,7 +23,7 @@ function googleUsageLimits(env) {
 }
 async function recordGoogleUsage(env) {
   const db = env.USAGE_DB;
-  if (!db) return;
+  if (!db) throw new Error('Google Places calls are blocked because USAGE_DB is not configured for usage safeguards.');
   const limits = googleUsageLimits(env);
   const mode = limits.mode;
   if (!limits.configured) throw new Error('Google Places production limits are not configured. Set GOOGLE_PLACES_PRODUCTION_MINUTE_LIMIT and GOOGLE_PLACES_PRODUCTION_DAILY_LIMIT before using production mode.');
