@@ -89,6 +89,8 @@ let pendingOnlinePlaceMeta = null;
 const photoUrlCache = new Map();
 const googlePhotoCache = new Map();
 const googlePhotoPending = new Map();
+const tripadvisorPhotoCache = new Map();
+const tripadvisorPhotoPending = new Map();
 let googlePhotoObserver = null;
 let photoDbPromise = null;
 let askPersRecognition = null;
@@ -155,7 +157,7 @@ function defaultLocalState(){
   const ownerId='local-owner';
   return {
     schema:276, appVersion:CFG.version, createdAt:nowISO(), updatedAt:nowISO(),
-    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint),tripadvisorEndpoint:'',masterLists:defaultMasterLists()},
+    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint),tripadvisorEndpoint:'',tripadvisorPaidUsageAuthorized:false,masterLists:defaultMasterLists()},
     users:[
       {id:ownerId,email:'owner@local.test',displayName:CFG.ownerDisplayName || 'Owner',role:'owner'},
       {id:'local-sysadmin',email:'sysadmin@local.test',displayName:'Pat (System Administrator)',role:'sysadmin'},
@@ -214,7 +216,7 @@ function normalizeLocalState(d,sourceKey=''){
   const ownerName=clean(settings.ownerDisplayName||settings.owner_display_name||d?.displayName||CFG.ownerDisplayName||'Owner');
   const result={
     ...d, schema:276, appVersion:CFG.version,
-    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(settings.tripadvisorEndpoint||settings.tripadvisor_endpoint),masterLists:normalizeMasterLists(settings.masterLists||settings.master_lists)},
+    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(settings.tripadvisorEndpoint||settings.tripadvisor_endpoint),tripadvisorPaidUsageAuthorized:settings.tripadvisorPaidUsageAuthorized??settings.tripadvisor_paid_usage_authorized??false,masterLists:normalizeMasterLists(settings.masterLists||settings.master_lists)},
     users, activeUserId:d?.activeUserId||users[0]?.id||'local-owner', places:normalizedPlaces, photos:Array.isArray(d?.photos)?d.photos.map(normalizePhotoMeta):[],
     personal:normalizeLegacyPersonal(d?.personal,rawPlaces), userRatings:Array.isArray(d?.userRatings)?d.userRatings:Array.isArray(d?.venueRatings)?d.venueRatings:[], visits:Array.isArray(d?.visits)?d.visits.map(v=>({id:v.id||uid(),placeId:v.placeId||v.place_id,userId:v.userId||v.user_id||'local-owner',visitedAt:v.visitedAt||v.visited_at||v.date||nowISO(),rating:+(v.rating||0),comment:clean(v.comment||v.note)})):[],
     preferences:d?.preferences&&typeof d.preferences==='object'?d.preferences:{}, history:Array.isArray(d?.history)?d.history:[],
@@ -416,12 +418,26 @@ function matchesSavedPlace(p){
     return !p.city&&!x.city;
   });
 }
+function tripadvisorEndpoint(){
+  const explicit=clean(state?.settings?.tripadvisorEndpoint);
+  if(explicit)return explicit;
+  const google=placesEndpoint();if(!google)return '';
+  try{const u=new URL(google,location.href);u.pathname='/tripadvisor-search';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
+function serviceStatusEndpoint(){
+  const base=placesEndpoint()||tripadvisorEndpoint();if(!base)return '';
+  try{const u=new URL(base,location.href);u.pathname='/services/status';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
+function tripadvisorPhotoEndpoint(){
+  const base=tripadvisorEndpoint();if(!base)return '';
+  try{const u=new URL(base,location.href);u.pathname='/tripadvisor-photo';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
 async function tripadvisorSearch(query,loc,ctx){
-  const endpoint=clean(state?.settings?.tripadvisorEndpoint);if(!endpoint)return [];
+  const endpoint=tripadvisorEndpoint();if(!endpoint)return [];
   const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
   let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
   const rows=Array.isArray(j?.places)?j.places:[];
-  return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
+  return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,tripadvisorPhotoUri:clean(x.photoUri),openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
 }
 function externalPassesFilters(p){
   if(filters.country&&!geoSame(p.country,filters.country))return false;if(filters.region&&!geoSame(p.stateRegion,filters.region))return false;if(filters.city&&!geoSame(p.city,filters.city))return false;
@@ -452,11 +468,22 @@ function sortExternalRows(rows){
   return rows.sort((a,b)=>{if(sort==='name')return a.name.localeCompare(b.name);if(sort==='userRating'||sort==='persRating')return Math.max(+b.googleRating||0,+b.tripadvisorRating||0)-Math.max(+a.googleRating||0,+a.tripadvisorRating||0);if(sort==='price')return (a.price?.length||9)-(b.price?.length||9);const da=distanceFor(a),db=distanceFor(b);return (da??Infinity)-(db??Infinity)||a.name.localeCompare(b.name);});
 }
 function renderExternalResults(){
-  const old=$('externalResultsPanel');if(old)old.remove();
-  const rows=sortExternalRows(externalPlaceResults.filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));if(!rows.length)return;
-  const panel=document.createElement('section');panel.id='externalResultsPanel';panel.className='external-results-panel';
-  panel.innerHTML=`<div class="results-head"><div><strong>${esc(t('morePlaces'))}</strong><span class="result-count">${rows.length}</span></div></div>`+rows.map(p=>{const d=distanceFor(p),rating=p.provider==='TripAdvisor'?p.tripadvisorRating:p.googleRating,count=p.provider==='TripAdvisor'?p.tripadvisorRatingCount:p.googleRatingCount,url=p.provider==='TripAdvisor'?p.tripadvisorUrl:p.googleMapsUrl;return `<article class="place-card external-place-card"><div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc([p.placeType,p.cuisine,p.city,p.price,d!=null?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):''].filter(Boolean).join(' · '))}</div><span class="source-pill">${esc(p.provider)}</span></div><div class="rating-pair">${rating?`<span class="rating-pill">${esc(p.provider)} ★ ${(+rating).toFixed(1)}${count?` (${count})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div><div class="card-actions">${safeUrl(url)?`<a href="${esc(safeUrl(url))}" target="_blank" rel="noopener">Open ${esc(p.provider)}</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${canEdit()?`<button data-add-external="${esc(externalKey(p))}">Add to Pers</button>`:''}</div></div></article>`;}).join('');
-  $('listPanel').after(panel);panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
+  for(const id of ['externalResultsPanel','externalGoogleResultsPanel','externalTripadvisorResultsPanel'])$(id)?.remove();
+  const rows=sortExternalRows(externalPlaceResults.filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));
+  if(!rows.length)return;
+  const groups=[
+    {id:'externalGoogleResultsPanel',title:'More places from Google',rows:rows.filter(p=>p.provider==='Google Places')},
+    {id:'externalTripadvisorResultsPanel',title:'TripAdvisor results',rows:rows.filter(p=>p.provider==='TripAdvisor')}
+  ];
+  let anchor=$('listPanel');
+  const card=p=>{const d=distanceFor(p),rating=p.provider==='TripAdvisor'?p.tripadvisorRating:p.googleRating,count=p.provider==='TripAdvisor'?p.tripadvisorRatingCount:p.googleRatingCount,url=p.provider==='TripAdvisor'?p.tripadvisorUrl:p.googleMapsUrl;return `<article class="place-card external-place-card"><div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc([p.placeType,p.cuisine,p.city,p.price,d!=null?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):''].filter(Boolean).join(' · '))}</div><span class="source-pill">${esc(p.provider)}</span></div><div class="rating-pair">${rating?`<span class="rating-pill">${esc(p.provider)} ★ ${(+rating).toFixed(1)}${count?` (${count})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div><div class="card-actions">${safeUrl(url)?`<a href="${esc(safeUrl(url))}" target="_blank" rel="noopener">${p.provider==='TripAdvisor'?'View on TripAdvisor':'Open Google'}</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${canEdit()?`<button data-add-external="${esc(externalKey(p))}">Add to Pers</button>`:''}</div></div></article>`;};
+  for(const g of groups){
+    if(!g.rows.length)continue;
+    const panel=document.createElement('section');panel.id=g.id;panel.className='external-results-panel';
+    panel.innerHTML=`<div class="results-head"><div><strong>${esc(g.title)}</strong><span class="result-count">${g.rows.length}</span></div></div>`+g.rows.map(card).join('');
+    anchor.after(panel);anchor=panel;
+    panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
+  }
 }
 function useExternalPlace(p){
   pendingOnlinePlaceMeta={googlePlaceId:clean(p.googlePlaceId),googleRating:+p.googleRating||0,googleRatingCount:+p.googleRatingCount||0,openNow:p.openNow===true,openingHours:p.openingHours||[],tripadvisorLocationId:clean(p.tripadvisorLocationId),tripadvisorUrl:clean(p.tripadvisorUrl),tripadvisorRating:+p.tripadvisorRating||0,tripadvisorRatingCount:+p.tripadvisorRatingCount||0};
