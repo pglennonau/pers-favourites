@@ -12,7 +12,7 @@ The System Administrator must understand the full Pers Favourites system, includ
 - Google Places: PWA → Cloudflare Worker → Google Places API.
 - TripAdvisor: PWA → Cloudflare Worker → authorised TripAdvisor Terra API.
 - Future shared catalogue/auth/photos: Cloudflare components such as D1, KV, R2 and Workers as appropriate.
-- Do not reintroduce Supabase.
+- Do not reintroduce the superseded backend; Cloudflare is the approved backend/service direction.
 
 ## Cloudflare Worker
 
