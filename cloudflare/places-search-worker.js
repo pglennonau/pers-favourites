@@ -125,6 +125,23 @@ async function photoUriWithKey(env, apiKey, photoRef, maxWidthPx = 1200) {
   return json.photoUri;
 }
 
+async function readGoogleUsageStatus(env){
+  const db=env.USAGE_DB;
+  if(!db)return {tracking:false,callsToday:0};
+  await db.prepare('create table if not exists google_places_usage (bucket text primary key, call_count integer not null default 0, updated_at text not null)').run();
+  const info=await db.prepare('pragma table_info(google_places_usage)').all();
+  const cols=new Set((info?.results||[]).map(x=>x.name));
+  const day=new Date().toISOString().slice(0,10);
+  if(!cols.has('bucket')&&cols.has('day_key')&&cols.has('day_count')){
+    const row=await db.prepare('select day_key,day_count from google_places_usage order by id limit 1').first();
+    return {tracking:true,callsToday:row?.day_key===day?(+row.day_count||0):0};
+  }
+  if(cols.has('bucket')&&cols.has('call_count')){
+    const row=await db.prepare('select call_count from google_places_usage where bucket=?').bind(`day:${day}`).first();
+    return {tracking:true,callsToday:+row?.call_count||0};
+  }
+  return {tracking:false,callsToday:0};
+}
 function envNumber(env, name, fallback) {
   const n = Number(clean(env[name]));
   return Number.isFinite(n) && n >= 0 ? n : fallback;
@@ -294,9 +311,10 @@ export default {
       if (path.endsWith('/admin/google-connection')) return await handleAdminGoogleConnection(request, env, headers);
       if (path.endsWith('/services/status') || path.endsWith('/tripadvisor/status')) {
         const ta = await tripadvisorStatus(env);
+        const gu = await readGoogleUsageStatus(env);
         return new Response(JSON.stringify({
           provider:'pers-services',
-          google:{ connected:!!clean(env.GOOGLE_PLACES_API_KEY), mode:googleMode(env) },
+          google:{ connected:!!clean(env.GOOGLE_PLACES_API_KEY), mode:googleMode(env), ...gu },
           tripadvisor:ta
         }), { status:200, headers });
       }
