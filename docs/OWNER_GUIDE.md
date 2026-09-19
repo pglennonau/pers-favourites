@@ -36,7 +36,7 @@ The intended rules are:
 - paid use must not start silently;
 - the zero-cost **View on TripAdvisor** link remains available even when API access is paused.
 
-The Owner can record approval for paid TripAdvisor API use in Pers. For safety, that approval alone does not turn on paid calls. The protected Cloudflare server setting must also permit paid usage.
+The Owner can record approval for paid TripAdvisor API use in Pers. For safety, that approval alone does not turn on paid calls. The System Administrator must mirror that approval into the protected Cloudflare Owner-approval flag and separately enable paid use. Both server-side gates must be true before the Worker can pass the free cutoff.
 
 ## External search presentation
 
