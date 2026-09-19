@@ -1,5 +1,5 @@
-const CACHE = 'pers-favourites-0.27.22-shell-v1';
-const SHELL = ['./','./index.html','./styles.css','./geo-fallback.js','./app.js','./config.js','./branding.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE = 'pers-favourites-0.27.23-shell-v1';
+const SHELL = ['./','./index.html','./styles.css','./geo-fallback.js','./app.js','./config.js','./branding.js','./manifest.webmanifest','./terms.html','./privacy.html','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('message', e => { if(e.data?.type==='SKIP_WAITING') self.skipWaiting(); });

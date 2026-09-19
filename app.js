@@ -1,10 +1,10 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.22',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.23',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
-const LS_GOOGLE_PHOTO_REFS = `pers-v02716-google-photo-refs:${CFG.deploymentId || location.pathname}`;
+const LS_OBSOLETE_GOOGLE_PHOTO_REFS = `pers-v02716-google-photo-refs:${CFG.deploymentId || location.pathname}`;
 const LEGACY_SESSION = `pers-v025-session:${CFG.deploymentId || location.pathname}`;
 const PHOTO_BUCKET = 'venue-photos';
 const FILTER_KEYS = ['country','region','city','type','cuisine','rating','distance','openNow','price','meal','greatFor','feature','status','dietary','tag'];
@@ -22,11 +22,11 @@ const MASTER_LIST_META={
 };
 const LANGUAGE_OPTIONS={en:'English',es:'Español',fr:'Français',it:'Italiano',de:'Deutsch'};
 const I18N={
-  en:{searchPlaceholder:'Search restaurants, places, notes…',location:'Location',allLocations:'All locations',setLocation:'Set location',change:'Change',hide:'Hide',clear:'Clear',done:'Done',places:'Places',place:'place',placesLower:'places',filters:'Filters',add:'+ Add',list:'List',map:'Map',openNow:'Open Now',hours:'Hours',quickFilter:'Quick filter',moreFilters:'More Filters ▾',resetFilters:'Reset filters',morePlaces:'More Places Nearby',searchOtherApps:'Search selected apps',externalSources:'Add other app searches',language:'Language',noMatch:'No places match these filters.'},
-  es:{searchPlaceholder:'Buscar restaurantes, lugares, notas…',location:'Ubicación',allLocations:'Todas las ubicaciones',setLocation:'Elegir ubicación',change:'Cambiar',hide:'Ocultar',clear:'Borrar',done:'Listo',places:'Lugares',place:'lugar',placesLower:'lugares',filters:'Filtros',add:'+ Añadir',list:'Lista',map:'Mapa',openNow:'Abierto ahora',hours:'Horario',quickFilter:'Filtro rápido',moreFilters:'Más filtros ▾',resetFilters:'Restablecer filtros',morePlaces:'Más lugares cercanos',searchOtherApps:'Buscar en apps seleccionadas',externalSources:'Añadir búsquedas de otras apps',language:'Idioma',noMatch:'Ningún lugar coincide con estos filtros.'},
-  fr:{searchPlaceholder:'Rechercher restaurants, lieux, notes…',location:'Emplacement',allLocations:'Tous les emplacements',setLocation:'Définir le lieu',change:'Modifier',hide:'Masquer',clear:'Effacer',done:'Terminé',places:'Lieux',place:'lieu',placesLower:'lieux',filters:'Filtres',add:'+ Ajouter',list:'Liste',map:'Carte',openNow:'Ouvert maintenant',hours:'Horaires',quickFilter:'Filtre rapide',moreFilters:'Plus de filtres ▾',resetFilters:'Réinitialiser les filtres',morePlaces:'Plus de lieux à proximité',searchOtherApps:'Rechercher dans les apps sélectionnées',externalSources:'Ajouter d’autres recherches',language:'Langue',noMatch:'Aucun lieu ne correspond à ces filtres.'},
-  it:{searchPlaceholder:'Cerca ristoranti, luoghi, note…',location:'Posizione',allLocations:'Tutte le posizioni',setLocation:'Imposta posizione',change:'Cambia',hide:'Nascondi',clear:'Cancella',done:'Fatto',places:'Luoghi',place:'luogo',placesLower:'luoghi',filters:'Filtri',add:'+ Aggiungi',list:'Elenco',map:'Mappa',openNow:'Aperto ora',hours:'Orari',quickFilter:'Filtro rapido',moreFilters:'Altri filtri ▾',resetFilters:'Reimposta filtri',morePlaces:'Altri luoghi nelle vicinanze',searchOtherApps:'Cerca nelle app selezionate',externalSources:'Aggiungi altre ricerche app',language:'Lingua',noMatch:'Nessun luogo corrisponde a questi filtri.'},
-  de:{searchPlaceholder:'Restaurants, Orte, Notizen suchen…',location:'Standort',allLocations:'Alle Standorte',setLocation:'Standort festlegen',change:'Ändern',hide:'Ausblenden',clear:'Löschen',done:'Fertig',places:'Orte',place:'Ort',placesLower:'Orte',filters:'Filter',add:'+ Hinzufügen',list:'Liste',map:'Karte',openNow:'Jetzt geöffnet',hours:'Öffnungszeiten',quickFilter:'Schnellfilter',moreFilters:'Mehr Filter ▾',resetFilters:'Filter zurücksetzen',morePlaces:'Weitere Orte in der Nähe',searchOtherApps:'Ausgewählte Apps durchsuchen',externalSources:'Weitere App-Suchen hinzufügen',language:'Sprache',noMatch:'Keine Orte entsprechen diesen Filtern.'}
+  en:{searchPlaceholder:'Search restaurants, places, notes…',location:'Location',allLocations:'All locations',setLocation:'Set location',change:'Change',hide:'Hide',clear:'Clear',done:'Done',places:'Places',place:'place',placesLower:'places',filters:'Filters',add:'+ Add',list:'List',map:'Map',openNow:'Open Now',hours:'Hours',quickFilter:'Quick filter',moreFilters:'More Filters ▾',resetFilters:'Reset filters',morePlaces:'More Places Nearby',moreGoogle:'More places from Google',tripadvisorResults:'TripAdvisor results',searchOtherApps:'Search selected apps',externalSources:'Add other app searches',language:'Language',noMatch:'No places match these filters.'},
+  es:{searchPlaceholder:'Buscar restaurantes, lugares, notas…',location:'Ubicación',allLocations:'Todas las ubicaciones',setLocation:'Elegir ubicación',change:'Cambiar',hide:'Ocultar',clear:'Borrar',done:'Listo',places:'Lugares',place:'lugar',placesLower:'lugares',filters:'Filtros',add:'+ Añadir',list:'Lista',map:'Mapa',openNow:'Abierto ahora',hours:'Horario',quickFilter:'Filtro rápido',moreFilters:'Más filtros ▾',resetFilters:'Restablecer filtros',morePlaces:'Más lugares cercanos',moreGoogle:'Más lugares de Google',tripadvisorResults:'Resultados de TripAdvisor',searchOtherApps:'Buscar en apps seleccionadas',externalSources:'Añadir búsquedas de otras apps',language:'Idioma',noMatch:'Ningún lugar coincide con estos filtros.'},
+  fr:{searchPlaceholder:'Rechercher restaurants, lieux, notes…',location:'Emplacement',allLocations:'Tous les emplacements',setLocation:'Définir le lieu',change:'Modifier',hide:'Masquer',clear:'Effacer',done:'Terminé',places:'Lieux',place:'lieu',placesLower:'lieux',filters:'Filtres',add:'+ Ajouter',list:'Liste',map:'Carte',openNow:'Ouvert maintenant',hours:'Horaires',quickFilter:'Filtre rapide',moreFilters:'Plus de filtres ▾',resetFilters:'Réinitialiser les filtres',morePlaces:'Plus de lieux à proximité',moreGoogle:'Plus de lieux de Google',tripadvisorResults:'Résultats TripAdvisor',searchOtherApps:'Rechercher dans les apps sélectionnées',externalSources:'Ajouter d’autres recherches',language:'Langue',noMatch:'Aucun lieu ne correspond à ces filtres.'},
+  it:{searchPlaceholder:'Cerca ristoranti, luoghi, note…',location:'Posizione',allLocations:'Tutte le posizioni',setLocation:'Imposta posizione',change:'Cambia',hide:'Nascondi',clear:'Cancella',done:'Fatto',places:'Luoghi',place:'luogo',placesLower:'luoghi',filters:'Filtri',add:'+ Aggiungi',list:'Elenco',map:'Mappa',openNow:'Aperto ora',hours:'Orari',quickFilter:'Filtro rapido',moreFilters:'Altri filtri ▾',resetFilters:'Reimposta filtri',morePlaces:'Altri luoghi nelle vicinanze',moreGoogle:'Altri luoghi da Google',tripadvisorResults:'Risultati TripAdvisor',searchOtherApps:'Cerca nelle app selezionate',externalSources:'Aggiungi altre ricerche app',language:'Lingua',noMatch:'Nessun luogo corrisponde a questi filtri.'},
+  de:{searchPlaceholder:'Restaurants, Orte, Notizen suchen…',location:'Standort',allLocations:'Alle Standorte',setLocation:'Standort festlegen',change:'Ändern',hide:'Ausblenden',clear:'Löschen',done:'Fertig',places:'Orte',place:'Ort',placesLower:'Orte',filters:'Filter',add:'+ Hinzufügen',list:'Liste',map:'Karte',openNow:'Jetzt geöffnet',hours:'Öffnungszeiten',quickFilter:'Schnellfilter',moreFilters:'Mehr Filter ▾',resetFilters:'Filter zurücksetzen',morePlaces:'Weitere Orte in der Nähe',moreGoogle:'Weitere Orte von Google',tripadvisorResults:'TripAdvisor-Ergebnisse',searchOtherApps:'Ausgewählte Apps durchsuchen',externalSources:'Weitere App-Suchen hinzufügen',language:'Sprache',noMatch:'Keine Orte entsprechen diesen Filtern.'}
 };
 const I18N_EXTRA={
   en:{country:'Country',region:'Region',cityTown:'City/Town',placeType:'Place Type',cuisine:'Cuisine',rating:'Rating',distance:'Distance',price:'Price',meal:'Meal / Visit Type',greatFor:'Great For',feature:'Feature',status:'Status',dietary:'Dietary',personalTag:'Personal Tag',selectCountryFirst:'Select Country first',typeToSearch:'type to search'},
@@ -87,9 +87,13 @@ let authPurpose = 'owner';
 let pendingContributionPlaceId = '';
 let pendingOnlinePlaceMeta = null;
 const photoUrlCache = new Map();
-const googlePhotoCache = new Map();
+const googleNoPhotoCache = new Set();
 const googlePhotoPending = new Map();
+const liveExternalByPlace = new Map();
+const tripadvisorPhotoCache = new Map();
+const tripadvisorPhotoPending = new Map();
 let googlePhotoObserver = null;
+let tripadvisorSearchChain = Promise.resolve();
 let photoDbPromise = null;
 let askPersRecognition = null;
 let askPersListening = false;
@@ -155,7 +159,7 @@ function defaultLocalState(){
   const ownerId='local-owner';
   return {
     schema:276, appVersion:CFG.version, createdAt:nowISO(), updatedAt:nowISO(),
-    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint),tripadvisorEndpoint:'',masterLists:defaultMasterLists()},
+    settings:{appName:CFG.appName,ownerDisplayName:CFG.ownerDisplayName,homeRegion:CFG.homeRegion,allowUserPhotos:true,defaultNearMe:'1',askPersEnabled:false,askPersEndpoint:'',placesSearchEndpoint:clean(CFG.placesSearchEndpoint),tripadvisorEndpoint:'',tripadvisorPaidUsageAuthorized:false,googleSpendCap:'',tripadvisorSpendCap:'',cloudflareSpendCap:'',openaiSpendCap:'',masterLists:defaultMasterLists()},
     users:[
       {id:ownerId,email:'owner@local.test',displayName:CFG.ownerDisplayName || 'Owner',role:'owner'},
       {id:'local-sysadmin',email:'sysadmin@local.test',displayName:'Pat (System Administrator)',role:'sysadmin'},
@@ -175,7 +179,7 @@ function normalizeLegacyPlace(p={}){
     address:clean(p.address), lat:lat===''?null:(lat==null?null:+lat), lng:lng===''?null:(lng==null?null:+lng), price:clean(p.price), persRating:+(p.persRating??p.pers_rating??0)||0,
     mealTypes:arr(p.mealTypes||p.meals), greatFor:arr(p.greatFor), features:arr(p.features), dietary:arr(p.dietary), tags:arr(p.tags),
     mustTry:clean(p.mustTry||p.whatToOrder||p.favouriteDish||p.favoriteDish), notes:clean(p.notes||p.listNotes||p.comment), website:clean(p.website),
-    googleMapsUrl:clean(p.googleMapsUrl||p.googleUrl||p.mapsUrl||p.url),googlePlaceId:clean(p.googlePlaceId||p.google_place_id),googlePhotoRef:clean(p.googlePhotoRef||p.google_photo_ref),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:(Array.isArray(p.google_photo_attribution)?p.google_photo_attribution:[]),tripadvisorLocationId:clean(p.tripadvisorLocationId||p.tripadvisor_location_id),tripadvisorUrl:clean(p.tripadvisorUrl||p.tripadvisor_url),phone:clean(p.phone), bookingUrl:clean(p.bookingUrl||p.reservationUrl),
+    googleMapsUrl:clean(p.googleMapsUrl||p.googleUrl||p.mapsUrl||p.url),googlePlaceId:clean(p.googlePlaceId||p.google_place_id),googlePhotoRef:'',googlePhotoAttribution:[],googleRating:0,googleRatingCount:0,openNow:false,openingHours:[],tripadvisorLocationId:clean(p.tripadvisorLocationId||p.tripadvisor_location_id),tripadvisorUrl:clean(p.tripadvisorUrl||p.tripadvisor_url),tripadvisorRating:0,tripadvisorRatingCount:0,phone:clean(p.phone), bookingUrl:clean(p.bookingUrl||p.reservationUrl),
     createdAt:p.createdAt||p.created_at||nowISO(), updatedAt:p.updatedAt||p.updated_at||nowISO(),
     archivedAt:p.archivedAt||p.archived_at||(p.archived||status==='archived'?nowISO():'')
   };
@@ -214,10 +218,10 @@ function normalizeLocalState(d,sourceKey=''){
   const ownerName=clean(settings.ownerDisplayName||settings.owner_display_name||d?.displayName||CFG.ownerDisplayName||'Owner');
   const result={
     ...d, schema:276, appVersion:CFG.version,
-    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(settings.tripadvisorEndpoint||settings.tripadvisor_endpoint),masterLists:normalizeMasterLists(settings.masterLists||settings.master_lists)},
+    settings:{appName:clean(settings.appName||settings.app_name||CFG.appName)||'Pers Favourites',ownerDisplayName:ownerName,homeRegion:clean(settings.homeRegion||settings.home_region||CFG.homeRegion),allowUserPhotos:settings.allowUserPhotos??settings.allow_user_photos??true,defaultNearMe:clean(settings.defaultNearMe||settings.default_near_me||'1')||'1',askPersEnabled:settings.askPersEnabled??settings.ask_pers_enabled??false,askPersEndpoint:clean(settings.askPersEndpoint||settings.ask_pers_endpoint),placesSearchEndpoint:clean(settings.placesSearchEndpoint||settings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(settings.tripadvisorEndpoint||settings.tripadvisor_endpoint),tripadvisorPaidUsageAuthorized:settings.tripadvisorPaidUsageAuthorized??settings.tripadvisor_paid_usage_authorized??false,googleSpendCap:clean(settings.googleSpendCap||settings.google_spend_cap),tripadvisorSpendCap:clean(settings.tripadvisorSpendCap||settings.tripadvisor_spend_cap),cloudflareSpendCap:clean(settings.cloudflareSpendCap||settings.cloudflare_spend_cap),openaiSpendCap:clean(settings.openaiSpendCap||settings.openai_spend_cap),masterLists:normalizeMasterLists(settings.masterLists||settings.master_lists)},
     users, activeUserId:d?.activeUserId||users[0]?.id||'local-owner', places:normalizedPlaces, photos:Array.isArray(d?.photos)?d.photos.map(normalizePhotoMeta):[],
     personal:normalizeLegacyPersonal(d?.personal,rawPlaces), userRatings:Array.isArray(d?.userRatings)?d.userRatings:Array.isArray(d?.venueRatings)?d.venueRatings:[], visits:Array.isArray(d?.visits)?d.visits.map(v=>({id:v.id||uid(),placeId:v.placeId||v.place_id,userId:v.userId||v.user_id||'local-owner',visitedAt:v.visitedAt||v.visited_at||v.date||nowISO(),rating:+(v.rating||0),comment:clean(v.comment||v.note)})):[],
-    preferences:d?.preferences&&typeof d.preferences==='object'?d.preferences:{}, history:Array.isArray(d?.history)?d.history:[],
+    preferences:d?.preferences&&typeof d.preferences==='object'?d.preferences:{}, history:Array.isArray(d?.history)?d.history.map(h=>({...h,places:Array.isArray(h?.places)?h.places.map(normalizeLegacyPlace):[]})):[],
     createdAt:d?.createdAt||d?.created_at||nowISO(), updatedAt:nowISO()
   };
   if(sourceKey&&sourceKey!==LS_DB){result.migratedFrom=sourceKey;result.migratedAt=nowISO();}
@@ -279,12 +283,18 @@ function overpassNamePattern(q){
 async function overpassSearch(q,loc,radiusKm=80){if(!loc||foldText(q).length<2)return [];const needle=overpassNamePattern(q);const radius=Math.round(radiusKm*1000);const query=`[out:json][timeout:12];(nwr(around:${radius},${loc.lat},${loc.lng})[\"name\"~\"${needle}\",i];nwr(around:${radius},${loc.lat},${loc.lng})[\"brand\"~\"${needle}\",i];);out center tags 40;`;const u=new URL('https://overpass-api.de/api/interpreter');u.searchParams.set('data',query);const r=await fetch(u.toString(),{headers:{'Accept':'application/json'}});if(!r.ok)return [];const j=await r.json();return Array.isArray(j?.elements)?j.elements:[];}
 function onlineResultToPlace(r){const a=r.address||{},e=r.extratags||{},name=clean(r.namedetails?.name||r.name||String(r.display_name||'').split(',')[0]);const lat=+r.lat,lng=+r.lon;return {id:uid(),name,placeType:clean(r.type||r.category),cuisine:clean(e.cuisine),country:clean(a.country),stateRegion:clean(a.state||a.region||a.county),city:clean(a.city||a.town||a.village||a.municipality),suburb:clean(a.suburb||a.neighbourhood||a.quarter),address:clean(r.display_name),lat,lng,price:'',persRating:0,phone:clean(e.phone||e['contact:phone']),website:clean(e.website||e['contact:website']),googleMapsUrl:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`,bookingUrl:'',mealTypes:[],greatFor:[],features:[],dietary:[],tags:['Find Place Online','OpenStreetMap'],mustTry:'',notes:'',createdAt:nowISO(),updatedAt:nowISO(),archivedAt:''};}
 function overpassResultToPlace(x,ctx={}){const t=x.tags||{},lat=Number(x.lat??x.center?.lat),lng=Number(x.lon??x.center?.lon);const street=[clean(t['addr:housenumber']),clean(t['addr:street'])].filter(Boolean).join(' ');const city=clean(t['addr:city']||t['addr:town']||t['addr:village']||ctx.city);const region=clean(t['addr:state']||t['addr:region']||ctx.region);const country=clean(t['addr:country']||ctx.country);const address=[street,clean(t['addr:postcode']),city,region,country].filter(Boolean).join(', ');const typ=clean(t.amenity||t.shop||t.tourism||t.leisure||t.craft);return {id:uid(),name:clean(t.name||t.brand),placeType:typ,cuisine:clean(t.cuisine),country,stateRegion:region,city,suburb:clean(t['addr:suburb']||t['addr:neighbourhood']),address,lat:Number.isFinite(lat)?lat:null,lng:Number.isFinite(lng)?lng:null,price:'',persRating:0,phone:clean(t.phone||t['contact:phone']),website:clean(t.website||t['contact:website']),googleMapsUrl:Number.isFinite(lat)&&Number.isFinite(lng)?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`:'',bookingUrl:'',mealTypes:[],greatFor:[],features:[],dietary:[],tags:['Find Place Online','OpenStreetMap local lookup'],mustTry:'',notes:'',createdAt:nowISO(),updatedAt:nowISO(),archivedAt:''};}
-function googleWorkerResultToPlace(x){const lat=Number(x.lat),lng=Number(x.lng);return {id:uid(),name:clean(x.name),placeType:clean(x.placeType||x.primaryType),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(lat)?lat:null,lng:Number.isFinite(lng)?lng:null,price:clean(x.price),persRating:0,googleRating:+x.rating||0,googleRatingCount:+x.userRatingCount||0,openNow:x.openNow===true,openingHours:Array.isArray(x.weekdayDescriptions)?x.weekdayDescriptions:[],phone:clean(x.phone),website:clean(x.website),googleMapsUrl:clean(x.googleMapsUrl)||((Number.isFinite(lat)&&Number.isFinite(lng))?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`:''),googlePlaceId:clean(x.id),googlePhotoRef:clean(x.photoRef),googlePhotoAttribution:Array.isArray(x.photoAttribution)?x.photoAttribution:[],tripadvisorLocationId:'',tripadvisorUrl:'',tripadvisorRating:0,tripadvisorRatingCount:0,bookingUrl:'',mealTypes:[],greatFor:[],features:[],dietary:[],tags:['Find Place Online','Google Places'],mustTry:'',notes:'',createdAt:nowISO(),updatedAt:nowISO(),archivedAt:''};}
+function googleWorkerResultToPlace(x){const lat=Number(x.lat),lng=Number(x.lng);return {id:uid(),name:clean(x.name),placeType:clean(x.placeType||x.primaryType),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(lat)?lat:null,lng:Number.isFinite(lng)?lng:null,price:clean(x.price),persRating:0,googleRating:+x.rating||0,googleRatingCount:+x.userRatingCount||0,openNow:x.openNow===true,openingHours:Array.isArray(x.weekdayDescriptions)?x.weekdayDescriptions:[],phone:clean(x.phone),website:clean(x.website),googleMapsUrl:clean(x.googleMapsUrl)||((Number.isFinite(lat)&&Number.isFinite(lng))?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`:''),googlePlaceId:clean(x.id),googlePhotoRef:clean(x.photoRef),googlePhotoAttribution:Array.isArray(x.photoAttribution)?x.photoAttribution:[],googlePhotoGoogleMapsUri:clean(x.photoGoogleMapsUri),googlePhotoFlagContentUri:clean(x.photoFlagContentUri),tripadvisorLocationId:'',tripadvisorUrl:'',tripadvisorRating:0,tripadvisorRatingCount:0,bookingUrl:'',mealTypes:[],greatFor:[],features:[],dietary:[],tags:['Find Place Online','Google Places'],mustTry:'',notes:'',createdAt:nowISO(),updatedAt:nowISO(),archivedAt:''};}
 async function googlePlacesSearch(raw,loc,ctx,widen=false,searchFilters={}){const endpoint=clean(state?.settings?.placesSearchEndpoint||CFG.placesSearchEndpoint);if(!endpoint)return null;const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:raw,normalizedQuery:normalizeOnlineQuery(raw),location:loc||null,context:ctx||{},widen:!!widen,filters:searchFilters||{}})});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`Google Places search failed (${r.status}).`);return Array.isArray(j?.places)?j.places:[];}
 function googleMapsSearchUrl(q,ctx){const text=[clean(q),clean(ctx?.label)].filter(Boolean).join(' ');return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;}
 function dedupeOnlineRows(rows){const seen=new Set(),out=[];for(const x of rows){const p=x.place||{};const key=Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)?`${foldText(p.name)}:${(+p.lat).toFixed(4)}:${(+p.lng).toFixed(4)}`:`${foldText(p.name)}:${foldText(p.address)}`;if(!key||seen.has(key))continue;seen.add(key);out.push(x);}return out;}
 function rankOnlineRows(rows,q,loc,widen=false){return rows.map(x=>{const d=loc&&Number.isFinite(+x.place.lat)&&Number.isFinite(+x.place.lng)?distanceKm(loc,{lat:+x.place.lat,lng:+x.place.lng}):null;const nameScore=onlineNameScore(x.place.name,q);const distanceBonus=d==null?0:Math.max(0,300-Math.min(d,300));const providerBonus=x.provider==='Google Places'?80:x.provider==='OpenStreetMap local'?50:0;return {...x,distance:d,score:nameScore+distanceBonus+providerBonus};}).filter(x=>widen||!loc||x.distance==null||x.distance<=120).sort((a,b)=>b.score-a.score||(a.distance??99999)-(b.distance??99999)||a.place.name.localeCompare(b.place.name));}
-function renderOnlineResults(){$('findPlaceResults').innerHTML=onlinePlaceResults.map((x,i)=>`<div class="online-result"><div class="online-result-top"><div><strong>${esc(x.place.name||'Unnamed place')}</strong><div class="small muted">${esc(x.place.address||[x.place.city,x.place.stateRegion,x.place.country].filter(Boolean).join(', '))}</div><div class="small">${x.distance==null?'':`${x.distance<1?Math.round(x.distance*1000)+' m':x.distance.toFixed(1)+' km'} away`}${x.place.website?` · Website found`:''}${x.provider?` · ${esc(x.provider)}`:''}</div></div><button class="primary compact" data-use-online="${i}">Use</button></div></div>`).join('');}
+function renderOnlineResults(){
+  $('findPlaceResults').innerHTML=onlinePlaceResults.map((x,i)=>{
+    const isGoogle=x.provider==='Google Places';
+    const providerLabel=isGoogle?googleMapsAttributionHtml():esc(x.provider||'');
+    return `<div class="online-result"><div class="online-result-top"><div><strong>${esc(x.place.name||'Unnamed place')}</strong><div class="small muted">${esc(x.place.address||[x.place.city,x.place.stateRegion,x.place.country].filter(Boolean).join(', '))}</div><div class="small">${x.distance==null?'':`${x.distance<1?Math.round(x.distance*1000)+' m':x.distance.toFixed(1)+' km'} away`}${x.place.website?` · Website found`:''}${x.provider?` · ${providerLabel}`:''}</div></div><button class="primary compact" data-use-online="${i}">Use</button></div></div>`;
+  }).join('');
+}
 function placesEndpoint(){return clean(state?.settings?.placesSearchEndpoint||CFG.placesSearchEndpoint);}
 function updateGoogleMapsDirectLink(q,ctx){const a=$('googleMapsDirectBtn');if(!a)return;a.href=googleMapsSearchUrl(q||$('findPlaceQuery')?.value||$('placeName')?.value||'',ctx||lastFindPlaceContext||storedLocationContext());}
 function findPlaceProviderNote(){return placesEndpoint()?'Google Places is connected. OpenStreetMap will also be used as a fallback.':'Google Places is NOT connected. The built-in OpenStreetMap fallback can miss current restaurants and businesses. Use Search Google Maps now, or configure the secure Google Places endpoint in Account & Settings for reliable in-app results.';}
@@ -389,9 +399,49 @@ async function runFindPlaceOnline(widen=false){
   }catch(e){$('findPlaceStatus').textContent=e.message||'Online search failed.';if(!widen)$('searchWiderBtn').classList.remove('hidden');}
 }
 
+function capturePlaceEditorValues(){
+  return {
+    name:clean($('placeName')?.value),placeType:clean($('placeType')?.value),cuisine:clean($('placeCuisine')?.value),
+    country:clean($('placeCountry')?.value),stateRegion:clean($('placeRegion')?.value),city:clean($('placeCity')?.value),suburb:clean($('placeSuburb')?.value),
+    address:clean($('placeAddress')?.value),lat:clean($('placeLat')?.value),lng:clean($('placeLng')?.value),price:clean($('placePrice')?.value),
+    phone:clean($('placePhone')?.value),website:clean($('placeWebsite')?.value),googleMapsUrl:clean($('placeGoogleUrl')?.value),
+    mealTypes:clean($('placeMeals')?.value),greatFor:clean($('placeGreatFor')?.value),features:clean($('placeFeatures')?.value),dietary:clean($('placeDietary')?.value),tags:clean($('placeTags')?.value)
+  };
+}
+function googleSnapshotFromPlace(p){
+  return {
+    name:clean(p.name),placeType:clean(p.placeType),cuisine:clean(p.cuisine),country:clean(p.country),stateRegion:clean(p.stateRegion),city:clean(p.city),suburb:clean(p.suburb),
+    address:clean(p.address),lat:p.lat==null?'':clean(p.lat),lng:p.lng==null?'':clean(p.lng),price:clean(p.price),phone:clean(p.phone),website:clean(p.website),googleMapsUrl:clean(p.googleMapsUrl),
+    mealTypes:arr(p.mealTypes).join(', '),greatFor:arr(p.greatFor).join(', '),features:arr(p.features).join(', '),dietary:arr(p.dietary).join(', '),tags:arr(p.tags).join(', ')
+  };
+}
+function googleMapsUrlFromPlaceId(placeId,label=''){
+  const id=clean(placeId);if(!id)return '';
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean(label)||'place')}&query_place_id=${encodeURIComponent(id)}`;
+}
+function sameProviderValue(a,b){return foldText(a)===foldText(b);}
+function applyGooglePersistenceGuard(p,meta){
+  if(!p||!meta?.googlePlaceId||!meta?.googleSourceSnapshot)return p;
+  const snap=meta.googleSourceSnapshot||{},before=meta.preGoogleForm||{};
+  const props=['name','placeType','cuisine','country','stateRegion','city','suburb','address','price','phone','website'];
+  for(const prop of props)if(sameProviderValue(p[prop],snap[prop]))p[prop]=clean(before[prop]);
+  if(!p.name)p.name=clean(before.name||lastFindPlaceRaw);
+  for(const prop of ['mealTypes','greatFor','features','dietary','tags']){
+    const current=arr(p[prop]).join(', '),source=clean(snap[prop]);
+    if(sameProviderValue(current,source))p[prop]=arr(before[prop]);
+  }
+  const currentLat=p.lat==null?'':clean(p.lat),currentLng=p.lng==null?'':clean(p.lng);
+  if(sameProviderValue(currentLat,snap.lat))p.lat=clean(before.lat)?+before.lat:null;
+  if(sameProviderValue(currentLng,snap.lng))p.lng=clean(before.lng)?+before.lng:null;
+  // Never persist the API-returned Google Maps URI. Construct a Google Maps link from the permitted Place ID.
+  p.googleMapsUrl=googleMapsUrlFromPlaceId(meta.googlePlaceId,p.name||before.name||lastFindPlaceRaw);
+  p.googlePlaceId=clean(meta.googlePlaceId);
+  return p;
+}
 async function useOnlinePlace(i){
   const x=onlinePlaceResults[+i];if(!x)return;const p=x.place;
-  pendingOnlinePlaceMeta={googlePlaceId:clean(p.googlePlaceId),googlePhotoRef:clean(p.googlePhotoRef),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:[],googleRating:+p.googleRating||0,googleRatingCount:+p.googleRatingCount||0,openNow:p.openNow===true,openingHours:Array.isArray(p.openingHours)?p.openingHours:[],tripadvisorLocationId:clean(p.tripadvisorLocationId),tripadvisorUrl:clean(p.tripadvisorUrl),tripadvisorRating:+p.tripadvisorRating||0,tripadvisorRatingCount:+p.tripadvisorRatingCount||0};
+  const preGoogleForm=capturePlaceEditorValues(),googleSourceSnapshot=p.googlePlaceId?googleSnapshotFromPlace(p):null;
+  pendingOnlinePlaceMeta={preGoogleForm,googleSourceSnapshot,googlePlaceId:clean(p.googlePlaceId),googlePhotoRef:clean(p.googlePhotoRef),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:[],googlePhotoGoogleMapsUri:clean(p.googlePhotoGoogleMapsUri),googlePhotoFlagContentUri:clean(p.googlePhotoFlagContentUri),googleRating:+p.googleRating||0,googleRatingCount:+p.googleRatingCount||0,openNow:p.openNow===true,openingHours:Array.isArray(p.openingHours)?p.openingHours:[],tripadvisorLocationId:clean(p.tripadvisorLocationId),tripadvisorUrl:clean(p.tripadvisorUrl),tripadvisorRating:+p.tripadvisorRating||0,tripadvisorRatingCount:+p.tripadvisorRatingCount||0};
   const plain={placeName:p.name,placeSuburb:p.suburb,placeAddress:p.address,placeLat:p.lat,placeLng:p.lng,placePhone:p.phone,placeWebsite:p.website,placeGoogleUrl:p.googleMapsUrl,placeTripadvisorUrl:p.tripadvisorUrl,placeTripadvisorId:p.tripadvisorLocationId,placeBookingUrl:p.bookingUrl};
   Object.entries(plain).forEach(([k,v])=>{if($(k)&&v!=null)$(k).value=v??'';});
   refreshEditorTaxonomy(p);$('placeType').value=clean(p.placeType);$('placeCuisine').value=clean(p.cuisine);
@@ -416,12 +466,37 @@ function matchesSavedPlace(p){
     return !p.city&&!x.city;
   });
 }
+function tripadvisorEndpoint(){
+  const explicit=clean(state?.settings?.tripadvisorEndpoint);
+  if(explicit)return explicit;
+  const google=placesEndpoint();if(!google)return '';
+  try{const u=new URL(google,location.href);u.pathname='/tripadvisor-search';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
+function serviceStatusEndpoint(){
+  const base=placesEndpoint()||tripadvisorEndpoint();if(!base)return '';
+  try{const u=new URL(base,location.href);u.pathname='/services/status';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
+function tripadvisorPhotoEndpoint(){
+  const base=tripadvisorEndpoint();if(!base)return '';
+  try{const u=new URL(base,location.href);u.pathname='/tripadvisor-photo';u.search='';u.hash='';return u.toString();}catch{return '';}
+}
 async function tripadvisorSearch(query,loc,ctx){
-  const endpoint=clean(state?.settings?.tripadvisorEndpoint);if(!endpoint)return [];
-  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
-  let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
-  const rows=Array.isArray(j?.places)?j.places:[];
-  return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
+  const endpoint=tripadvisorEndpoint();if(!endpoint)return [];
+  const run=async()=>{
+    try{
+      const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,location:loc||null,context:ctx||{},filters:{openNow:filters.openNow==='yes',type:filters.type,cuisine:filters.cuisine,distance:filters.distance}})});
+      let j={};try{j=await r.json()}catch{}
+      if(!r.ok)throw new Error(clean(j?.error)||`TripAdvisor search failed (${r.status}).`);
+      handleTripadvisorUsageStatus(j?.usage);
+      const rows=Array.isArray(j?.places)?j.places:[];
+      return rows.map(x=>normalizeExternalCategory({id:'ext-ta-'+clean(x.locationId||x.id||uid()),name:clean(x.name),placeType:clean(x.placeType||x.category),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(+x.lat)?+x.lat:null,lng:Number.isFinite(+x.lng)?+x.lng:null,price:clean(x.price),tripadvisorLocationId:clean(x.locationId||x.id),tripadvisorUrl:clean(x.url),tripadvisorRating:+x.rating||0,tripadvisorRatingCount:+x.ratingCount||0,tripadvisorRatingIconUrl:clean(x.ratingIconUrl),tripadvisorPhotoUri:clean(x.photoUri),openNow:x.openNow===true,openingHours:Array.isArray(x.openingHours)?x.openingHours:[],website:clean(x.website),phone:clean(x.phone),googleMapsUrl:'',googleRating:0,googleRatingCount:0,provider:'TripAdvisor'}));
+    }finally{
+      await new Promise(resolve=>setTimeout(resolve,1050));
+    }
+  };
+  const queued=tripadvisorSearchChain.catch(()=>{}).then(run);
+  tripadvisorSearchChain=queued.then(()=>{},()=>{});
+  return queued;
 }
 function externalPassesFilters(p){
   if(filters.country&&!geoSame(p.country,filters.country))return false;if(filters.region&&!geoSame(p.stateRegion,filters.region))return false;if(filters.city&&!geoSame(p.city,filters.city))return false;
@@ -430,36 +505,76 @@ function externalPassesFilters(p){
   if(filters.distance){const d=distanceFor(p);if(d==null||d>+filters.distance)return false;}
   return catalogueSearchMatches(p);
 }
+function liveProviderView(p){
+  const live=liveExternalByPlace.get(p?.id)||{};
+  const openValues=[];
+  if(Object.prototype.hasOwnProperty.call(live,'googleOpenNow'))openValues.push(live.googleOpenNow===true);
+  if(Object.prototype.hasOwnProperty.call(live,'tripadvisorOpenNow'))openValues.push(live.tripadvisorOpenNow===true);
+  return {
+    googleRating:Object.prototype.hasOwnProperty.call(live,'googleRating')?+live.googleRating||0:+p?.googleRating||0,
+    googleRatingCount:Object.prototype.hasOwnProperty.call(live,'googleRatingCount')?+live.googleRatingCount||0:+p?.googleRatingCount||0,
+    tripadvisorRating:Object.prototype.hasOwnProperty.call(live,'tripadvisorRating')?+live.tripadvisorRating||0:+p?.tripadvisorRating||0,
+    tripadvisorRatingCount:Object.prototype.hasOwnProperty.call(live,'tripadvisorRatingCount')?+live.tripadvisorRatingCount||0:+p?.tripadvisorRatingCount||0,
+    tripadvisorRatingIconUrl:clean(live.tripadvisorRatingIconUrl||p?.tripadvisorRatingIconUrl),
+    googleMapsUrl:clean(live.googleMapsUrl||p?.googleMapsUrl),
+    tripadvisorUrl:clean(live.tripadvisorUrl||p?.tripadvisorUrl),
+    openNow:openValues.length?openValues.some(Boolean):p?.openNow===true
+  };
+}
 function enrichSavedFromExternal(saved,p){
   if(!saved||!p)return;
+  const live={...(liveExternalByPlace.get(saved.id)||{})};
   if(p.provider==='Google Places'){
-    saved.googleRating=+p.googleRating||0;saved.googleRatingCount=+p.googleRatingCount||0;
-    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
-    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:[];
-    if(!saved.googlePlaceId&&p.googlePlaceId)saved.googlePlaceId=p.googlePlaceId;
-    if(!saved.googleMapsUrl&&p.googleMapsUrl)saved.googleMapsUrl=p.googleMapsUrl;
+    live.googleRating=+p.googleRating||0;
+    live.googleRatingCount=+p.googleRatingCount||0;
+    if(p.openNow===true||p.openNow===false)live.googleOpenNow=p.openNow;
+    live.googleOpeningHours=Array.isArray(p.openingHours)?p.openingHours:[];
+    if(p.googlePlaceId)live.googlePlaceId=clean(p.googlePlaceId);
+    if(p.googleMapsUrl)live.googleMapsUrl=clean(p.googleMapsUrl);
   }
   if(p.provider==='TripAdvisor'){
-    saved.tripadvisorRating=+p.tripadvisorRating||0;saved.tripadvisorRatingCount=+p.tripadvisorRatingCount||0;
-    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
-    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:(saved.openingHours||[]);
-    if(!saved.tripadvisorLocationId&&p.tripadvisorLocationId)saved.tripadvisorLocationId=p.tripadvisorLocationId;
-    if(!saved.tripadvisorUrl&&p.tripadvisorUrl)saved.tripadvisorUrl=p.tripadvisorUrl;
+    live.tripadvisorRating=+p.tripadvisorRating||0;
+    live.tripadvisorRatingCount=+p.tripadvisorRatingCount||0;
+    if(p.tripadvisorRatingIconUrl)live.tripadvisorRatingIconUrl=clean(p.tripadvisorRatingIconUrl);
+    if(p.openNow===true||p.openNow===false)live.tripadvisorOpenNow=p.openNow;
+    live.tripadvisorOpeningHours=Array.isArray(p.openingHours)?p.openingHours:[];
+    if(p.tripadvisorLocationId)live.tripadvisorLocationId=clean(p.tripadvisorLocationId);
+    if(p.tripadvisorUrl)live.tripadvisorUrl=clean(p.tripadvisorUrl);
   }
+  liveExternalByPlace.set(saved.id,live);
 }
 function sortExternalRows(rows){
   const sort=$('sortSelect')?.value||'nearest';
   return rows.sort((a,b)=>{if(sort==='name')return a.name.localeCompare(b.name);if(sort==='userRating'||sort==='persRating')return Math.max(+b.googleRating||0,+b.tripadvisorRating||0)-Math.max(+a.googleRating||0,+a.tripadvisorRating||0);if(sort==='price')return (a.price?.length||9)-(b.price?.length||9);const da=distanceFor(a),db=distanceFor(b);return (da??Infinity)-(db??Infinity)||a.name.localeCompare(b.name);});
 }
 function renderExternalResults(){
-  const old=$('externalResultsPanel');if(old)old.remove();
-  const rows=sortExternalRows(externalPlaceResults.filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));if(!rows.length)return;
-  const panel=document.createElement('section');panel.id='externalResultsPanel';panel.className='external-results-panel';
-  panel.innerHTML=`<div class="results-head"><div><strong>${esc(t('morePlaces'))}</strong><span class="result-count">${rows.length}</span></div></div>`+rows.map(p=>{const d=distanceFor(p),rating=p.provider==='TripAdvisor'?p.tripadvisorRating:p.googleRating,count=p.provider==='TripAdvisor'?p.tripadvisorRatingCount:p.googleRatingCount,url=p.provider==='TripAdvisor'?p.tripadvisorUrl:p.googleMapsUrl;return `<article class="place-card external-place-card"><div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc([p.placeType,p.cuisine,p.city,p.price,d!=null?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):''].filter(Boolean).join(' · '))}</div><span class="source-pill">${esc(p.provider)}</span></div><div class="rating-pair">${rating?`<span class="rating-pill">${esc(p.provider)} ★ ${(+rating).toFixed(1)}${count?` (${count})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div><div class="card-actions">${safeUrl(url)?`<a href="${esc(safeUrl(url))}" target="_blank" rel="noopener">Open ${esc(p.provider)}</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${canEdit()?`<button data-add-external="${esc(externalKey(p))}">Add to Pers</button>`:''}</div></div></article>`;}).join('');
-  $('listPanel').after(panel);panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
+  for(const id of ['externalResultsPanel','externalGoogleResultsPanel','externalTripadvisorResultsPanel'])$(id)?.remove();
+  const rows=sortExternalRows(externalPlaceResults.filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));
+  if(!rows.length)return;
+  const groups=[
+    {id:'externalGoogleResultsPanel',title:t('moreGoogle'),provider:'Google Places',rows:rows.filter(p=>p.provider==='Google Places')},
+    {id:'externalTripadvisorResultsPanel',title:t('tripadvisorResults'),provider:'TripAdvisor',rows:rows.filter(p=>p.provider==='TripAdvisor')}
+  ];
+  let anchor=$('listPanel');
+  const card=p=>{
+    const d=distanceFor(p),isTA=p.provider==='TripAdvisor',isGoogle=p.provider==='Google Places';
+    const rating=isTA?p.tripadvisorRating:p.googleRating,count=isTA?p.tripadvisorRatingCount:p.googleRatingCount,url=isTA?p.tripadvisorUrl:p.googleMapsUrl;
+    const providerLabel=isGoogle?googleMapsAttributionHtml():esc(p.provider);
+    const ratingBrand=isTA&&safeUrl(p.tripadvisorRatingIconUrl)?`<img class="tripadvisor-rating-icon" src="${esc(safeUrl(p.tripadvisorRatingIconUrl))}" alt="TripAdvisor rating" /> `:'';
+    return `<article class="place-card external-place-card"><div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc([p.placeType,p.cuisine,p.city,p.price,d!=null?(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'):''].filter(Boolean).join(' · '))}</div><span class="source-pill">${providerLabel}</span></div><div class="rating-pair">${rating?`<span class="rating-pill">${ratingBrand}${isGoogle?googleMapsAttributionHtml():esc(p.provider)} ${isTA&&safeUrl(p.tripadvisorRatingIconUrl)?'':'★ '}${(+rating).toFixed(1)}${count?` (${count})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div><div class="card-actions">${safeUrl(url)?`<a href="${esc(safeUrl(url))}" target="_blank" rel="noopener">${isTA?'View on TripAdvisor':isGoogle?'Open Google Maps':'Open source'}</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${canEdit()?`<button data-add-external="${esc(externalKey(p))}">Add to Pers</button>`:''}</div></div></article>`;
+  };
+  for(const g of groups){
+    if(!g.rows.length)continue;
+    const panel=document.createElement('section');panel.id=g.id;panel.className='external-results-panel';
+    const attribution=g.provider==='Google Places'?`<div class="provider-attribution-note">${googleMapsAttributionHtml()} content is shown separately from Pers results.</div>`:'';
+    panel.innerHTML=`<div class="results-head"><div><strong>${esc(g.title)}</strong><span class="result-count">${g.rows.length}</span></div></div>${attribution}`+g.rows.map(card).join('');
+    anchor.after(panel);anchor=panel;
+    panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
+  }
 }
 function useExternalPlace(p){
-  pendingOnlinePlaceMeta={googlePlaceId:clean(p.googlePlaceId),googleRating:+p.googleRating||0,googleRatingCount:+p.googleRatingCount||0,openNow:p.openNow===true,openingHours:p.openingHours||[],tripadvisorLocationId:clean(p.tripadvisorLocationId),tripadvisorUrl:clean(p.tripadvisorUrl),tripadvisorRating:+p.tripadvisorRating||0,tripadvisorRatingCount:+p.tripadvisorRatingCount||0};
+  const preGoogleForm=capturePlaceEditorValues(),googleSourceSnapshot=p.googlePlaceId?googleSnapshotFromPlace(p):null;
+  pendingOnlinePlaceMeta={preGoogleForm,googleSourceSnapshot,googlePlaceId:clean(p.googlePlaceId),googlePhotoRef:clean(p.googlePhotoRef),googlePhotoAttribution:Array.isArray(p.googlePhotoAttribution)?p.googlePhotoAttribution:[],googlePhotoGoogleMapsUri:clean(p.googlePhotoGoogleMapsUri),googlePhotoFlagContentUri:clean(p.googlePhotoFlagContentUri),googleRating:+p.googleRating||0,googleRatingCount:+p.googleRatingCount||0,openNow:p.openNow===true,openingHours:p.openingHours||[],tripadvisorLocationId:clean(p.tripadvisorLocationId),tripadvisorUrl:clean(p.tripadvisorUrl),tripadvisorRating:+p.tripadvisorRating||0,tripadvisorRatingCount:+p.tripadvisorRatingCount||0};
   const vals={placeName:p.name,placeType:p.placeType,placeCuisine:p.cuisine,placeSuburb:p.suburb,placeAddress:p.address,placeLat:p.lat,placeLng:p.lng,placePrice:p.price,placePhone:p.phone,placeWebsite:p.website,placeGoogleUrl:p.googleMapsUrl,placeTripadvisorUrl:p.tripadvisorUrl,placeTripadvisorId:p.tripadvisorLocationId};
   Object.entries(vals).forEach(([k,v])=>{if($(k)&&v!=null)$(k).value=v??'';});refreshEditorTaxonomy(p);if($('placeType'))$('placeType').value=p.placeType||'';if($('placeCuisine'))$('placeCuisine').value=p.cuisine||'';hydrateEditorGeography({country:p.country,region:p.stateRegion,city:p.city});
 }
@@ -470,7 +585,7 @@ async function searchExternalSources(){
   const rows=[],errors=[];
   try{if(preferences.externalSources.google){try{const gr=await googlePlacesSearch(q,loc,ctx,false,{openNow:filters.openNow==='yes'});rows.push(...(gr||[]).map(x=>Object.assign(googleWorkerResultToPlace(x),{provider:'Google Places'})));}catch(e){errors.push('Google: '+clean(e.message));}}
     if(preferences.externalSources.tripadvisor){try{rows.push(...await tripadvisorSearch(q,loc,ctx));}catch(e){errors.push('TripAdvisor: '+clean(e.message));}}
-    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),saved=matchesSavedPlace(p);if(saved){enrichSavedFromExternal(saved,p);continue;}const k=externalKey(p);if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
+    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),saved=matchesSavedPlace(p);if(saved){enrichSavedFromExternal(saved,p);continue;}const k=`${p.provider||'external'}|${externalKey(p)}`;if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
     externalPlaceResults=[...seen.values()];if(status)status.textContent=`${externalPlaceResults.length} external result${externalPlaceResults.length===1?'':'s'}${errors.length?' · '+errors.join(' · '):''}`;render();
   }finally{externalSearchBusy=false;}
 }
@@ -494,11 +609,87 @@ async function persistMasterLists(){state.settings.masterLists=normalizeMasterLi
 function openMasterLists(){
   if(!(hasOwnerAccess()||canManageSystem()))return toast('Owner or System Administrator access is required.');ensureMasterLists();$('masterListCategory').innerHTML=Object.entries(MASTER_LIST_META).map(([k,x])=>`<option value="${k}">${esc(x.label)}</option>`).join('');$('masterListNewValue').value='';renderMasterListManager();$('masterListsDialog').showModal();
 }
-async function saveTripadvisorEndpoint(){
-  if(!canManageSystem())return toast('System Administrator access is required.');const endpoint=clean($('settingTripadvisorEndpoint').value);if(endpoint){try{new URL(endpoint);}catch{return toast('Enter a valid TripAdvisor service endpoint.');}}
-  state.settings.tripadvisorEndpoint=endpoint;saveLocalState();
-  $('tripadvisorEndpointStatus').textContent=endpoint?'Endpoint saved. Use only an authorised, compliant integration.':'Not configured.';toast('TripAdvisor endpoint saved.');
+function handleTripadvisorUsageStatus(usage){
+  if(!usage||!(hasOwnerAccess()||canManageSystem()))return;
+  const stateName=clean(usage.state);
+  const trueWarning=stateName==='warning'&&usage.connected&&usage.enabled&&+usage.allowance>0;
+  const trueCutoff=stateName==='paused'&&usage.connected&&usage.enabled&&!usage.paidUsageAuthorized&&+usage.allowance>0&&+usage.cutoffAt>0&&+usage.count>=+usage.cutoffAt;
+  if(!trueWarning&&!trueCutoff)return;
+  const kind=trueCutoff?'paused':'warning';
+  const key=`pers-ta-alert:${clean(usage.periodKey)||'current'}:${kind}`;
+  if(localStorage.getItem(key))return;
+  localStorage.setItem(key,nowISO());
+  if(trueWarning)toast(`TripAdvisor API usage warning: ${usage.count}/${usage.allowance} calls used (${usage.percent}%).`);
+  else toast(`TripAdvisor API paused at the ${usage.cutoffPercent}% free-allowance cutoff.`);
 }
+async function refreshServiceCosts(){
+  const endpoint=serviceStatusEndpoint();
+  const set=(id,v)=>{if($(id))$(id).textContent=v;};
+  if(!endpoint){
+    set('ownerGoogleConnection','Not connected');set('ownerGoogleMode','—');set('ownerGoogleUsage','—');
+    set('ownerTripadvisorConnection','Not connected');set('ownerTripadvisorState','Paused');set('ownerTripadvisorUsage','—');set('ownerTripadvisorPeriod','—');
+    set('tripadvisorConnectionState','Not connected');set('tripadvisorQuotaState','Not checked');set('tripadvisorQuotaUsage','—');set('tripadvisorQuotaPeriod','—');set('tripadvisorWarningAt','—');set('tripadvisorCutoffAt','—');
+    return null;
+  }
+  try{
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    let j={};try{j=await r.json()}catch{}
+    if(!r.ok)throw new Error(clean(j?.error)||`Service status failed (${r.status}).`);
+    const g=j.google||{},ta=j.tripadvisor||{};handleTripadvisorUsageStatus(ta);
+    set('ownerGoogleConnection',g.connected?'Connected':'Not connected');
+    set('ownerGoogleMode',clean(g.mode)||'—');
+    set('ownerGoogleUsage',Number.isFinite(+g.callsToday)?`${+g.callsToday} calls today`:'Tracked in Cloudflare');set('ownerGooglePaidState',g.mode==='demo'?'Demo safeguards active':(g.configured?'Production safeguards active':'Production limits required'));
+    set('ownerAskPersState',state?.settings?.askPersEnabled?'Enabled':'Disabled');
+    set('ownerTripadvisorConnection',ta.connected?'Connected':'Not connected');
+    set('ownerTripadvisorState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
+    set('ownerTripadvisorUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:'Allowance not configured');
+    set('ownerTripadvisorPeriod',clean(ta.allowancePeriod)||'—');
+    set('tripadvisorConnectionState',ta.connected?'Connected':'Not connected');
+    set('tripadvisorQuotaState',(clean(ta.state)||'paused').replace(/^./,c=>c.toUpperCase()));
+    set('tripadvisorQuotaUsage',ta.allowance?`${+ta.count||0} / ${+ta.allowance} (${+ta.percent||0}%)`:'Allowance not configured');
+    set('tripadvisorQuotaPeriod',clean(ta.allowancePeriod)||'—');
+    set('sysadminTripadvisorOwnerApproval',state?.settings?.tripadvisorPaidUsageAuthorized?'Recorded in Pers':'Not recorded in Pers');
+    set('tripadvisorWarningAt',ta.allowance?`${ta.warningPercent}% · ${ta.warningAt} calls`:'—');
+    set('tripadvisorCutoffAt',ta.allowance?`${ta.cutoffPercent}% · ${ta.cutoffAt} calls`:'—');
+    if($('tripadvisorEndpointStatus'))$('tripadvisorEndpointStatus').textContent=ta.connected?`TripAdvisor API ${ta.enabled?'enabled':'disabled'} · paid usage ${ta.paidUsageAuthorized?'enabled server-side':'blocked server-side'}.`:'TripAdvisor API key not configured.';
+    const billing=safeUrl(ta.manageBillingUrl||'');
+    if($('tripadvisorBillingLink')){
+      $('tripadvisorBillingLink').classList.toggle('hidden',!billing);
+      if(billing)$('tripadvisorBillingLink').href=billing;
+    }
+    if($('ownerCostStatus'))$('ownerCostStatus').textContent=ta.state==='warning'?'TripAdvisor usage has passed the warning threshold.':(ta.state==='paused'&&ta.connected?'TripAdvisor API is paused by the server-side safeguard.':'');
+    return j;
+  }catch(e){
+    set('ownerTripadvisorState','Status unavailable');set('tripadvisorQuotaState','Status unavailable');
+    if($('ownerCostStatus'))$('ownerCostStatus').textContent=clean(e.message)||'Could not refresh service usage.';
+    if($('tripadvisorEndpointStatus'))$('tripadvisorEndpointStatus').textContent=clean(e.message)||'Could not refresh TripAdvisor status.';
+    return null;
+  }
+}
+function saveOwnerCostControls(){
+  if(!hasOwnerAccess())return toast('Owner access is required to change cost controls.');
+  state.settings.tripadvisorPaidUsageAuthorized=!!$('ownerTripadvisorPaidApproval')?.checked;
+  state.settings.googleSpendCap=clean($('ownerGoogleSpendCap')?.value);
+  state.settings.tripadvisorSpendCap=clean($('ownerTripadvisorSpendCap')?.value);
+  state.settings.cloudflareSpendCap=clean($('ownerCloudflareSpendCap')?.value);
+  state.settings.openaiSpendCap=clean($('ownerOpenAiSpendCap')?.value);
+  saveLocalState();
+  toast(state.settings.tripadvisorPaidUsageAuthorized?'Owner cost controls saved. TripAdvisor paid API calls still require the protected Cloudflare approval gates.':'Owner cost controls saved; TripAdvisor paid use is not approved.');
+  refreshServiceCosts();
+}
+async function saveTripadvisorEndpoint(){
+  if(!canManageSystem())return toast('System Administrator access is required.');
+  const endpoint=clean($('settingTripadvisorEndpoint').value);
+  if(endpoint){
+    try{const u=new URL(endpoint);if(u.protocol!=='https:')throw new Error();}
+    catch{return toast('Enter a valid HTTPS TripAdvisor Worker endpoint.');}
+  }
+  state.settings.tripadvisorEndpoint=endpoint;saveLocalState();
+  $('tripadvisorEndpointStatus').textContent=endpoint?'Endpoint saved. Checking authorised service…':'Using the shared Cloudflare Worker when available.';
+  await refreshServiceCosts();
+  toast('TripAdvisor endpoint setting saved.');
+}
+async function testTripadvisorEndpoint(){await refreshServiceCosts();}
 function splitCsvLine(line){
   const out=[];let cur='',q=false;
   for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===','&&!q){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;
@@ -549,30 +740,131 @@ function photoCredit(ph,forEditor=false){const ownerName=state?.settings?.ownerD
 async function hydratePhotoImages(root=document){
   const imgs=[...root.querySelectorAll('img[data-photo-id]')];await Promise.all(imgs.map(async img=>{const ph=photos.find(x=>x.id===img.dataset.photoId);if(!ph)return;try{const u=await photoObjectUrl(ph);if(u)img.src=u;}catch{img.alt='Photo unavailable';}}));
 }
-function readGooglePhotoRefs(){try{return JSON.parse(localStorage.getItem(LS_GOOGLE_PHOTO_REFS)||'{}')||{};}catch{return {};}}
-function rememberGooglePhotoRef(place,match){
-  if(!place||!match)return;place.googlePlaceId=clean(match.id||place.googlePlaceId);place.googlePhotoRef=clean(match.photoRef||place.googlePhotoRef);place.googlePhotoAttribution=Array.isArray(match.photoAttribution)?match.photoAttribution:(place.googlePhotoAttribution||[]);
-  try{const all=readGooglePhotoRefs();all[place.id]={googlePlaceId:place.googlePlaceId,googlePhotoRef:place.googlePhotoRef,googlePhotoAttribution:place.googlePhotoAttribution,updatedAt:nowISO()};localStorage.setItem(LS_GOOGLE_PHOTO_REFS,JSON.stringify(all));}catch{}
-  if(CFG.mode==='local'&&state){state.places=places;saveLocalState();}
+function clearLegacyGooglePhotoStorage(){
+  try{localStorage.removeItem(LS_OBSOLETE_GOOGLE_PHOTO_REFS);}catch{}
 }
-function googlePhotoEndpoint(){const endpoint=placesEndpoint();if(!endpoint)return '';try{const u=new URL(endpoint,location.href);const base=u.pathname.replace(/\/(places-search|photo|places-photo)\/?$/,'').replace(/\/$/,'');u.pathname=`${base}/photo`.replace(/\/{2,}/g,'/');u.search='';u.hash='';return u.toString();}catch{return '';}}
-async function requestGooglePhotoUri(photoRef){const endpoint=googlePhotoEndpoint();if(!endpoint||!photoRef)return '';const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({photoRef,maxWidthPx:1200})});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`Google photo request failed (${r.status}).`);return clean(j.photoUri);}
+function providerHttpUrl(v){
+  const raw=clean(v);if(!raw)return '';
+  return safeUrl(raw.startsWith('//')?'https:'+raw:raw);
+}
+function googleMapsAttributionHtml(){
+  return '<span class="google-maps-attribution" translate="no">Google Maps</span>';
+}
+function googlePhotoEndpoint(){
+  const endpoint=placesEndpoint();if(!endpoint)return '';
+  try{const u=new URL(endpoint,location.href);const base=u.pathname.replace(/\/(places-search|photo|places-photo)\/?$/,'').replace(/\/$/,'');u.pathname=`${base}/photo`.replace(/\/{2,}/g,'/');u.search='';u.hash='';return u.toString();}catch{return '';}
+}
+async function requestGooglePhotoUri(photoRef){
+  const endpoint=googlePhotoEndpoint();if(!endpoint||!photoRef)return '';
+  const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({photoRef,maxWidthPx:1200})});
+  let j={};try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(clean(j?.error)||`Google photo request failed (${r.status}).`);
+  return clean(j.photoUri);
+}
+function googlePhotoValueFromMeta(meta,photoUri){
+  return {
+    photoUri:clean(photoUri),
+    attribution:Array.isArray(meta?.photoAttribution)?meta.photoAttribution:[],
+    googleMapsUri:clean(meta?.photoGoogleMapsUri),
+    flagContentUri:clean(meta?.photoFlagContentUri)
+  };
+}
 async function resolveGooglePhoto(place){
-  if(!place||approvedPhotosForPlace(place.id).length||!placesEndpoint())return null;
-  if(googlePhotoCache.has(place.id))return googlePhotoCache.get(place.id);
+  if(!place||approvedPhotosForPlace(place.id).length||!placesEndpoint()||googleNoPhotoCache.has(place.id))return null;
   if(googlePhotoPending.has(place.id))return googlePhotoPending.get(place.id);
   const pending=(async()=>{
-    const saved=readGooglePhotoRefs()[place.id]||{};if(!place.googlePhotoRef&&saved.googlePhotoRef){place.googlePlaceId=clean(saved.googlePlaceId);place.googlePhotoRef=clean(saved.googlePhotoRef);place.googlePhotoAttribution=Array.isArray(saved.googlePhotoAttribution)?saved.googlePhotoAttribution:[];}
-    if(!place.googlePhotoRef){const loc=Number.isFinite(+place.lat)&&Number.isFinite(+place.lng)?{lat:+place.lat,lng:+place.lng}:null;const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};const rows=await googlePlacesSearch(place.name,loc,ctx,false);const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef)||(rows||[]).find(x=>x.photoRef);if(!exact)return null;rememberGooglePhotoRef(place,exact);}
-    const photoUri=await requestGooglePhotoUri(place.googlePhotoRef);if(!photoUri)return null;const value={photoUri,attribution:Array.isArray(place.googlePhotoAttribution)?place.googlePhotoAttribution:[]};googlePhotoCache.set(place.id,value);return value;
-  })().catch(()=>null).finally(()=>googlePhotoPending.delete(place.id));googlePhotoPending.set(place.id,pending);return pending;
+    const loc=Number.isFinite(+place.lat)&&Number.isFinite(+place.lng)?{lat:+place.lat,lng:+place.lng}:null;
+    const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
+    const rows=await googlePlacesSearch(place.name,loc,ctx,false);
+    const exact=(rows||[]).find(x=>place.googlePlaceId&&clean(x.id)===clean(place.googlePlaceId)&&x.photoRef)
+      ||(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef);
+    if(!exact){googleNoPhotoCache.add(place.id);return null;}
+    const photoUri=await requestGooglePhotoUri(exact.photoRef);
+    if(!photoUri){googleNoPhotoCache.add(place.id);return null;}
+    return googlePhotoValueFromMeta(exact,photoUri);
+  })().catch(()=>null).finally(()=>googlePhotoPending.delete(place.id));
+  googlePhotoPending.set(place.id,pending);return pending;
 }
-function googleAttributionHtml(items=[]){const authors=items.slice(0,3).map(x=>{const name=esc(x.displayName||'Contributor'),url=safeUrl(x.uri||'');return url?`<a href="${esc(url)}" target="_blank" rel="noopener">${name}</a>`:name;}).join(', ');return `Google Places photo${authors?` · Photo by ${authors}`:''}`;}
+function googleAttributionHtml(photo={}){
+  const items=Array.isArray(photo.attribution)?photo.attribution:[];
+  const authors=items.slice(0,3).map(x=>{
+    const name=esc(x.displayName||'Contributor');
+    const url=providerHttpUrl(x.uri||'');
+    const avatar=providerHttpUrl(x.photoUri||'');
+    const label=url?`<a href="${esc(url)}" target="_blank" rel="noopener">${name}</a>`:name;
+    return `${avatar?`<img class="google-author-avatar" src="${esc(avatar)}" alt="" /> `:''}${label}`;
+  }).join(', ');
+  const source=providerHttpUrl(photo.googleMapsUri||'');
+  const report=providerHttpUrl(photo.flagContentUri||'');
+  return `${googleMapsAttributionHtml()}${authors?` · Photo by ${authors}`:''}${source?` · <a href="${esc(source)}" target="_blank" rel="noopener">View source photo</a>`:''}${report?` · <a href="${esc(report)}" target="_blank" rel="noopener">Report</a>`:''}`;
+}
+function renderGooglePhotoFrame(frame,place,photo){
+  if(!frame||!photo?.photoUri)return false;
+  frame.dataset.googlePhotoLoaded='1';
+  frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="Google Maps photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(photo)}</div>`;
+  frame.classList.add('loaded');return true;
+}
+function rememberTripadvisorMatch(place,match){
+  if(!place||!match)return;
+  if(!place.tripadvisorLocationId&&match.tripadvisorLocationId)place.tripadvisorLocationId=clean(match.tripadvisorLocationId);
+  if(!place.tripadvisorUrl&&match.tripadvisorUrl)place.tripadvisorUrl=clean(match.tripadvisorUrl);
+  if(CFG.mode==='local'&&state){state.places=places;saveLocalState();}
+}
+async function resolveTripadvisorPhoto(place){
+  if(!place||approvedPhotosForPlace(place.id).length||!tripadvisorEndpoint())return null;
+  if(tripadvisorPhotoCache.has(place.id))return tripadvisorPhotoCache.get(place.id);
+  if(tripadvisorPhotoPending.has(place.id))return tripadvisorPhotoPending.get(place.id);
+  const pending=(async()=>{
+    let locationId=clean(place.tripadvisorLocationId),directPhoto='';
+    if(!locationId){
+      const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
+      let rows=[];try{rows=await tripadvisorSearch(place.name,null,ctx);}catch{return null;}
+      const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name))||(rows||[])[0];
+      if(!exact){tripadvisorPhotoCache.set(place.id,null);return null;}
+      locationId=clean(exact.tripadvisorLocationId);
+      directPhoto=clean(exact.tripadvisorPhotoUri);
+      rememberTripadvisorMatch(place,exact);
+    }
+    if(directPhoto){
+      const value={photoUri:directPhoto,url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
+      tripadvisorPhotoCache.set(place.id,value);return value;
+    }
+    if(!locationId){tripadvisorPhotoCache.set(place.id,null);return null;}
+    const endpoint=tripadvisorPhotoEndpoint();if(!endpoint)return null;
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locationId})});
+    let j={};try{j=await r.json()}catch{}
+    handleTripadvisorUsageStatus(j?.usage);
+    if(!r.ok)return null;
+    if(!clean(j?.photoUri)){tripadvisorPhotoCache.set(place.id,null);return null;}
+    const value={photoUri:clean(j.photoUri),url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
+    tripadvisorPhotoCache.set(place.id,value);return value;
+  })().catch(()=>null).finally(()=>tripadvisorPhotoPending.delete(place.id));
+  tripadvisorPhotoPending.set(place.id,pending);return pending;
+}
+function tripadvisorAttributionHtml(place,photo){
+  const url=safeUrl(photo?.url||place?.tripadvisorUrl||'');
+  return url?`TripAdvisor photo · <a href="${esc(url)}" target="_blank" rel="noopener">View on TripAdvisor</a>`:'TripAdvisor photo';
+}
 async function loadGoogleFallback(frame){
-  if(!frame||frame.dataset.googlePhotoLoaded==='1')return;frame.dataset.googlePhotoLoaded='1';const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace);if(!place||approvedPhotosForPlace(place.id).length)return;const photo=await resolveGooglePhoto(place);if(!photo)return;frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="Google Places photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(photo.attribution)}</div>`;frame.classList.add('loaded');
+  if(!frame||frame.dataset.googlePhotoLoaded==='1')return;
+  frame.dataset.googlePhotoLoaded='1';
+  const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace);
+  if(!place||approvedPhotosForPlace(place.id).length)return;
+  const google=await resolveGooglePhoto(place);
+  if(google&&renderGooglePhotoFrame(frame,place,google))return;
+  const ta=await resolveTripadvisorPhoto(place);
+  if(ta){
+    frame.innerHTML=`<img class="google-place-photo" src="${esc(ta.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,ta)}</div>`;
+    frame.classList.add('loaded');
+  }
 }
 function hydrateGoogleFallbacks(root=document){
-  const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;if(!('IntersectionObserver' in window)){frames.forEach(loadGoogleFallback);return;}if(!googlePhotoObserver)googlePhotoObserver=new IntersectionObserver(entries=>{entries.filter(x=>x.isIntersecting).forEach(x=>{googlePhotoObserver.unobserve(x.target);loadGoogleFallback(x.target);});},{rootMargin:'250px 0px'});frames.forEach(x=>googlePhotoObserver.observe(x));
+  const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;
+  if(!('IntersectionObserver' in window)){frames.forEach(loadGoogleFallback);return;}
+  if(!googlePhotoObserver)googlePhotoObserver=new IntersectionObserver(entries=>{
+    entries.filter(x=>x.isIntersecting).forEach(x=>{googlePhotoObserver.unobserve(x.target);loadGoogleFallback(x.target);});
+  },{rootMargin:'250px 0px'});
+  frames.forEach(x=>googlePhotoObserver.observe(x));
 }
 function updatePendingPhotoBadge(){const n=photos.filter(x=>x.status==='pending').length;const b=$('pendingPhotoBadge');if(b){b.textContent=n;b.classList.toggle('hidden',!n);}}
 function fileToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
@@ -585,14 +877,15 @@ async function sendRecovery(){throw new Error('Cloudflare password recovery is n
 async function updatePassword(){throw new Error('Cloudflare password management is not enabled in this local-data release.');}
 async function loadPublicProductionData(){throw new Error('Shared Cloudflare catalogue storage is not enabled yet. Use local mode.');}
 async function loadProductionData(){throw new Error('Shared Cloudflare catalogue storage is not enabled yet. Use local mode.');}
-function dbPlaceToApp(x){return {id:x.id,name:x.name||'',placeType:x.place_type||'',cuisine:x.cuisine||'',country:x.country||'',stateRegion:x.state_region||'',city:x.city||'',suburb:x.suburb||'',address:x.address||'',lat:x.lat,lng:x.lng,price:x.price||'',persRating:+x.pers_rating||0,mealTypes:x.meal_types||[],greatFor:x.great_for||[],features:x.features||[],dietary:x.dietary||[],tags:x.tags||[],mustTry:x.must_try||'',notes:x.notes||'',website:x.website||'',googleMapsUrl:x.google_maps_url||'',googlePlaceId:x.google_place_id||'',googlePhotoRef:x.google_photo_ref||'',googlePhotoAttribution:Array.isArray(x.google_photo_attribution)?x.google_photo_attribution:[],googleRating:+x.google_rating||0,googleRatingCount:+x.google_rating_count||0,openNow:x.open_now===true,openingHours:Array.isArray(x.opening_hours)?x.opening_hours:[],tripadvisorLocationId:x.tripadvisor_location_id||'',tripadvisorUrl:x.tripadvisor_url||'',tripadvisorRating:+x.tripadvisor_rating||0,tripadvisorRatingCount:+x.tripadvisor_rating_count||0,phone:x.phone||'',bookingUrl:x.booking_url||'',createdAt:x.created_at,updatedAt:x.updated_at,archivedAt:x.archived_at||''};}
-function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisine:p.cuisine||null,country:p.country||null,state_region:p.stateRegion||null,city:p.city||null,suburb:p.suburb||null,address:p.address||null,lat:p.lat||null,lng:p.lng||null,price:p.price||null,pers_rating:+p.persRating||null,meal_types:p.mealTypes||[],great_for:p.greatFor||[],features:p.features||[],dietary:p.dietary||[],tags:p.tags||[],must_try:p.mustTry||null,notes:p.notes||null,website:p.website||null,google_maps_url:p.googleMapsUrl||null,google_place_id:p.googlePlaceId||null,google_photo_ref:p.googlePhotoRef||null,google_photo_attribution:p.googlePhotoAttribution||[],tripadvisor_location_id:p.tripadvisorLocationId||null,tripadvisor_url:p.tripadvisorUrl||null,phone:p.phone||null,booking_url:p.bookingUrl||null,archived_at:p.archivedAt||null};}
+function dbPlaceToApp(x){return {id:x.id,name:x.name||'',placeType:x.place_type||'',cuisine:x.cuisine||'',country:x.country||'',stateRegion:x.state_region||'',city:x.city||'',suburb:x.suburb||'',address:x.address||'',lat:x.lat,lng:x.lng,price:x.price||'',persRating:+x.pers_rating||0,mealTypes:x.meal_types||[],greatFor:x.great_for||[],features:x.features||[],dietary:x.dietary||[],tags:x.tags||[],mustTry:x.must_try||'',notes:x.notes||'',website:x.website||'',googleMapsUrl:x.google_maps_url||'',googlePlaceId:x.google_place_id||'',googlePhotoRef:'',googlePhotoAttribution:[],googleRating:0,googleRatingCount:0,openNow:false,openingHours:[],tripadvisorLocationId:x.tripadvisor_location_id||'',tripadvisorUrl:x.tripadvisor_url||'',tripadvisorRating:0,tripadvisorRatingCount:0,phone:x.phone||'',bookingUrl:x.booking_url||'',createdAt:x.created_at,updatedAt:x.updated_at,archivedAt:x.archived_at||''};}
+function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisine:p.cuisine||null,country:p.country||null,state_region:p.stateRegion||null,city:p.city||null,suburb:p.suburb||null,address:p.address||null,lat:p.lat||null,lng:p.lng||null,price:p.price||null,pers_rating:+p.persRating||null,meal_types:p.mealTypes||[],great_for:p.greatFor||[],features:p.features||[],dietary:p.dietary||[],tags:p.tags||[],must_try:p.mustTry||null,notes:p.notes||null,website:p.website||null,google_maps_url:p.googleMapsUrl||null,google_place_id:p.googlePlaceId||null,google_photo_ref:null,google_photo_attribution:[],tripadvisor_location_id:p.tripadvisorLocationId||null,tripadvisor_url:p.tripadvisorUrl||null,phone:p.phone||null,booking_url:p.bookingUrl||null,archived_at:p.archivedAt||null};}
 
 async function boot(){
+  clearLegacyGooglePhotoStorage();
   setBranding();bindEvents();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.22 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.23 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -600,7 +893,8 @@ async function boot(){
   await enterLocal();
 }
 async function enterLocal(){
-  state=loadLocalState();currentUser=state.users.find(u=>u.id===state.activeUserId)||state.users[0];places=state.places;photos=state.photos||[];personal=state.personal;visits=state.visits;userRatings=state.userRatings||[];ratingSummaries={};preferences=normalizePreferences(state.preferences[currentUser.id]||{});filters=filtersFromPreferences(preferences);showApp();
+  liveExternalByPlace.clear();
+  state=loadLocalState();saveLocalState();currentUser=state.users.find(u=>u.id===state.activeUserId)||state.users[0];places=state.places;photos=state.photos||[];personal=state.personal;visits=state.visits;userRatings=state.userRatings||[];ratingSummaries={};preferences=normalizePreferences(state.preferences[currentUser.id]||{});filters=filtersFromPreferences(preferences);showApp();
 }
 function showApp(){
   if($('authScreen')?.open)$('authScreen').close();$('localStartScreen').classList.add('hidden');$('appScreen').classList.remove('hidden');
@@ -662,7 +956,7 @@ function placeMatchesFilter(p,key,value){
   switch(key){
     case'country':return geoSame(p.country,value);case'region':return geoSame(p.stateRegion,value);case'city':return geoSame(p.city,value);case'type':return p.placeType===value;case'cuisine':return p.cuisine===value;case'price':return p.price===value;
     case'meal':return (p.mealTypes||[]).includes(value);case'greatFor':return (p.greatFor||[]).includes(value);case'feature':return (p.features||[]).includes(value);case'dietary':return (p.dietary||[]).includes(value);case'tag':return (p.tags||[]).includes(value);
-    case'rating':return ratingFilterMatches(p,value);case'distance':{const d=distanceFor(p);return d!=null&&d<=+value;}case'openNow':return value!=='yes'||p.openNow===true;case'status':{const x=getPersonal(p.id);switch(value){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}}default:return true;
+    case'rating':return ratingFilterMatches(p,value);case'distance':{const d=distanceFor(p);return d!=null&&d<=+value;}case'openNow':return value!=='yes'||liveProviderView(p).openNow===true;case'status':{const x=getPersonal(p.id);switch(value){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}}default:return true;
   }
 }
 function rowsForFilterChoice(excludeKey=''){
@@ -763,7 +1057,7 @@ function applyFilters(){
   xs=xs.filter(catalogueSearchMatches);
   if(filters.country) xs=xs.filter(p=>geoSame(p.country,filters.country));if(filters.region) xs=xs.filter(p=>geoSame(p.stateRegion,filters.region));if(filters.city) xs=xs.filter(p=>geoSame(p.city,filters.city));if(filters.type) xs=xs.filter(p=>p.placeType===filters.type);if(filters.cuisine) xs=xs.filter(p=>p.cuisine===filters.cuisine);if(filters.price) xs=xs.filter(p=>p.price===filters.price);
   if(filters.meal) xs=xs.filter(p=>(p.mealTypes||[]).includes(filters.meal));if(filters.greatFor) xs=xs.filter(p=>(p.greatFor||[]).includes(filters.greatFor));if(filters.feature) xs=xs.filter(p=>(p.features||[]).includes(filters.feature));if(filters.dietary) xs=xs.filter(p=>(p.dietary||[]).includes(filters.dietary));if(filters.tag) xs=xs.filter(p=>(p.tags||[]).includes(filters.tag));
-  if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>p.openNow===true);
+  if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>liveProviderView(p).openNow===true);
   if(filters.status){xs=xs.filter(p=>{const x=getPersonal(p.id);switch(filters.status){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}});}
   if(mapBoundsFilter && map){xs=xs.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&mapBoundsFilter.contains([+p.lat,+p.lng]));}
   const sort=$('sortSelect').value;
@@ -813,9 +1107,9 @@ function renderChips(){
 function renderList(){
   const box=$('listPanel');if(!filteredPlaces.length){box.innerHTML=`<div class="empty">${esc(t('noMatch'))}</div>`;return;}
   box.innerHTML=filteredPlaces.map(p=>{
-    const x=getPersonal(p.id),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
+    const x=getPersonal(p.id),pv=liveProviderView(p),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
     const visual=banner.length?`<div class="place-card-banner banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="google-fallback-frame place-card-google" data-google-photo-place="${p.id}"><div class="place-card-placeholder">${initials}</div></div>`;
-    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${p.googleRating?`<span class="rating-pill">Google ★ ${esc((+p.googleRating).toFixed(1))}${p.googleRatingCount?` (${p.googleRatingCount})`:''}</span>`:''}${p.tripadvisorRating?`<span class="rating-pill">TripAdvisor ★ ${esc((+p.tripadvisorRating).toFixed(1))}${p.tripadvisorRatingCount?` (${p.tripadvisorRatingCount})`:''}</span>`:''}${p.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(p.googleMapsUrl)?`<a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(p.tripadvisorUrl)?`<a href="${esc(safeUrl(p.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
+    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${pv.googleRating?`<span class="rating-pill">${googleMapsAttributionHtml()} ★ ${esc((+pv.googleRating).toFixed(1))}${pv.googleRatingCount?` (${pv.googleRatingCount})`:''}</span>`:''}${pv.tripadvisorRating?`<span class="rating-pill">${safeUrl(pv.tripadvisorRatingIconUrl)?`<img class="tripadvisor-rating-icon" src="${esc(safeUrl(pv.tripadvisorRatingIconUrl))}" alt="TripAdvisor rating" /> `:''}TripAdvisor ${safeUrl(pv.tripadvisorRatingIconUrl)?'':'★ '}${esc((+pv.tripadvisorRating).toFixed(1))}${pv.tripadvisorRatingCount?` (${pv.tripadvisorRatingCount})`:''}</span>`:''}${pv.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
   }).join('');hydratePhotoImages(box);hydrateGoogleFallbacks(box);
 }
 function ensureMap(){
@@ -853,17 +1147,17 @@ function renderPhotoGallery(placeId){
   const contributionOpen=state?.settings?.allowUserPhotos!==false;const addButton=(canEdit()||contributionOpen)?`<button class="primary compact" data-add-photo="${placeId}">+ Add photos</button>`:'';const note=canEdit()?`Owner uploads appear immediately. User uploads require approval before other users see them.`:(contributionOpen?`You can contribute photos. If you are not signed in, the app will ask for your email only when you upload. The ${esc(ownerName)} collection Owner approves user photos before they appear to everyone.`:`User photo contributions are currently turned off by the Owner.`);return `<section class="photo-section"><div class="photo-section-head"><div><strong>Venue photos</strong><div class="muted small">${xs.length?`${xs.length} available to you`:'No photos yet'}</div></div>${addButton}</div><p class="photo-upload-note">${note}</p><div class="photo-strip">${tiles||'<div class="empty">No venue photos yet.</div>'}</div></section>`;
 }
 function openDetail(id){
-  const p=places.find(x=>x.id===id);if(!p)return;activeDetailPlaceId=id;const x=getPersonal(id);$('detailName').textContent=p.name;
+  const p=places.find(x=>x.id===id);if(!p)return;activeDetailPlaceId=id;const x=getPersonal(id),pv=liveProviderView(p);$('detailName').textContent=p.name;
   const d=distanceFor(p),banner=bannerPhotosForPlace(id),ownerName=state?.settings?.ownerDisplayName||CFG.ownerDisplayName||'Owner';const hero=banner.length?`<div class="detail-hero banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="detail-hero google-fallback-frame" data-google-photo-place="${p.id}"><div class="detail-hero-empty">${esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF')}</div></div>`;
   $('detailBody').innerHTML=`${hero}<div class="detail-grid"><div class="k">Type</div><div>${esc([p.placeType,p.cuisine].filter(Boolean).join(' · ')||'—')}</div><div class="k">Location</div><div>${esc([p.suburb,p.city,p.stateRegion,p.country].filter(Boolean).join(', ')||'—')}</div><div class="k">Distance</div><div>${d==null?'—':esc(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km')}</div><div class="k">Price</div><div>${esc(p.price||'—')}</div><div class="k">Must try</div><div>${esc(p.mustTry||'—')}</div><div class="k">${esc(ownerName)} says</div><div>${esc(p.notes||'—')}</div><div class="k">Tags</div><div>${esc((p.tags||[]).join(', ')||'—')}</div></div>
   ${renderPhotoGallery(id)}
   <div class="rating-panel"><strong>Ratings</strong>
     <div class="rating-row"><span>${esc(ownerName)}'s rating</span><div class="stars" data-pers-stars="${id}">${[1,2,3,4,5].map(n=>`<button data-pers-rate="${n}" class="${n<=+p.persRating?'on':''}" ${canEdit()?'':'disabled'} aria-label="${n} stars">★</button>`).join('')}</div><span>${p.persRating?`${(+p.persRating).toFixed(1)} / 5`:'Not rated'}</span></div>
-    <div class="rating-row"><span>User rating <span class="muted small">(excludes Owner/System Administrator)</span></span><div><strong>${(()=>{const r=userRatingSummary(id);return r.count?`${r.avg.toFixed(1)} / 5`:'No user ratings yet';})()}</strong> <span class="muted small">${(()=>{const r=userRatingSummary(id);return r.count?`(${r.count} rating${r.count===1?'':'s'})`:'';})()}</span></div></div>${p.googleRating?`<div class="rating-row"><span>Google Places</span><div><strong>${(+p.googleRating).toFixed(1)} / 5</strong>${p.googleRatingCount?` <span class="muted small">(${p.googleRatingCount})</span>`:''}</div></div>`:''}${p.tripadvisorRating?`<div class="rating-row"><span>TripAdvisor</span><div><strong>${(+p.tripadvisorRating).toFixed(1)} / 5</strong>${p.tripadvisorRatingCount?` <span class="muted small">(${p.tripadvisorRatingCount})</span>`:''}</div></div>`:''}
+    <div class="rating-row"><span>User rating <span class="muted small">(excludes Owner/System Administrator)</span></span><div><strong>${(()=>{const r=userRatingSummary(id);return r.count?`${r.avg.toFixed(1)} / 5`:'No user ratings yet';})()}</strong> <span class="muted small">${(()=>{const r=userRatingSummary(id);return r.count?`(${r.count} rating${r.count===1?'':'s'})`:'';})()}</span></div></div>${pv.googleRating?`<div class="rating-row"><span>${googleMapsAttributionHtml()}</span><div><strong>${(+pv.googleRating).toFixed(1)} / 5</strong>${pv.googleRatingCount?` <span class="muted small">(${pv.googleRatingCount})</span>`:''}</div></div>`:''}${pv.tripadvisorRating?`<div class="rating-row"><span>TripAdvisor</span><div><strong>${(+pv.tripadvisorRating).toFixed(1)} / 5</strong>${pv.tripadvisorRatingCount?` <span class="muted small">(${pv.tripadvisorRatingCount})</span>`:''}</div></div>`:''}
     ${!canEdit()?`<div class="rating-row"><span>Your rating</span><div class="stars" data-user-stars="${id}">${[1,2,3,4,5].map(n=>`<button data-user-rate="${n}" class="${n<=myUserRating(id)?'on':''}" aria-label="${n} stars">★</button>`).join('')}</div></div>`:''}
   </div>
   <div class="personal-panel"><strong>My view</strong><label class="check"><input type="checkbox" data-personal="favourite" ${x.favourite?'checked':''}> Favourite</label><label class="check"><input type="checkbox" data-personal="want" ${x.want?'checked':''}> Want to Visit</label><label class="check"><input type="checkbox" data-personal="visited" ${x.visited?'checked':''}> Visited</label><label>Private note<textarea id="detailPrivateNote" rows="2">${esc(x.privateNote||'')}</textarea></label><button class="secondary" data-save-personal="${id}">Save my details</button>${x.visited?` <button class="secondary" data-log-visit="${id}">Log visit</button>`:''}</div>
-  <div class="card-actions">${safeUrl(p.googleMapsUrl)?`<a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a><a href="${esc(safeUrl(p.googleMapsUrl))}" target="_blank" rel="noopener">Google reviews & photos</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(p.tripadvisorUrl)?`<a href="${esc(safeUrl(p.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}<button data-share="${p.id}">Share</button>${canEdit()?`<button data-edit="${p.id}">Edit venue</button>`:''}</div>`;
+  <div class="card-actions">${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a><a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Google reviews & photos</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}<button data-share="${p.id}">Share</button>${canEdit()?`<button data-edit="${p.id}">Edit venue</button>`:''}</div>`;
   if(!$('detailDialog').open)$('detailDialog').showModal();hydratePhotoImages($('detailBody'));hydrateGoogleFallbacks($('detailBody'));
 }
 
@@ -947,8 +1241,64 @@ async function openPlaceEditor(id=''){
   $('archivePlaceBtn').classList.toggle('hidden',!p||!!p.archivedAt);$('restorePlaceBtn').classList.toggle('hidden',!p||!p.archivedAt);$('deleteForeverBtn').classList.toggle('hidden',!p||!p.archivedAt||!hasOwnerAccess());$('savePlaceBtn').classList.toggle('hidden',!!p?.archivedAt);if(!$('placeDialog').open)$('placeDialog').showModal();
   await hydrateEditorGeography({country:p?.country||'',region:p?.stateRegion||'',city:p?.city||''});
 }
-function editorPlace(){let lat=$('placeLat').value?+$('placeLat').value:null,lng=$('placeLng').value?+$('placeLng').value:null;const googleMapsUrl=clean($('placeGoogleUrl').value);if((lat==null||lng==null)&&googleMapsUrl){const m=googleMapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);if(m){lat=+m[1];lng=+m[2];}}const existing=places.find(x=>x.id===$('placeId').value),googleMeta=existing||pendingOnlinePlaceMeta||{};return {id:$('placeId').value||uid(),persRating:+(existing?.persRating||0),name:clean($('placeName').value),placeType:clean($('placeType').value),cuisine:clean($('placeCuisine').value),country:clean($('placeCountry').value),stateRegion:clean($('placeRegion').value),city:clean($('placeCity').value),suburb:clean($('placeSuburb').value),address:clean($('placeAddress').value),lat,lng,price:$('placePrice').value,phone:clean($('placePhone').value),website:clean($('placeWebsite').value),googleMapsUrl,googlePlaceId:clean(googleMeta.googlePlaceId),googlePhotoRef:clean(googleMeta.googlePhotoRef),googlePhotoAttribution:Array.isArray(googleMeta.googlePhotoAttribution)?googleMeta.googlePhotoAttribution:[],googleRating:+googleMeta.googleRating||0,googleRatingCount:+googleMeta.googleRatingCount||0,openNow:googleMeta.openNow===true,openingHours:Array.isArray(googleMeta.openingHours)?googleMeta.openingHours:[],tripadvisorLocationId:clean($('placeTripadvisorId').value||googleMeta.tripadvisorLocationId),tripadvisorUrl:clean($('placeTripadvisorUrl').value||googleMeta.tripadvisorUrl),tripadvisorRating:+googleMeta.tripadvisorRating||0,tripadvisorRatingCount:+googleMeta.tripadvisorRatingCount||0,bookingUrl:clean($('placeBookingUrl').value),mealTypes:arr($('placeMeals').value),greatFor:arr($('placeGreatFor').value),features:arr($('placeFeatures').value),dietary:arr($('placeDietary').value),tags:arr($('placeTags').value),mustTry:clean($('placeMustTry').value),notes:clean($('placeNotes').value)};}
-async function savePlace(e){e.preventDefault();if(!canEdit())return;const p=editorPlace();if(!p.name)return;const old=places.find(x=>x.id===p.id);if(!old){const dup=duplicateOf(p);if(dup&&!confirm(`Possible duplicate: “${dup.name}”${dup.city?` in ${dup.city}`:''} already exists. Add this place anyway?`))return;}p.createdAt=old?.createdAt||nowISO();p.updatedAt=nowISO();p.archivedAt=old?.archivedAt||'';await makeCheckpoint(old?'Before edit':'Before add');if(CFG.mode==='local'){if(old)Object.assign(old,p);else places.unshift(p);state.places=places;saveLocalState();}else{if(old){await rest('places',{method:'PATCH',body:appPlaceToDb(p),filters:`?id=eq.${encodeURIComponent(p.id)}`});Object.assign(old,p);}else{const rows=await rest('places',{method:'POST',body:appPlaceToDb(p)});if(rows?.[0])p.id=rows[0].id;places.unshift(p);}}closePlaceEditor();populateFilterOptions();render();toast(old?'Place updated':'Place added');}
+function editorPlace(){let lat=$('placeLat').value?+$('placeLat').value:null,lng=$('placeLng').value?+$('placeLng').value:null;const googleMapsUrl=clean($('placeGoogleUrl').value);if((lat==null||lng==null)&&googleMapsUrl){const m=googleMapsUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);if(m){lat=+m[1];lng=+m[2];}}const existing=places.find(x=>x.id===$('placeId').value),googleMeta={...(existing||{}),...(pendingOnlinePlaceMeta||{})};const p={id:$('placeId').value||uid(),persRating:+(existing?.persRating||0),name:clean($('placeName').value),placeType:clean($('placeType').value),cuisine:clean($('placeCuisine').value),country:clean($('placeCountry').value),stateRegion:clean($('placeRegion').value),city:clean($('placeCity').value),suburb:clean($('placeSuburb').value),address:clean($('placeAddress').value),lat,lng,price:$('placePrice').value,phone:clean($('placePhone').value),website:clean($('placeWebsite').value),googleMapsUrl,googlePlaceId:clean(googleMeta.googlePlaceId),googlePhotoRef:'',googlePhotoAttribution:[],googleRating:0,googleRatingCount:0,openNow:false,openingHours:[],tripadvisorLocationId:clean($('placeTripadvisorId').value||googleMeta.tripadvisorLocationId),tripadvisorUrl:clean($('placeTripadvisorUrl').value||googleMeta.tripadvisorUrl),tripadvisorRating:0,tripadvisorRatingCount:0,bookingUrl:clean($('placeBookingUrl').value),mealTypes:arr($('placeMeals').value),greatFor:arr($('placeGreatFor').value),features:arr($('placeFeatures').value),dietary:arr($('placeDietary').value),tags:arr($('placeTags').value),mustTry:clean($('placeMustTry').value),notes:clean($('placeNotes').value)};return applyGooglePersistenceGuard(p,pendingOnlinePlaceMeta);}
+async function savePlace(e){
+  e.preventDefault();if(!canEdit())return;
+  const transientMeta=pendingOnlinePlaceMeta?structuredClone(pendingOnlinePlaceMeta):null;
+  const p=editorPlace();if(!p.name)return;
+  const old=places.find(x=>x.id===p.id);
+  if(!old){
+    const dup=duplicateOf(p);
+    if(dup&&!confirm(`Possible duplicate: “${dup.name}”${dup.city?` in ${dup.city}`:''} already exists. Add this place anyway?`))return;
+  }
+  p.createdAt=old?.createdAt||nowISO();p.updatedAt=nowISO();p.archivedAt=old?.archivedAt||'';
+  await makeCheckpoint(old?'Before edit':'Before add');
+  if(CFG.mode==='local'){
+    if(old)Object.assign(old,p);else places.unshift(p);
+    state.places=places;saveLocalState();
+  }else{
+    if(old){await rest('places',{method:'PATCH',body:appPlaceToDb(p),filters:`?id=eq.${encodeURIComponent(p.id)}`});Object.assign(old,p);}
+    else{const rows=await rest('places',{method:'POST',body:appPlaceToDb(p)});if(rows?.[0])p.id=rows[0].id;places.unshift(p);}
+  }
+
+  // Provider ratings/opening status are live session data only; never copy them into the saved Pers record.
+  if(transientMeta){
+    const live={...(liveExternalByPlace.get(p.id)||{})};
+    if(+transientMeta.googleRating||+transientMeta.googleRatingCount||transientMeta.googlePlaceId){
+      live.googleRating=+transientMeta.googleRating||0;live.googleRatingCount=+transientMeta.googleRatingCount||0;
+      if(transientMeta.openNow===true||transientMeta.openNow===false)live.googleOpenNow=transientMeta.openNow;
+      if(transientMeta.googlePlaceId)live.googlePlaceId=clean(transientMeta.googlePlaceId);
+      if(p.googleMapsUrl)live.googleMapsUrl=clean(p.googleMapsUrl);
+    }
+    if(+transientMeta.tripadvisorRating||+transientMeta.tripadvisorRatingCount||transientMeta.tripadvisorLocationId){
+      live.tripadvisorRating=+transientMeta.tripadvisorRating||0;live.tripadvisorRatingCount=+transientMeta.tripadvisorRatingCount||0;
+      if(transientMeta.tripadvisorLocationId)live.tripadvisorLocationId=clean(transientMeta.tripadvisorLocationId);
+      if(transientMeta.tripadvisorUrl)live.tripadvisorUrl=clean(transientMeta.tripadvisorUrl);
+    }
+    liveExternalByPlace.set(p.id,live);
+  }
+
+  let immediateGooglePhoto=null;
+  if(!approvedPhotosForPlace(p.id).length&&transientMeta?.googlePhotoRef){
+    try{
+      const uri=await requestGooglePhotoUri(transientMeta.googlePhotoRef);
+      if(uri)immediateGooglePhoto=googlePhotoValueFromMeta({
+        photoAttribution:transientMeta.googlePhotoAttribution,
+        photoGoogleMapsUri:transientMeta.googlePhotoGoogleMapsUri,
+        photoFlagContentUri:transientMeta.googlePhotoFlagContentUri
+      },uri);
+    }catch{}
+  }
+
+  googleNoPhotoCache.delete(p.id);tripadvisorPhotoCache.delete(p.id);
+  pendingOnlinePlaceMeta=null;
+  closePlaceEditor();populateFilterOptions();render();
+
+  const frames=[...document.querySelectorAll('[data-google-photo-place]')].filter(x=>x.dataset.googlePhotoPlace===p.id);
+  if(immediateGooglePhoto)frames.forEach(frame=>renderGooglePhotoFrame(frame,p,immediateGooglePhoto));
+  else setTimeout(()=>frames.forEach(frame=>loadGoogleFallback(frame)),60);
+  toast(old?'Place updated':'Place added');
+}
 async function archivePlace(id){if(!canEdit())return;const p=places.find(x=>x.id===id);if(!p)return;if(!confirm(`Move “${p.name}” to Archive? It can be restored later.`))return;await makeCheckpoint('Before archive');if(CFG.mode==='local'){p.archivedAt=nowISO();saveLocalState();}else{await rest('places',{method:'PATCH',body:{archived_at:nowISO()},filters:`?id=eq.${encodeURIComponent(id)}`});p.archivedAt=nowISO();}closePlaceEditor();populateFilterOptions();render();toast('Moved to Archive');}
 async function restorePlace(id){if(!canEdit())return;const p=places.find(x=>x.id===id);if(!p)return;await makeCheckpoint('Before restore');if(CFG.mode==='local'){p.archivedAt='';saveLocalState();}else{await rest('places',{method:'PATCH',body:{archived_at:null},filters:`?id=eq.${encodeURIComponent(id)}`});p.archivedAt='';}closePlaceEditor();populateFilterOptions();render();toast('Restored');}
 async function deleteForever(id){if(!hasOwnerAccess())return toast('Owner access is required to permanently delete a venue.');const p=places.find(x=>x.id===id);if(!p?.archivedAt)return;if(!confirm(`Permanently delete “${p.name}” and its venue photos? This is Owner-only and cannot be undone except from a prior backup.`))return;await makeCheckpoint('Before permanent delete');const venuePhotos=photos.filter(x=>x.placeId===id);try{if(CFG.mode==='local'){for(const ph of venuePhotos){try{await localPhotoDelete(ph.id);}catch{}clearPhotoUrl(ph.id);}}else{const paths=venuePhotos.map(x=>x.storagePath).filter(Boolean);if(paths.length)await storageDelete(paths);}}catch(e){return toast(`Venue not deleted because photo cleanup failed: ${e.message}`);}if(CFG.mode==='local'){places=places.filter(x=>x.id!==id);photos=photos.filter(x=>x.placeId!==id);state.places=places;state.photos=photos;saveLocalState();}else{await rest('places',{method:'DELETE',filters:`?id=eq.${encodeURIComponent(id)}`,prefer:'return=minimal'});places=places.filter(x=>x.id!==id);photos=photos.filter(x=>x.placeId!==id);}closePlaceEditor();populateFilterOptions();render();toast('Permanently deleted');}
@@ -1040,6 +1390,7 @@ function setAccountPane(name='user',fromClick=false){
     if(pane)pane.classList.toggle('hidden',n!==name);if(tab)tab.classList.toggle('active',n===name);
   }
   if(name==='sysadmin')refreshGoogleConnectionStatus();
+  if(name==='owner'||name==='sysadmin')refreshServiceCosts();
   return true;
 }
 
@@ -1051,7 +1402,7 @@ function openAccount(){
   $('contributorSigninBtn').classList.toggle('hidden',CFG.mode==='local'||!!session);
   $('ownerTabLock').classList.toggle('hidden',canOpenOwnerPane());$('sysadminTabLock').classList.toggle('hidden',canOpenSysadminPane());
   $('localRoleSettings').classList.toggle('hidden',CFG.mode!=='local');if(CFG.mode==='local')$('localRoleSelect').value=currentUser.role;
-  $('settingAppName').value=state.settings.appName||'';$('settingOwnerName').value=state.settings.ownerDisplayName||'';$('settingHomeRegion').value=state.settings.homeRegion||'';$('settingAllowUserPhotos').checked=state.settings.allowUserPhotos!==false;$('settingAskPersEnabled').checked=!!state.settings.askPersEnabled;$('sysadminAskPersEndpoint').value=state.settings.askPersEndpoint||'';$('settingPlacesSearchEndpoint').value=state.settings.placesSearchEndpoint||CFG.placesSearchEndpoint||'';$('settingTripadvisorEndpoint').value=state.settings.tripadvisorEndpoint||'';$('tripadvisorEndpointStatus').textContent=state.settings.tripadvisorEndpoint?'Configured':'Not configured';$('rememberFilters').checked=!!preferences.rememberFilters;$('prefDistance').value=preferences.preferredDistance||'1';$('languageSelect').value=preferences.language||'en';if($('settingDefaultNearMe'))$('settingDefaultNearMe').value=state.settings.defaultNearMe||'1';updatePendingPhotoBadge();$('signOutBtn').classList.toggle('hidden',CFG.mode!=='local'&&!session);setAccountPane('user');$('accountDialog').showModal();
+  $('settingAppName').value=state.settings.appName||'';$('settingOwnerName').value=state.settings.ownerDisplayName||'';$('settingHomeRegion').value=state.settings.homeRegion||'';$('settingAllowUserPhotos').checked=state.settings.allowUserPhotos!==false;$('settingAskPersEnabled').checked=!!state.settings.askPersEnabled;$('sysadminAskPersEndpoint').value=state.settings.askPersEndpoint||'';$('settingPlacesSearchEndpoint').value=state.settings.placesSearchEndpoint||CFG.placesSearchEndpoint||'';$('settingTripadvisorEndpoint').value=state.settings.tripadvisorEndpoint||'';$('tripadvisorEndpointStatus').textContent=state.settings.tripadvisorEndpoint?'Configured':'Not configured';$('rememberFilters').checked=!!preferences.rememberFilters;$('prefDistance').value=preferences.preferredDistance||'1';$('languageSelect').value=preferences.language||'en';if($('settingDefaultNearMe'))$('settingDefaultNearMe').value=state.settings.defaultNearMe||'1';updatePendingPhotoBadge();if($('ownerTripadvisorPaidApproval'))$('ownerTripadvisorPaidApproval').checked=!!state.settings.tripadvisorPaidUsageAuthorized;if($('ownerGoogleSpendCap'))$('ownerGoogleSpendCap').value=state.settings.googleSpendCap||'';if($('ownerTripadvisorSpendCap'))$('ownerTripadvisorSpendCap').value=state.settings.tripadvisorSpendCap||'';if($('ownerCloudflareSpendCap'))$('ownerCloudflareSpendCap').value=state.settings.cloudflareSpendCap||'';if($('ownerOpenAiSpendCap'))$('ownerOpenAiSpendCap').value=state.settings.openaiSpendCap||'';if($('ownerAskPersState'))$('ownerAskPersState').textContent=state.settings.askPersEnabled?'Enabled':'Disabled';$('signOutBtn').classList.toggle('hidden',CFG.mode!=='local'&&!session);setAccountPane('user');$('accountDialog').showModal();
 }
 async function saveAskPersEndpoint(){
   if(!canManageSystem())return toast('System Administrator access is required.');
@@ -1104,7 +1455,7 @@ function bindEvents(){
   $('importBtn').onclick=openImportDialog;$('importClose').onclick=()=>$('importDialog').close();$('singleImportBtn').onclick=prepareSingleImport;const handleImportFiles=async files=>{importCandidates=await parseImportFiles([...files]);const dup=importCandidates.filter(duplicateOf).length;$('importPreview').innerHTML=`<p><strong>${importCandidates.length}</strong> usable place records found; <strong>${dup}</strong> appear to be duplicates.</p>`+importCandidates.slice(0,50).map(p=>`<div class="import-row">${esc(p.name)}${p.city?' · '+esc(p.city):''}</div>`).join('');$('runImportBtn').disabled=!importCandidates.length;};$('importFiles').onchange=()=>handleImportFiles($('importFiles').files);$('importDropZone').ondragover=e=>{e.preventDefault();$('importDropZone').classList.add('dragover');};$('importDropZone').ondragleave=()=>$('importDropZone').classList.remove('dragover');$('importDropZone').ondrop=e=>{e.preventDefault();$('importDropZone').classList.remove('dragover');handleImportFiles(e.dataTransfer.files);};$('runImportBtn').onclick=runImport;
   $('askPersBtn').onclick=openAskPers;$('askPersClose').onclick=()=>{if(askPersRecognition){try{askPersRecognition.stop();}catch{}}$('askPersDialog').close();};$('askPersMicBtn').onclick=toggleAskPersVoiceInput;$('runAskPersBtn').onclick=runAskPers;$('askPersQuery').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runAskPers();}};$('findPlaceOnlineBtn').onclick=()=>{$('findPlaceQuery').value=clean($('placeName').value);$('findPlaceStatus').textContent=findPlaceProviderNote();$('findPlaceResults').innerHTML='';updateGoogleMapsDirectLink($('findPlaceQuery').value,storedLocationContext());$('findPlaceDialog').showModal();};$('findPlaceClose').onclick=()=>$('findPlaceDialog').close();$('runFindPlaceBtn').onclick=()=>runFindPlaceOnline(false);$('searchWiderBtn').onclick=()=>runFindPlaceOnline(true);$('findPlaceQuery').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runFindPlaceOnline(false);}};$('findPlaceResults').onclick=e=>{const b=e.target.closest('[data-use-online]');if(b)useOnlinePlace(b.dataset.useOnline);};$('accountBtn').onclick=openAccount;$('accountClose').onclick=()=>$('accountDialog').close();$('accountTabUser').onclick=()=>setAccountPane('user',true);$('accountTabOwner').onclick=()=>setAccountPane('owner',true);$('accountTabSysadmin').onclick=()=>setAccountPane('sysadmin',true);$('checkUpdateBtn').onclick=()=>checkForAppUpdate(false);$('installUpdateBtn').onclick=installAppUpdate;$('ownerSigninBtn').onclick=()=>{$('accountDialog').close();openAuth('owner');};$('contributorSigninBtn').onclick=()=>{$('accountDialog').close();openAuth('contributor');};$('saveSettingsBtn').onclick=saveCollectionSettings;$('saveAskPersEndpointBtn').onclick=saveAskPersEndpoint;$('saveGoogleEndpointBtn').onclick=saveGoogleEndpoint;$('testPlacesEndpointBtn').onclick=testPlacesEndpoint;$('replaceGoogleKeyBtn').onclick=beginGoogleKeyReplace;$('saveGoogleKeyBtn').onclick=saveGoogleKey;$('cancelGoogleKeyBtn').onclick=cancelGoogleKeyReplace;$('removeGoogleKeyBtn').onclick=removeGoogleKey;$('managePhotosBtn').onclick=()=>{$('accountDialog').close();openPhotoModeration();};$('showArchiveBtn').onclick=showArchive;$('exportBackupBtn').onclick=exportBackup;$('sysadminExportBackupBtn').onclick=exportBackup;$('sysadminImportBtn').onclick=openImportDialog;$('restoreBackupBtn').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=()=>restoreBackup($('restoreFile').files[0]);$('exportHistoryBtn').onclick=exportHistory;$('signOutBtn').onclick=signOut;
   $('photoInput').onchange=async()=>{const fs=[...$('photoInput').files];$('photoInput').value='';if(activeDetailPlaceId)await addPhotos(activeDetailPlaceId,fs);};$('photoViewerClose').onclick=()=>$('photoViewerDialog').close();$('photoModerationClose').onclick=()=>$('photoModerationDialog').close();$('photoModerationFilter').onchange=renderPhotoModeration;$('photoModerationList').onclick=e=>{const po=e.target.closest('[data-photo-open]'),pa=e.target.closest('[data-photo-approve]'),ph=e.target.closest('[data-photo-hide]'),pc=e.target.closest('[data-photo-cover]'),pca=e.target.closest('[data-photo-caption]'),pe=e.target.closest('[data-photo-earlier]'),pl=e.target.closest('[data-photo-later]'),pd=e.target.closest('[data-photo-delete]');if(po)openPhotoViewer(po.dataset.photoOpen);if(pa)setPhotoState(pa.dataset.photoApprove,'approved');if(ph)setPhotoState(ph.dataset.photoHide,'hidden');if(pc)setCoverPhoto(pc.dataset.photoCover);if(pca)editPhotoCaption(pca.dataset.photoCaption);if(pe)movePhoto(pe.dataset.photoEarlier,-1);if(pl)movePhoto(pl.dataset.photoLater,1);if(pd)deletePhoto(pd.dataset.photoDelete);};
-  $('prefDistance').onchange=()=>{preferences.preferredDistance=$('prefDistance').value;persistPreferences();};$('rememberFilters').onchange=()=>{preferences.rememberFilters=$('rememberFilters').checked;persistPreferences();};$('languageSelect').onchange=()=>{preferences.language=$('languageSelect').value;applyLanguage();persistPreferences();render();};$('sourceGoogle').onchange=()=>{preferences.externalSources.google=$('sourceGoogle').checked;persistPreferences();};$('sourceTripadvisor').onchange=()=>{preferences.externalSources.tripadvisor=$('sourceTripadvisor').checked;persistPreferences();};$('searchExternalBtn').onclick=searchExternalSources;$('manageListsBtn').onclick=()=>{$('accountDialog').close();openMasterLists();};$('sysadminManageListsBtn').onclick=()=>{$('accountDialog').close();openMasterLists();};$('masterListsClose').onclick=()=>$('masterListsDialog').close();$('masterListCategory').onchange=renderMasterListManager;$('masterListAddBtn').onclick=async()=>{const key=$('masterListCategory').value,v=clean($('masterListNewValue').value);if(!v)return;const m=ensureMasterLists()[key];if(!m.active.some(x=>foldText(x)===foldText(v)))m.active.push(v);m.archived=m.archived.filter(x=>foldText(x)!==foldText(v));$('masterListNewValue').value='';await persistMasterLists();renderMasterListManager();};$('masterListItems').onclick=async e=>{const key=$('masterListCategory').value,m=ensureMasterLists()[key];let b;if(b=e.target.closest('[data-ml-up]')){const i=+b.dataset.mlUp;if(i>0)[m.active[i-1],m.active[i]]=[m.active[i],m.active[i-1]];}else if(b=e.target.closest('[data-ml-down]')){const i=+b.dataset.mlDown;if(i<m.active.length-1)[m.active[i+1],m.active[i]]=[m.active[i],m.active[i+1]];}else if(b=e.target.closest('[data-ml-rename]')){const i=+b.dataset.mlRename,old=m.active[i],n=clean(prompt('Rename list item',old));if(n&&foldText(n)!==foldText(old)){m.active[i]=n;await renameMasterValueInPlaces(key,old,n);}}else if(b=e.target.closest('[data-ml-archive]')){const i=+b.dataset.mlArchive;m.archived.push(m.active[i]);m.active.splice(i,1);}else if(b=e.target.closest('[data-ml-restore]')){const i=+b.dataset.mlRestore;m.active.push(m.archived[i]);m.archived.splice(i,1);}else return;await persistMasterLists();renderMasterListManager();};$('saveTripadvisorEndpointBtn').onclick=()=>saveTripadvisorEndpoint().catch(e=>toast(clean(e.message)||'TripAdvisor endpoint could not be saved.'));$('localRoleSelect').onchange=async()=>{const role=$('localRoleSelect').value;const u=state.users.find(x=>x.role===role);if(u){const outgoingUserId=currentUser?.id;await persistPreferences(outgoingUserId);state.activeUserId=u.id;saveLocalState();$('accountDialog').close();await enterLocal();toast(`Local test role: ${role}`);}};
+  $('prefDistance').onchange=()=>{preferences.preferredDistance=$('prefDistance').value;persistPreferences();};$('rememberFilters').onchange=()=>{preferences.rememberFilters=$('rememberFilters').checked;persistPreferences();};$('languageSelect').onchange=()=>{preferences.language=$('languageSelect').value;applyLanguage();persistPreferences();render();};$('sourceGoogle').onchange=()=>{preferences.externalSources.google=$('sourceGoogle').checked;persistPreferences();};$('sourceTripadvisor').onchange=()=>{preferences.externalSources.tripadvisor=$('sourceTripadvisor').checked;persistPreferences();};$('searchExternalBtn').onclick=searchExternalSources;$('manageListsBtn').onclick=()=>{$('accountDialog').close();openMasterLists();};$('sysadminManageListsBtn').onclick=()=>{$('accountDialog').close();openMasterLists();};$('masterListsClose').onclick=()=>$('masterListsDialog').close();$('masterListCategory').onchange=renderMasterListManager;$('masterListAddBtn').onclick=async()=>{const key=$('masterListCategory').value,v=clean($('masterListNewValue').value);if(!v)return;const m=ensureMasterLists()[key];if(!m.active.some(x=>foldText(x)===foldText(v)))m.active.push(v);m.archived=m.archived.filter(x=>foldText(x)!==foldText(v));$('masterListNewValue').value='';await persistMasterLists();renderMasterListManager();};$('masterListItems').onclick=async e=>{const key=$('masterListCategory').value,m=ensureMasterLists()[key];let b;if(b=e.target.closest('[data-ml-up]')){const i=+b.dataset.mlUp;if(i>0)[m.active[i-1],m.active[i]]=[m.active[i],m.active[i-1]];}else if(b=e.target.closest('[data-ml-down]')){const i=+b.dataset.mlDown;if(i<m.active.length-1)[m.active[i+1],m.active[i]]=[m.active[i],m.active[i+1]];}else if(b=e.target.closest('[data-ml-rename]')){const i=+b.dataset.mlRename,old=m.active[i],n=clean(prompt('Rename list item',old));if(n&&foldText(n)!==foldText(old)){m.active[i]=n;await renameMasterValueInPlaces(key,old,n);}}else if(b=e.target.closest('[data-ml-archive]')){const i=+b.dataset.mlArchive;m.archived.push(m.active[i]);m.active.splice(i,1);}else if(b=e.target.closest('[data-ml-restore]')){const i=+b.dataset.mlRestore;m.active.push(m.archived[i]);m.archived.splice(i,1);}else return;await persistMasterLists();renderMasterListManager();};$('saveTripadvisorEndpointBtn').onclick=()=>saveTripadvisorEndpoint().catch(e=>toast(clean(e.message)||'TripAdvisor endpoint could not be saved.'));if($('testTripadvisorEndpointBtn'))$('testTripadvisorEndpointBtn').onclick=()=>testTripadvisorEndpoint();if($('saveCostControlsBtn'))$('saveCostControlsBtn').onclick=saveOwnerCostControls;if($('refreshCostStatusBtn'))$('refreshCostStatusBtn').onclick=()=>refreshServiceCosts();$('localRoleSelect').onchange=async()=>{const role=$('localRoleSelect').value;const u=state.users.find(x=>x.role===role);if(u){const outgoingUserId=currentUser?.id;await persistPreferences(outgoingUserId);state.activeUserId=u.id;saveLocalState();$('accountDialog').close();await enterLocal();toast(`Local test role: ${role}`);}};
 }
 
 window.PERS_TEST={

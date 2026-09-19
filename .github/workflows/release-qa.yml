@@ -1,0 +1,68 @@
+name: Pers Favourites Release QA
+
+on:
+  push:
+    branches:
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v4
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check app.js
+          cp cloudflare/places-search-worker.js /tmp/places-search-worker.mjs
+          node --check /tmp/places-search-worker.mjs
+
+      - name: Release regression checks
+        run: node qa/release-check.mjs
+
+      - name: Cloudflare worker unit tests
+        run: node qa/worker-unit.mjs
+
+      - name: Build code package
+        run: |
+          mkdir -p release-package
+          rsync -a ./ release-package/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'release-package/' \
+            --exclude 'qa-report.json' \
+            --exclude 'worker-unit-report.json' \
+            --exclude 'package-contents.txt'
+          cd release-package
+          zip -qr "../Pers_Favourites_v0.27.23_Code.zip" .
+          cd ..
+          unzip -l Pers_Favourites_v0.27.23_Code.zip | tee package-contents.txt
+          test -f Pers_Favourites_v0.27.23_Code.zip
+          test -s Pers_Favourites_v0.27.23_Code.zip
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'index.html'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/USER_GUIDE.md'
+          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'qa-report.json'
+          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'worker-unit-report.json'
+
+      - name: Upload QA evidence and code ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pers_Favourites_v0.27.23_QA
+          path: |
+            Pers_Favourites_v0.27.23_Code.zip
+            qa-report.json
+            worker-unit-report.json
+            package-contents.txt
+          if-no-files-found: error
+          retention-days: 30
