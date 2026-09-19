@@ -1,5 +1,5 @@
 {
-  "version": "0.27.21",
+  "version": "0.27.22",
   "published": "2026-09-19",
-  "notes": "Adds per-user language selection; fixes Filter list controls so they share Owner/System Administrator-managed master lists with Add/Edit; adds Open Now; adds compliant TripAdvisor link/rating integration hooks; and adds optional merged Pers + Google Places + TripAdvisor discovery with Pers results first, de-duplication, source-specific ratings and common sorting/filtering."
+  "notes": "Removes the unused legacy backend entirely. Pers data remains local in this release, with Cloudflare retained as the sole backend/service direction for Google Places and future shared services."
 }

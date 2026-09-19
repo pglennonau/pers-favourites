@@ -1,7 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.21',mode:'local',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,supabasePublishableKey:'',supabaseAnonKey:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
-const SUPABASE_PUBLIC_KEY = CFG.supabasePublishableKey || CFG.supabaseAnonKey || ''; // legacy anon key remains accepted for older rollouts
+const CFG = Object.assign({version:'0.27.22',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -294,7 +293,7 @@ function googleAdminEndpoint(){const endpoint=placesEndpoint();if(!endpoint)retu
 async function googleAdminRequest(action,payload={}){if(CFG.mode==='local')throw new Error('Deploy the Cloudflare Worker before managing a live Google key.');if(!session?.access_token||!canManageSystem())throw new Error('System Administrator sign-in is required.');const endpoint=googleAdminEndpoint();if(!endpoint)throw new Error('Enter and save the Google Places Worker endpoint first.');const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({action,...payload})});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`Google connection request failed (${r.status}).`);return j;}
 function setGoogleConnectionUi(data={}){const connected=!!data.connected;$('googleConnectionState').textContent=connected?'Connected':'Not connected';$('googleConnectionMode').textContent=connected?(clean(data.mode)||'Not set').replace(/^./,c=>c.toUpperCase()):'Not set';$('googleKeyHint').textContent=connected?(clean(data.keyHint)||'Configured'):'Not configured';if(clean(data.mode))$('googleModeSelect').value=clean(data.mode).toLowerCase()==='production'?'production':'demo';}
 async function refreshGoogleConnectionStatus(){if(!canManageSystem())return;const out=$('placesEndpointStatus');if(!placesEndpoint()){setGoogleConnectionUi({connected:false});out.textContent='Enter the Cloudflare Worker endpoint, then save it.';return;}if(CFG.mode==='local'){setGoogleConnectionUi({connected:false});out.textContent='Checking the configured Google Places service…';try{const rows=await googlePlacesSearch('Brutus',null,{city:'Palma',region:'Balearic Islands',country:'Spain',label:'Palma, Balearic Islands, Spain'},false);setGoogleConnectionUi({connected:true,mode:'demo',keyHint:'Configured securely'});out.textContent=`Connected. Secure Google Places service verified${rows?.length?' with a live result':''}.`;}catch(e){setGoogleConnectionUi({connected:false});out.textContent=`Connection check failed: ${e.message||e}`;}return;}try{out.textContent='Checking Google connection…';const j=await googleAdminRequest('status');setGoogleConnectionUi(j);out.textContent=j.connected?'Secure Google key is configured in Cloudflare.':'Worker is reachable, but no Google key is configured.';}catch(e){setGoogleConnectionUi({connected:false});out.textContent=`Could not read secure connection status: ${e.message||e}`;}}
-async function saveGoogleEndpoint(){if(!canManageSystem())return toast('System Administrator access is required.');const endpoint=clean($('settingPlacesSearchEndpoint').value);if(endpoint){try{new URL(endpoint);}catch{return toast('Enter a valid HTTPS Worker URL.');}}try{if(CFG.mode==='local'){state.settings.placesSearchEndpoint=endpoint;saveLocalState();}else{const base=CFG.supabaseUrl?.replace(/\/$/,'');const r=await fetch(`${base}/rest/v1/rpc/set_places_search_endpoint`,{method:'POST',headers:{'apikey':SUPABASE_PUBLIC_KEY,'Authorization':`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({p_endpoint:endpoint||null})});const text=await r.text();if(!r.ok){let j={};try{j=JSON.parse(text)}catch{}throw new Error(j?.message||`Endpoint save failed (${r.status}).`);}state.settings.placesSearchEndpoint=endpoint;}toast('Google Places endpoint saved.');await refreshGoogleConnectionStatus();}catch(e){$('placesEndpointStatus').textContent=e.message||'Endpoint could not be saved.';}}
+async function saveGoogleEndpoint(){if(!canManageSystem())return toast('System Administrator access is required.');const endpoint=clean($('settingPlacesSearchEndpoint').value);if(endpoint){try{const u=new URL(endpoint);if(u.protocol!=='https:')throw new Error();}catch{return toast('Enter a valid HTTPS Cloudflare Worker URL.');}}state.settings.placesSearchEndpoint=endpoint;saveLocalState();toast('Google Places Cloudflare endpoint saved.');await refreshGoogleConnectionStatus();}
 function beginGoogleKeyReplace(){if(!canManageSystem())return;$('googleKeyEntryWrap').classList.remove('hidden');$('saveGoogleKeyBtn').classList.remove('hidden');$('cancelGoogleKeyBtn').classList.remove('hidden');$('replaceGoogleKeyBtn').classList.add('hidden');$('googleApiKeyInput').value='';$('googleApiKeyInput').focus();}
 function cancelGoogleKeyReplace(){$('googleKeyEntryWrap').classList.add('hidden');$('saveGoogleKeyBtn').classList.add('hidden');$('cancelGoogleKeyBtn').classList.add('hidden');$('replaceGoogleKeyBtn').classList.remove('hidden');$('googleApiKeyInput').value='';}
 async function saveGoogleKey(){if(!canManageSystem())return toast('System Administrator access is required.');const key=clean($('googleApiKeyInput').value);if(!key)return toast('Paste the Google API key first.');const mode=$('googleModeSelect').value==='production'?'production':'demo';try{$('placesEndpointStatus').textContent='Saving encrypted key in Cloudflare…';const j=await googleAdminRequest('replace',{key,mode});$('googleApiKeyInput').value='';cancelGoogleKeyReplace();setGoogleConnectionUi(j);$('placesEndpointStatus').textContent='Google key replaced. Tap Test connection to verify the new key.';}catch(e){$('placesEndpointStatus').textContent=`Key was not changed: ${e.message||e}`;}}
@@ -491,16 +490,13 @@ async function renameMasterValueInPlaces(key,from,to){
   const dbField={type:'place_type',cuisine:'cuisine',meal:'meal_types',greatFor:'great_for',feature:'features',dietary:'dietary',tag:'tags'}[key];
   for(const p of changed)await rest('places',{method:'PATCH',body:{[dbField]:p[prop]},filters:`?id=eq.${encodeURIComponent(p.id)}`,prefer:'return=minimal'});
 }
-async function persistMasterLists(){
-  state.settings.masterLists=normalizeMasterLists(state.settings.masterLists);if(CFG.mode==='local'){saveLocalState();}else{const base=CFG.supabaseUrl?.replace(/\/$/,'');const r=await fetch(`${base}/rest/v1/rpc/set_master_lists`,{method:'POST',headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({p_master_lists:state.settings.masterLists})});if(!r.ok)throw new Error('Master list save failed.');}
-  populateFilterOptions();refreshEditorTaxonomy();refreshAllMultiEditors();
-}
+async function persistMasterLists(){state.settings.masterLists=normalizeMasterLists(state.settings.masterLists);saveLocalState();populateFilterOptions();refreshEditorTaxonomy();refreshAllMultiEditors();}
 function openMasterLists(){
   if(!(hasOwnerAccess()||canManageSystem()))return toast('Owner or System Administrator access is required.');ensureMasterLists();$('masterListCategory').innerHTML=Object.entries(MASTER_LIST_META).map(([k,x])=>`<option value="${k}">${esc(x.label)}</option>`).join('');$('masterListNewValue').value='';renderMasterListManager();$('masterListsDialog').showModal();
 }
 async function saveTripadvisorEndpoint(){
   if(!canManageSystem())return toast('System Administrator access is required.');const endpoint=clean($('settingTripadvisorEndpoint').value);if(endpoint){try{new URL(endpoint);}catch{return toast('Enter a valid TripAdvisor service endpoint.');}}
-  if(CFG.mode==='local'){state.settings.tripadvisorEndpoint=endpoint;saveLocalState();}else{const base=CFG.supabaseUrl?.replace(/\/$/,'');const r=await fetch(`${base}/rest/v1/rpc/set_tripadvisor_endpoint`,{method:'POST',headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({p_endpoint:endpoint||null})});if(!r.ok)throw new Error('TripAdvisor endpoint save failed.');state.settings.tripadvisorEndpoint=endpoint;}
+  state.settings.tripadvisorEndpoint=endpoint;saveLocalState();
   $('tripadvisorEndpointStatus').textContent=endpoint?'Endpoint saved. Use only an authorised, compliant integration.':'Not configured.';toast('TripAdvisor endpoint saved.');
 }
 function splitCsvLine(line){
@@ -524,19 +520,9 @@ async function localPhotoPut(id,blob){const db=await photoDb();return new Promis
 async function localPhotoGet(id){const db=await photoDb();return new Promise((resolve,reject)=>{const r=db.transaction('blobs','readonly').objectStore('blobs').get(id);r.onsuccess=()=>resolve(r.result?.blob||null);r.onerror=()=>reject(r.error);});}
 async function localPhotoDelete(id){const db=await photoDb();return new Promise((resolve,reject)=>{const tx=db.transaction('blobs','readwrite');tx.objectStore('blobs').delete(id);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 function encodeStoragePath(path){return clean(path).split('/').map(encodeURIComponent).join('/');}
-async function storageUpload(path,blob){
-  const base=CFG.supabaseUrl?.replace(/\/$/,'');if(!base||!SUPABASE_PUBLIC_KEY||!session?.access_token)throw new Error('Production photo storage is not configured.');
-  const res=await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${encodeStoragePath(path)}`,{method:'POST',headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':blob.type||'image/jpeg','x-upsert':'false'},body:blob});
-  const text=await res.text();if(!res.ok){let d={};try{d=JSON.parse(text)}catch{}throw new Error(d.message||d.error||`Photo upload failed (${res.status})`);}return text;
-}
-async function storageDownload(path){
-  const base=CFG.supabaseUrl?.replace(/\/$/,'');const res=await fetch(`${base}/storage/v1/object/authenticated/${PHOTO_BUCKET}/${encodeStoragePath(path)}`,{headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:`Bearer ${session.access_token}`}});
-  if(!res.ok)throw new Error(`Photo download failed (${res.status})`);return res.blob();
-}
-async function storageDelete(paths){
-  if(!paths.length)return;const base=CFG.supabaseUrl?.replace(/\/$/,'');const res=await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}`,{method:'DELETE',headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({prefixes:paths})});
-  if(!res.ok){const text=await res.text();throw new Error(text||`Photo deletion failed (${res.status})`);}
-}
+async function storageUpload(){throw new Error('Shared photo storage will use Cloudflare in a future production release. This build stores photos locally.');}
+async function storageDownload(){throw new Error('Shared photo storage will use Cloudflare in a future production release. This build stores photos locally.');}
+async function storageDelete(){throw new Error('Shared photo storage will use Cloudflare in a future production release. This build stores photos locally.');}
 async function compressPhoto(file){
   if(!file?.type?.startsWith('image/'))throw new Error('Please select image files only.');
   if(file.size>20*1024*1024)throw new Error(`${file.name||'Photo'} is larger than 20 MB.`);
@@ -550,7 +536,7 @@ async function compressPhoto(file){
 }
 async function photoObjectUrl(ph){
   if(photoUrlCache.has(ph.id))return photoUrlCache.get(ph.id);
-  if(CFG.mode!=='local'){const base=CFG.supabaseUrl?.replace(/\/$/,'');if(!base||!ph.storagePath)return '';const url=`${base}/storage/v1/object/public/${PHOTO_BUCKET}/${encodeStoragePath(ph.storagePath)}`;photoUrlCache.set(ph.id,url);return url;}
+  if(CFG.mode!=='local')return '';
   const blob=await localPhotoGet(ph.id);if(!blob)return '';const url=URL.createObjectURL(blob);photoUrlCache.set(ph.id,url);return url;
 }
 function clearPhotoUrl(id){const u=photoUrlCache.get(id);if(u){URL.revokeObjectURL(u);photoUrlCache.delete(id);}}
@@ -592,114 +578,35 @@ function updatePendingPhotoBadge(){const n=photos.filter(x=>x.status==='pending'
 function fileToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
 function dataUrlToBlob(data){const [head,b64]=String(data).split(',');const mime=(head.match(/data:([^;]+)/)||[])[1]||'image/jpeg';const bin=atob(b64||'');const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return new Blob([bytes],{type:mime});}
 
-async function api(path,{method='GET',body,token=session?.access_token,query=''}={}){
-  const base=CFG.supabaseUrl?.replace(/\/$/,'');
-  if(!base||!SUPABASE_PUBLIC_KEY) throw new Error('Production backend is not configured.');
-  const headers={'apikey':SUPABASE_PUBLIC_KEY,'Content-Type':'application/json','Accept':'application/json'};
-  if(token) headers.Authorization=`Bearer ${token}`;
-  const res=await fetch(`${base}${path}${query}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
-  const text=await res.text();let data=null;try{data=text?JSON.parse(text):null}catch{data=text}
-  if(!res.ok) throw new Error(data?.msg||data?.message||data?.error_description||`Request failed (${res.status})`);
-  return data;
-}
-async function refreshSession(){
-  if(!session?.refresh_token) throw new Error('Your session has expired. Please sign in again.');
-  const next=await api('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token},token:null});
-  session=next;localStorage.setItem(LS_SESSION,JSON.stringify(session));return session;
-}
-async function rest(table,{select='*',filters='',method='GET',body,prefer='return=representation',_retry=false}={}){
-  const base=CFG.supabaseUrl?.replace(/\/$/,''); const headers={'apikey':SUPABASE_PUBLIC_KEY,'Authorization':`Bearer ${session.access_token}`,'Content-Type':'application/json','Prefer':prefer};
-  const qs=method==='GET'?`?select=${encodeURIComponent(select)}${filters}`:filters;
-  const res=await fetch(`${base}/rest/v1/${table}${qs}`,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
-  if(res.status===401&&!_retry&&session?.refresh_token){await refreshSession();return rest(table,{select,filters,method,body,prefer,_retry:true});}
-  const text=await res.text();let data=null;try{data=text?JSON.parse(text):null}catch{data=text}; if(!res.ok) throw new Error(data?.message||`Database request failed (${res.status})`); return data;
-}
-async function publicRest(table,{select='*',filters=''}={}){
-  const base=CFG.supabaseUrl?.replace(/\/$/,'');if(!base||!SUPABASE_PUBLIC_KEY)throw new Error('Production backend is not configured.');
-  const res=await fetch(`${base}/rest/v1/${table}?select=${encodeURIComponent(select)}${filters}`,{headers:{apikey:SUPABASE_PUBLIC_KEY,'Accept':'application/json'}});
-  const text=await res.text();let data=null;try{data=text?JSON.parse(text):null}catch{data=text};if(!res.ok)throw new Error(data?.message||`Public catalogue request failed (${res.status})`);return data;
-}
-
-async function makeCheckpoint(reason){
-  if(CFG.mode==='local'){checkpoint(reason);return;}
-  if(!(hasOwnerAccess()||canManageSystem()))return;
-  const snapshot={appVersion:CFG.version,at:nowISO(),settings:state?.settings||{},places};
-  await rest('audit_snapshots',{method:'POST',body:{created_by:currentUser.id,reason,snapshot},prefer:'return=minimal'});
-}
-
-async function signIn(email,password){ return api('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password},token:null}); }
-async function sendMagicLink(email){return api('/auth/v1/otp',{method:'POST',body:{email,create_user:true,email_redirect_to:location.origin+location.pathname,data:{display_name:clean(email).split('@')[0]}},token:null});}
-async function sendRecovery(email){ return api('/auth/v1/recover',{method:'POST',body:{email,redirect_to:location.origin+location.pathname},token:null}); }
-async function updatePassword(token,password){ return api('/auth/v1/user',{method:'PUT',body:{password},token}); }
-
-async function loadPublicProductionData(){
-  currentUser=null;session=null;
-  const s=await publicRest('app_settings');const rawSettings=s?.[0]||{};const backendDeploymentId=clean(rawSettings.deployment_id);
-  if(!backendDeploymentId||backendDeploymentId==='UNCONFIGURED'||backendDeploymentId!==clean(CFG.deploymentId))throw new Error('Rollout isolation check failed. This site is not matched to its own configured database. Ask the rollout owner to check deploymentId and Supabase setup.');
-  const [p,ph,rs]=await Promise.all([publicRest('places',{filters:'&order=name.asc'}),publicRest('venue_photos',{filters:'&status=eq.approved&order=sort_order.asc,created_at.asc'}),publicRest('venue_rating_summary').catch(()=>[])]);
-  state={settings:{appName:rawSettings.app_name||CFG.appName,ownerDisplayName:rawSettings.owner_display_name||CFG.ownerDisplayName,homeRegion:rawSettings.home_region||CFG.homeRegion,allowUserPhotos:rawSettings.allow_user_photos!==false,askPersEnabled:rawSettings.ask_pers_enabled===true,askPersEndpoint:clean(rawSettings.ask_pers_endpoint),placesSearchEndpoint:clean(rawSettings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(rawSettings.tripadvisor_endpoint),masterLists:normalizeMasterLists(rawSettings.master_lists),deploymentId:backendDeploymentId}};
-  places=(p||[]).map(dbPlaceToApp);photos=(ph||[]).map(normalizePhotoMeta);ratingSummaries=Object.fromEntries((rs||[]).map(x=>[x.place_id,{avg:+x.average_rating||0,count:+x.rating_count||0}]));
-  const pv=loadPublicViewerState();currentUser={id:`public:${pv.id}`,email:'',displayName:'Viewer',role:'viewer',anonymous:true};personal=pv.personal||{};visits=pv.visits||[];preferences=normalizePreferences(pv.preferences||{});filters=filtersFromPreferences(preferences);
-}
-
-async function loadProductionData(){
-  const profileRows=await rest('profiles',{filters:`&id=eq.${encodeURIComponent(session.user.id)}`});
-  currentUser=profileRows?.[0] || {id:session.user.id,email:session.user.email,display_name:session.user.email,role:'viewer'};
-  currentUser.displayName=currentUser.display_name || currentUser.email;
-  // Check rollout identity BEFORE reading catalogue/personal data. This blocks an accidental
-  // configuration that points two independently deployed sites at the same database project.
-  const s=await rest('app_settings');
-  const rawSettings=s?.[0]||{};
-  const backendDeploymentId=clean(rawSettings.deployment_id);
-  if(!backendDeploymentId || backendDeploymentId==='UNCONFIGURED' || backendDeploymentId!==clean(CFG.deploymentId)){
-    throw new Error('Rollout isolation check failed. This site is not matched to its own configured database. Ask the rollout owner to check deploymentId and Supabase setup.');
-  }
-  const [p,ph,per,v,prefs,ur,rs]=await Promise.all([
-    rest('places',{filters:'&order=name.asc'}), rest('venue_photos',{filters:'&order=sort_order.asc,created_at.asc'}), rest('personal_place_data'), rest('visits',{filters:'&order=visited_at.desc'}), rest('user_preferences'), rest('venue_ratings').catch(()=>[]), publicRest('venue_rating_summary').catch(()=>[])
-  ]);
-  state={settings:rawSettings};
-  state.settings={appName:rawSettings.app_name||CFG.appName,ownerDisplayName:rawSettings.owner_display_name||CFG.ownerDisplayName,homeRegion:rawSettings.home_region||CFG.homeRegion,allowUserPhotos:rawSettings.allow_user_photos!==false,askPersEnabled:rawSettings.ask_pers_enabled===true,askPersEndpoint:clean(rawSettings.ask_pers_endpoint),placesSearchEndpoint:clean(rawSettings.places_search_endpoint||CFG.placesSearchEndpoint),tripadvisorEndpoint:clean(rawSettings.tripadvisor_endpoint),masterLists:normalizeMasterLists(rawSettings.master_lists),deploymentId:backendDeploymentId};
-  places=(p||[]).map(dbPlaceToApp);
-  photos=(ph||[]).map(normalizePhotoMeta);
-  userRatings=(ur||[]).map(x=>({userId:x.user_id,placeId:x.place_id,rating:+x.rating||0}));
-  ratingSummaries=Object.fromEntries((rs||[]).map(x=>[x.place_id,{avg:+x.average_rating||0,count:+x.rating_count||0}]));
-  personal={};(per||[]).forEach(x=>{personal[`${currentUser.id}:${x.place_id}`]={rating:x.rating||0,favourite:!!x.favourite,want:!!x.want_to_visit,visited:!!x.visited,privateNote:x.private_note||'',lastVisited:x.last_visited||''};});
-  visits=(v||[]).map(x=>({id:x.id,placeId:x.place_id,userId:x.user_id,visitedAt:x.visited_at,rating:x.rating,comment:x.comment||''}));
-  const pr=prefs?.[0];preferences=normalizePreferences(pr?.preferences||{});
-  filters=filtersFromPreferences(preferences);
-}
+async function makeCheckpoint(reason){checkpoint(reason);}
+async function signIn(){throw new Error('Cloudflare account authentication is not enabled in this local-data release.');}
+async function sendMagicLink(){throw new Error('Cloudflare contributor authentication is not enabled in this local-data release.');}
+async function sendRecovery(){throw new Error('Cloudflare password recovery is not enabled in this local-data release.');}
+async function updatePassword(){throw new Error('Cloudflare password management is not enabled in this local-data release.');}
+async function loadPublicProductionData(){throw new Error('Shared Cloudflare catalogue storage is not enabled yet. Use local mode.');}
+async function loadProductionData(){throw new Error('Shared Cloudflare catalogue storage is not enabled yet. Use local mode.');}
 function dbPlaceToApp(x){return {id:x.id,name:x.name||'',placeType:x.place_type||'',cuisine:x.cuisine||'',country:x.country||'',stateRegion:x.state_region||'',city:x.city||'',suburb:x.suburb||'',address:x.address||'',lat:x.lat,lng:x.lng,price:x.price||'',persRating:+x.pers_rating||0,mealTypes:x.meal_types||[],greatFor:x.great_for||[],features:x.features||[],dietary:x.dietary||[],tags:x.tags||[],mustTry:x.must_try||'',notes:x.notes||'',website:x.website||'',googleMapsUrl:x.google_maps_url||'',googlePlaceId:x.google_place_id||'',googlePhotoRef:x.google_photo_ref||'',googlePhotoAttribution:Array.isArray(x.google_photo_attribution)?x.google_photo_attribution:[],googleRating:+x.google_rating||0,googleRatingCount:+x.google_rating_count||0,openNow:x.open_now===true,openingHours:Array.isArray(x.opening_hours)?x.opening_hours:[],tripadvisorLocationId:x.tripadvisor_location_id||'',tripadvisorUrl:x.tripadvisor_url||'',tripadvisorRating:+x.tripadvisor_rating||0,tripadvisorRatingCount:+x.tripadvisor_rating_count||0,phone:x.phone||'',bookingUrl:x.booking_url||'',createdAt:x.created_at,updatedAt:x.updated_at,archivedAt:x.archived_at||''};}
 function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisine:p.cuisine||null,country:p.country||null,state_region:p.stateRegion||null,city:p.city||null,suburb:p.suburb||null,address:p.address||null,lat:p.lat||null,lng:p.lng||null,price:p.price||null,pers_rating:+p.persRating||null,meal_types:p.mealTypes||[],great_for:p.greatFor||[],features:p.features||[],dietary:p.dietary||[],tags:p.tags||[],must_try:p.mustTry||null,notes:p.notes||null,website:p.website||null,google_maps_url:p.googleMapsUrl||null,google_place_id:p.googlePlaceId||null,google_photo_ref:p.googlePhotoRef||null,google_photo_attribution:p.googlePhotoAttribution||[],tripadvisor_location_id:p.tripadvisorLocationId||null,tripadvisor_url:p.tripadvisorUrl||null,phone:p.phone||null,booking_url:p.bookingUrl||null,archived_at:p.archivedAt||null};}
 
 async function boot(){
-  setBranding();
-  bindEvents();
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode==='local'){
-    state=loadLocalState();
-    const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
-    if(!started){$('localStartScreen').classList.remove('hidden');return;}
-    await enterLocal();return;
-  }
-  const hp=new URLSearchParams(location.hash.replace(/^#/,''));
-  if(hp.get('type')==='recovery'&&hp.get('access_token')){session={access_token:hp.get('access_token'),refresh_token:hp.get('refresh_token'),user:{id:''}};$('newPasswordDialog').showModal();return;}
-  if(hp.get('access_token')){session={access_token:hp.get('access_token'),refresh_token:hp.get('refresh_token'),user:{id:''}};localStorage.setItem(LS_SESSION,JSON.stringify(session));history.replaceState(null,'',location.pathname);}
-  let saved=localStorage.getItem(LS_SESSION);if(!saved){const legacy=localStorage.getItem(LEGACY_SESSION);if(legacy){saved=legacy;localStorage.setItem(LS_SESSION,legacy);}}
-  if(saved&&!session){try{session=JSON.parse(saved);}catch{localStorage.removeItem(LS_SESSION);session=null;}}
-  if(session){try{await hydrateSessionUser();await enterProduction();return;}catch{localStorage.removeItem(LS_SESSION);session=null;}}
-  try{await enterPublicProduction();}catch(e){$('appScreen').classList.remove('hidden');$('resultCount').textContent=e.message;toast(e.message);}
+  setBranding();bindEvents();
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  setTimeout(()=>checkForAppUpdate(true),1200);
+  if(CFG.mode!=='local'){throw new Error('v0.27.22 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  state=loadLocalState();
+  const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
+  if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
+  if(!started){$('localStartScreen').classList.remove('hidden');return;}
+  await enterLocal();
 }
-async function hydrateSessionUser(){ try{const u=await api('/auth/v1/user');session.user=u;}catch(e){if(session?.refresh_token){await refreshSession();const u=await api('/auth/v1/user');session.user=u;}else throw e;} }
 async function enterLocal(){
   state=loadLocalState();currentUser=state.users.find(u=>u.id===state.activeUserId)||state.users[0];places=state.places;photos=state.photos||[];personal=state.personal;visits=state.visits;userRatings=state.userRatings||[];ratingSummaries={};preferences=normalizePreferences(state.preferences[currentUser.id]||{});filters=filtersFromPreferences(preferences);showApp();
 }
-async function enterProduction(){await loadProductionData();showApp();}
-async function enterPublicProduction(){await loadPublicProductionData();showApp();}
 function showApp(){
   if($('authScreen')?.open)$('authScreen').close();$('localStartScreen').classList.add('hidden');$('appScreen').classList.remove('hidden');
   locationEditorOpen=false;catalogueFiltersOpen=false;
   setBranding();applyPreferencesToUI();populateFilterOptions();render();
-  if(CFG.mode!=='local'&&session){const pending=sessionStorage.getItem('pers-v027f-pending-photo-place');if(pending&&places.some(p=>p.id===pending)){sessionStorage.removeItem('pers-v027f-pending-photo-place');setTimeout(()=>openDetail(pending),150);}const rawRating=sessionStorage.getItem('pers-v027f-pending-rating');if(rawRating){sessionStorage.removeItem('pers-v027f-pending-rating');try{const pr=JSON.parse(rawRating);setTimeout(()=>setUserRating(pr.placeId,+pr.rating),180);}catch{}}}
+
 }
 function setBranding(){const s=state?.settings||{};const name=s.appName||CFG.appName;const region=s.homeRegion||CFG.homeRegion||'Personal places';if(window.PERS_BRANDING?.apply)window.PERS_BRANDING.apply(name,region);else{$('appTitle').textContent=name;document.title=name;$('homeRegionLabel').textContent=region;}$('versionLabel').textContent=CFG.version;if($('askPersBtn'))$('askPersBtn').classList.toggle('hidden',!s.askPersEnabled);applyLanguage();}
 function applyPreferencesToUI(){$('sortSelect').value=preferences.sort||'nearest';$('prefDistance').value=preferences.preferredDistance||'1';if($('settingDefaultNearMe'))$('settingDefaultNearMe').value=state.settings.defaultNearMe||'1';$('rememberFilters').checked=!!preferences.rememberFilters;if($('sourceGoogle'))$('sourceGoogle').checked=!!preferences.externalSources?.google;if($('sourceTripadvisor'))$('sourceTripadvisor').checked=!!preferences.externalSources?.tripadvisor;setView(preferences.view||'list',false);syncFilterControls();applyLanguage();}
@@ -1150,33 +1057,18 @@ async function saveAskPersEndpoint(){
   if(!canManageSystem())return toast('System Administrator access is required.');
   const endpoint=clean($('sysadminAskPersEndpoint').value);
   if(endpoint){try{const u=new URL(endpoint);if(u.protocol!=='https:')throw new Error();}catch{return toast('Enter a valid HTTPS Ask Pers endpoint.');}}
-  try{
-    if(CFG.mode==='local'){state.settings.askPersEndpoint=endpoint;saveLocalState();}
-    else{
-      const base=CFG.supabaseUrl?.replace(/\/$/,'');
-      const r=await fetch(`${base}/rest/v1/rpc/set_ask_pers_endpoint`,{method:'POST',headers:{'apikey':SUPABASE_PUBLIC_KEY,'Authorization':`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({p_endpoint:endpoint||null})});
-      const text=await r.text();if(!r.ok){let j={};try{j=JSON.parse(text)}catch{}throw new Error(j?.message||`Ask Pers endpoint save failed (${r.status}).`);}
-      state.settings.askPersEndpoint=endpoint;
-    }
-    toast('Ask Pers endpoint saved.');
-  }catch(e){toast(clean(e?.message)||'Ask Pers endpoint could not be saved.');}
+  try{state.settings.askPersEndpoint=endpoint;saveLocalState();toast('Ask Pers Cloudflare endpoint saved.');}catch(e){toast(clean(e?.message)||'Ask Pers endpoint could not be saved.');}
 }
 
 async function saveCollectionSettings(){
   if(!hasOwnerAccess())return toast('Owner access is required to change collection identity.');
   const s={...state.settings,appName:clean($('settingAppName').value)||CFG.appName,ownerDisplayName:clean($('settingOwnerName').value)||'Pers',homeRegion:clean($('settingHomeRegion').value),allowUserPhotos:!!$('settingAllowUserPhotos').checked,askPersEnabled:!!$('settingAskPersEnabled').checked,defaultNearMe:$('settingDefaultNearMe')?.value||'1'};
   await makeCheckpoint('Before collection settings change');
-  if(CFG.mode==='local'){state.settings=s;saveLocalState();}
-  else{
-    const base=CFG.supabaseUrl?.replace(/\/$/,'');
-    const r=await fetch(`${base}/rest/v1/rpc/set_owner_collection_settings`,{method:'POST',headers:{'apikey':SUPABASE_PUBLIC_KEY,'Authorization':`Bearer ${session.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({p_app_name:s.appName,p_owner_display_name:s.ownerDisplayName,p_home_region:s.homeRegion||null,p_allow_user_photos:s.allowUserPhotos,p_ask_pers_enabled:s.askPersEnabled})});
-    const text=await r.text();if(!r.ok){let j={};try{j=JSON.parse(text)}catch{}throw new Error(j?.message||`Collection settings save failed (${r.status}).`);}
-    state.settings=s;
-  }
+  state.settings=s;saveLocalState();
   setBranding();toast('Collection settings saved.');
 }
 function showArchive(){archiveMode=true;$('accountDialog').close();resetFilters();$('resultCount').scrollIntoView({behavior:'smooth'});toast('Showing Archive');}
-async function signOut(){await persistPreferences();if(CFG.mode==='local'){localStorage.removeItem(LS_SESSION);location.reload();}else{try{await api('/auth/v1/logout',{method:'POST'});}catch{}localStorage.removeItem(LS_SESSION);location.reload();}}
+async function signOut(){await persistPreferences();localStorage.removeItem(LS_SESSION);location.reload();}
 
 function bindEvents(){
   $('startLocalBtn').onclick=()=>{localStorage.setItem(LS_SESSION,'local-started');enterLocal();};
