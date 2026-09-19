@@ -81,8 +81,9 @@ function normalisePlace(p) {
     photoRef: photo.name || '', photoAttribution: Array.isArray(photo.authorAttributions) ? photo.authorAttributions.map(x => ({ displayName: x.displayName || '', uri: x.uri || '', photoUri: x.photoUri || '' })) : []
   };
 }
-async function textSearchWithKey(env, apiKey, textQuery, location, context, widen) {
+async function textSearchWithKey(env, apiKey, textQuery, location, context, widen, filters = {}) {
   const body = { textQuery, pageSize: 10, languageCode: 'en' };
+  if (filters?.openNow === true) body.openNow = true;
   if (location && Number.isFinite(+location.lat) && Number.isFinite(+location.lng)) {
     const lat = +location.lat, lng = +location.lng;
     if (widen) body.locationBias = { circle: { center: { latitude: lat, longitude: lng }, radius: 50000 } };
@@ -200,9 +201,9 @@ export default {
       }
       const query = clean(input?.query); const normal = clean(input?.normalizedQuery);
       if (!query) return new Response(JSON.stringify({ error: 'A venue query is required.' }), { status: 400, headers });
-      let places = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, query, input?.location, input?.context, !!input?.widen);
+      let places = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, query, input?.location, input?.context, !!input?.widen, input?.filters || {});
       if (normal && normal.toLowerCase() !== query.toLowerCase()) {
-        const retry = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, normal, input?.location, input?.context, !!input?.widen);
+        const retry = await textSearchWithKey(env, env.GOOGLE_PLACES_API_KEY, normal, input?.location, input?.context, !!input?.widen, input?.filters || {});
         const seen = new Set(places.map(x => x.id || `${x.name}|${x.address}`));
         for (const x of retry) { const k = x.id || `${x.name}|${x.address}`; if (!seen.has(k)) { seen.add(k); places.push(x); } }
       }
