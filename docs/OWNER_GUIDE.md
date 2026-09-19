@@ -1,6 +1,6 @@
 # Pers Favourites — Owner Guide
 
-Version: **0.27.23 development**
+Version: **0.27.23**
 
 This is the operating manual for the collection Owner. It is written for normal day-to-day use of Pers Favourites. Technical deployment, API secrets, Cloudflare configuration and recovery are handled in the System Administrator Guide.
 
