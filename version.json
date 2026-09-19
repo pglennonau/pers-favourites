@@ -1,5 +1,5 @@
 {
-  "version": "0.27.22",
+  "version": "0.27.23",
   "published": "2026-09-19",
-  "notes": "Removes the unused legacy backend entirely. Pers data remains local in this release, with Cloudflare retained as the sole backend/service direction for Google Places and future shared services."
+  "notes": "Development release: TripAdvisor cost-control integration, separate provider result sections, Owner costs/payments visibility, Google demo/production usage handling, and photo fallback priority Pers → Google Places → TripAdvisor."
 }
