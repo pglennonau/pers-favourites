@@ -162,10 +162,14 @@ function tripadvisorConfig(env) {
   const allowance = Math.max(0, Math.floor(envNumber(env,'TRIPADVISOR_FREE_ALLOWANCE',1000)));
   const warningPercent = clamp(envNumber(env,'TRIPADVISOR_WARNING_PERCENT',50),1,99);
   const cutoffPercent = clamp(envNumber(env,'TRIPADVISOR_CUTOFF_PERCENT',95),1,100);
+  const ownerPaidApproved = envBool(env,'TRIPADVISOR_OWNER_PAID_APPROVED',false);
+  const administratorPaidEnabled = envBool(env,'TRIPADVISOR_ALLOW_PAID',false);
   return {
     connected: !!clean(env.TRIPADVISOR_API_KEY),
     enabled: envBool(env,'TRIPADVISOR_ENABLED',false),
-    paidUsageAuthorized: envBool(env,'TRIPADVISOR_ALLOW_PAID',false),
+    ownerPaidApproved,
+    administratorPaidEnabled,
+    paidUsageAuthorized: ownerPaidApproved && administratorPaidEnabled,
     allowance,
     allowancePeriod: clean(env.TRIPADVISOR_ALLOWANCE_PERIOD).toLowerCase() || 'one-time',
     warningPercent,
