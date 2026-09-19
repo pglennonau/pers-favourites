@@ -413,8 +413,26 @@ async function tripadvisorSearch(query,loc,ctx){
 function externalPassesFilters(p){
   if(filters.country&&!geoSame(p.country,filters.country))return false;if(filters.region&&!geoSame(p.stateRegion,filters.region))return false;if(filters.city&&!geoSame(p.city,filters.city))return false;
   if(filters.type&&p.placeType!==filters.type)return false;if(filters.cuisine&&p.cuisine!==filters.cuisine)return false;if(filters.price&&p.price!==filters.price)return false;if(filters.openNow==='yes'&&p.openNow!==true)return false;
+  if(filters.rating){const r=Math.max(+p.googleRating||0,+p.tripadvisorRating||0);const min=filters.rating==='combined5'?4.5:+filters.rating;if(r<min)return false;}
   if(filters.distance){const d=distanceFor(p);if(d==null||d>+filters.distance)return false;}
   return catalogueSearchMatches(p);
+}
+function enrichSavedFromExternal(saved,p){
+  if(!saved||!p)return;
+  if(p.provider==='Google Places'){
+    saved.googleRating=+p.googleRating||0;saved.googleRatingCount=+p.googleRatingCount||0;
+    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
+    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:[];
+    if(!saved.googlePlaceId&&p.googlePlaceId)saved.googlePlaceId=p.googlePlaceId;
+    if(!saved.googleMapsUrl&&p.googleMapsUrl)saved.googleMapsUrl=p.googleMapsUrl;
+  }
+  if(p.provider==='TripAdvisor'){
+    saved.tripadvisorRating=+p.tripadvisorRating||0;saved.tripadvisorRatingCount=+p.tripadvisorRatingCount||0;
+    if(p.openNow===true||p.openNow===false)saved.openNow=p.openNow;
+    saved.openingHours=Array.isArray(p.openingHours)?p.openingHours:(saved.openingHours||[]);
+    if(!saved.tripadvisorLocationId&&p.tripadvisorLocationId)saved.tripadvisorLocationId=p.tripadvisorLocationId;
+    if(!saved.tripadvisorUrl&&p.tripadvisorUrl)saved.tripadvisorUrl=p.tripadvisorUrl;
+  }
 }
 function sortExternalRows(rows){
   const sort=$('sortSelect')?.value||'nearest';
@@ -439,7 +457,7 @@ async function searchExternalSources(){
   const rows=[],errors=[];
   try{if(preferences.externalSources.google){try{const gr=await googlePlacesSearch(q,loc,ctx,false);rows.push(...(gr||[]).map(x=>Object.assign(googleWorkerResultToPlace(x),{provider:'Google Places'})));}catch(e){errors.push('Google: '+clean(e.message));}}
     if(preferences.externalSources.tripadvisor){try{rows.push(...await tripadvisorSearch(q,loc,ctx));}catch(e){errors.push('TripAdvisor: '+clean(e.message));}}
-    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),k=externalKey(p);if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
+    const seen=new Map();for(const raw of rows){const p=normalizeExternalCategory(raw),saved=matchesSavedPlace(p);if(saved){enrichSavedFromExternal(saved,p);continue;}const k=externalKey(p);if(!seen.has(k))seen.set(k,p);else Object.assign(seen.get(k),Object.fromEntries(Object.entries(p).filter(([,v])=>v!==''&&v!==0&&v!=null)));}
     externalPlaceResults=[...seen.values()];if(status)status.textContent=`${externalPlaceResults.length} external result${externalPlaceResults.length===1?'':'s'}${errors.length?' · '+errors.join(' · '):''}`;render();
   }finally{externalSearchBusy=false;}
 }
@@ -625,7 +643,7 @@ async function loadProductionData(){
   filters=filtersFromPreferences(preferences);
 }
 function dbPlaceToApp(x){return {id:x.id,name:x.name||'',placeType:x.place_type||'',cuisine:x.cuisine||'',country:x.country||'',stateRegion:x.state_region||'',city:x.city||'',suburb:x.suburb||'',address:x.address||'',lat:x.lat,lng:x.lng,price:x.price||'',persRating:+x.pers_rating||0,mealTypes:x.meal_types||[],greatFor:x.great_for||[],features:x.features||[],dietary:x.dietary||[],tags:x.tags||[],mustTry:x.must_try||'',notes:x.notes||'',website:x.website||'',googleMapsUrl:x.google_maps_url||'',googlePlaceId:x.google_place_id||'',googlePhotoRef:x.google_photo_ref||'',googlePhotoAttribution:Array.isArray(x.google_photo_attribution)?x.google_photo_attribution:[],googleRating:+x.google_rating||0,googleRatingCount:+x.google_rating_count||0,openNow:x.open_now===true,openingHours:Array.isArray(x.opening_hours)?x.opening_hours:[],tripadvisorLocationId:x.tripadvisor_location_id||'',tripadvisorUrl:x.tripadvisor_url||'',tripadvisorRating:+x.tripadvisor_rating||0,tripadvisorRatingCount:+x.tripadvisor_rating_count||0,phone:x.phone||'',bookingUrl:x.booking_url||'',createdAt:x.created_at,updatedAt:x.updated_at,archivedAt:x.archived_at||''};}
-function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisine:p.cuisine||null,country:p.country||null,state_region:p.stateRegion||null,city:p.city||null,suburb:p.suburb||null,address:p.address||null,lat:p.lat||null,lng:p.lng||null,price:p.price||null,pers_rating:+p.persRating||null,meal_types:p.mealTypes||[],great_for:p.greatFor||[],features:p.features||[],dietary:p.dietary||[],tags:p.tags||[],must_try:p.mustTry||null,notes:p.notes||null,website:p.website||null,google_maps_url:p.googleMapsUrl||null,google_place_id:p.googlePlaceId||null,google_photo_ref:p.googlePhotoRef||null,google_photo_attribution:p.googlePhotoAttribution||[],google_rating:+p.googleRating||null,google_rating_count:+p.googleRatingCount||null,open_now:p.openNow===true,opening_hours:p.openingHours||[],tripadvisor_location_id:p.tripadvisorLocationId||null,tripadvisor_url:p.tripadvisorUrl||null,tripadvisor_rating:+p.tripadvisorRating||null,tripadvisor_rating_count:+p.tripadvisorRatingCount||null,phone:p.phone||null,booking_url:p.bookingUrl||null,archived_at:p.archivedAt||null};}
+function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisine:p.cuisine||null,country:p.country||null,state_region:p.stateRegion||null,city:p.city||null,suburb:p.suburb||null,address:p.address||null,lat:p.lat||null,lng:p.lng||null,price:p.price||null,pers_rating:+p.persRating||null,meal_types:p.mealTypes||[],great_for:p.greatFor||[],features:p.features||[],dietary:p.dietary||[],tags:p.tags||[],must_try:p.mustTry||null,notes:p.notes||null,website:p.website||null,google_maps_url:p.googleMapsUrl||null,google_place_id:p.googlePlaceId||null,google_photo_ref:p.googlePhotoRef||null,google_photo_attribution:p.googlePhotoAttribution||[],tripadvisor_location_id:p.tripadvisorLocationId||null,tripadvisor_url:p.tripadvisorUrl||null,phone:p.phone||null,booking_url:p.bookingUrl||null,archived_at:p.archivedAt||null};}
 
 async function boot(){
   setBranding();
@@ -1155,7 +1173,7 @@ function bindEvents(){
   bindTypeaheadChoice('cityFilter',v=>{filters.city=v;locationEditorOpen=!v;rebuildAndRender();},{geo:true});
   $('clearLocationBtn').onclick=()=>{filters.country='';filters.region='';filters.city='';locationEditorOpen=true;rebuildAndRender();};
   const fm={typeFilter:'type',cuisineFilter:'cuisine',ratingFilter:'rating',distanceFilter:'distance',openNowFilter:'openNow',priceFilter:'price',mealFilter:'meal',greatForFilter:'greatFor',featureFilter:'feature',statusFilter:'status',dietaryFilter:'dietary',tagFilter:'tag'};
-  Object.entries(fm).forEach(([id,k])=>$(id).onchange=()=>{filters[k]=$(id).value;rebuildAndRender();});
+  Object.entries(fm).forEach(([id,k])=>$(id).onchange=async()=>{filters[k]=$(id).value;rebuildAndRender();if(k==='openNow'&&filters.openNow==='yes'){if(!$('sourceGoogle').checked&&placesEndpoint()){$('sourceGoogle').checked=true;preferences.externalSources.google=true;}if($('sourceGoogle').checked||$('sourceTripadvisor').checked)await searchExternalSources();}});
   $('activeChips').onclick=e=>{const b=e.target.closest('[data-clear-filter]');if(b){const key=b.dataset.clearFilter;filters[key]='';if(key==='country'){filters.region='';filters.city='';}if(key==='region')filters.city='';rebuildAndRender();}if(e.target.closest('[data-clear-area]')){mapBoundsFilter=null;rebuildAndRender();}};
   $('resetFiltersBtn').onclick=()=>{archiveMode=false;resetFilters();};$('searchAreaBtn').onclick=()=>{mapBoundsFilter=map.getBounds();$('searchAreaBtn').classList.add('hidden');rebuildAndRender();};
   $('addPlaceBtn').onclick=()=>openPlaceEditor();$('placeForm').onsubmit=savePlace;$('placeCloseBtn').onclick=closePlaceEditor;$('placeCancelBtn').onclick=closePlaceEditor;$('placeDialog').addEventListener('cancel',e=>{e.preventDefault();closePlaceEditor();});$('placeForm').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closePlaceEditor();}});$('archivePlaceBtn').onclick=()=>archivePlace($('placeId').value);$('restorePlaceBtn').onclick=()=>restorePlace($('placeId').value);$('deleteForeverBtn').onclick=()=>deleteForever($('placeId').value);
