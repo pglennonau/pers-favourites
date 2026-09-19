@@ -1,4 +1,4 @@
--- Pers Favourites 0.27.20 - one isolated Supabase project per rollout.
+-- Pers Favourites 0.27.21 - one isolated Supabase project per rollout.
 -- Separates Owner, System Administrator and User permissions while retaining backwards compatibility with legacy admin accounts. Ordinary browsing remains public/read-only.
 -- Run in a NEW Supabase project for each separately deployed GitHub instance.
 
@@ -23,6 +23,8 @@ create table if not exists public.app_settings (
   ask_pers_enabled boolean not null default false,
   ask_pers_endpoint text,
   places_search_endpoint text,
+  tripadvisor_endpoint text,
+  master_lists jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 insert into public.app_settings(id) values (1) on conflict (id) do nothing;
@@ -31,6 +33,8 @@ alter table public.app_settings add column if not exists allow_user_photos boole
 alter table public.app_settings add column if not exists ask_pers_enabled boolean not null default false;
 alter table public.app_settings add column if not exists ask_pers_endpoint text;
 alter table public.app_settings add column if not exists places_search_endpoint text;
+alter table public.app_settings add column if not exists tripadvisor_endpoint text;
+alter table public.app_settings add column if not exists master_lists jsonb not null default '{}'::jsonb;
 update public.app_settings set deployment_id='UNCONFIGURED' where deployment_id is null or btrim(deployment_id)='';
 alter table public.app_settings alter column deployment_id set default 'UNCONFIGURED';
 alter table public.app_settings alter column deployment_id set not null;
@@ -44,12 +48,15 @@ create table if not exists public.places (
   features text[] not null default '{}', dietary text[] not null default '{}', tags text[] not null default '{}',
   must_try text, notes text, website text, google_maps_url text,
   google_place_id text, google_photo_ref text, google_photo_attribution jsonb not null default '[]'::jsonb,
+  tripadvisor_location_id text, tripadvisor_url text,
   phone text, booking_url text,
   archived_at timestamptz,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 create index if not exists places_name_idx on public.places(lower(name));
 create index if not exists places_city_idx on public.places(lower(city));
+alter table public.places add column if not exists tripadvisor_location_id text;
+alter table public.places add column if not exists tripadvisor_url text;
 
 create table if not exists public.venue_photos (
   id uuid primary key default gen_random_uuid(),
@@ -213,6 +220,32 @@ begin
 end; $$;
 revoke all on function public.set_places_search_endpoint(text) from public, anon;
 grant execute on function public.set_places_search_endpoint(text) to authenticated;
+
+-- v0.27.21 managed master lists. Owner and System Administrator may maintain the controlled lists used by Filters and Add/Edit.
+create or replace function public.set_master_lists(p_master_lists jsonb)
+returns void language plpgsql security definer set search_path='public'
+as $$
+begin
+  if not (public.is_owner() or public.is_system_admin()) then
+    raise exception 'Owner or System Administrator permission required';
+  end if;
+  update public.app_settings set master_lists=coalesce(p_master_lists,'{}'::jsonb), updated_at=now() where id=1;
+end; $$;
+revoke all on function public.set_master_lists(jsonb) from public, anon;
+grant execute on function public.set_master_lists(jsonb) to authenticated;
+
+-- TripAdvisor integration endpoint is technical configuration. Credentials stay outside the PWA/Supabase client.
+create or replace function public.set_tripadvisor_endpoint(p_endpoint text)
+returns void language plpgsql security definer set search_path='public'
+as $$
+begin
+  if not public.is_system_admin() then
+    raise exception 'System Administrator permission required';
+  end if;
+  update public.app_settings set tripadvisor_endpoint=nullif(btrim(p_endpoint),''), updated_at=now() where id=1;
+end; $$;
+revoke all on function public.set_tripadvisor_endpoint(text) from public, anon;
+grant execute on function public.set_tripadvisor_endpoint(text) to authenticated;
 
 -- App identity is public/read-only through direct table access. Changes use scoped RPCs so Owner cannot alter technical fields.
 drop policy if exists app_settings_read on public.app_settings;

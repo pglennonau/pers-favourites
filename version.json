@@ -1,5 +1,5 @@
 {
-  "version": "0.27.20",
+  "version": "0.27.21",
   "published": "2026-09-19",
-  "notes": "Opening-screen and permissions audit: removes the large quick-action row, makes Country/State-Region/City explicit and collapsible so Places appear immediately, prevents stale location filters from being silently restored, splits Account & Settings into User/Owner/System Administrator areas, separates Owner collection settings from technical endpoints, adds protected multi-role production schema support, hardens Cloudflare D1 usage-schema compatibility, and repairs venue-photo Move earlier/later ordering."
+  "notes": "Adds per-user language selection; fixes Filter list controls so they share Owner/System Administrator-managed master lists with Add/Edit; adds Open Now; adds compliant TripAdvisor link/rating integration hooks; and adds optional merged Pers + Google Places + TripAdvisor discovery with Pers results first, de-duplication, source-specific ratings and common sorting/filtering."
 }

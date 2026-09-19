@@ -101,6 +101,7 @@
           <select id="distanceFilter">
             <option value="">Distance</option><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option>
           </select>
+          <select id="openNowFilter" aria-label="Open Now"><option value="">Open status</option><option value="yes">Open Now</option></select>
           <button id="moreFiltersBtn" class="secondary compact">More Filters ▾</button>
           <button id="askPersBtn" class="secondary compact hidden">Ask Pers</button>
         </div>
@@ -115,6 +116,13 @@
           <select id="tagFilter"><option value="">Personal Tag</option></select>
         </div>
 
+        <fieldset class="external-search-box">
+          <legend id="externalSourcesLabel">Add other app searches</legend>
+          <label class="check"><input id="sourceGoogle" type="checkbox" /> Google Places</label>
+          <label class="check"><input id="sourceTripadvisor" type="checkbox" /> TripAdvisor</label>
+          <button id="searchExternalBtn" type="button" class="secondary compact">Search selected apps</button>
+          <span id="externalSearchStatus" class="small muted"></span>
+        </fieldset>
         <div class="filter-summary">
           <div id="activeChips" class="chips"></div>
           <button id="resetFiltersBtn" class="link-button">Reset filters</button>
@@ -149,6 +157,8 @@
         <label>Phone<input id="placePhone" /></label>
         <label class="wide">Website<input id="placeWebsite" type="url" /></label>
         <label class="wide">Google Maps link<input id="placeGoogleUrl" type="url" /></label>
+        <label class="wide">TripAdvisor link<input id="placeTripadvisorUrl" type="url" /></label>
+        <label class="wide">TripAdvisor Location ID<input id="placeTripadvisorId" /></label>
         <label class="wide">Booking / reservation link<input id="placeBookingUrl" type="url" /></label>
         <div class="wide multi-editor"><label>Meal / visit types<select id="placeMealsPicker"><option value="">Add Meal / Visit Type…</option></select></label><input id="placeMeals" type="hidden" /><div id="placeMealsChips" class="chips"></div></div>
         <div class="wide multi-editor"><label>Great for<select id="placeGreatForPicker"><option value="">Add Great For…</option></select></label><input id="placeGreatFor" type="hidden" /><div id="placeGreatForChips" class="chips"></div></div>
@@ -242,13 +252,16 @@
       <label>Preferred distance radius
         <select id="prefDistance"><option value="0.25">250 m</option><option value="0.5">500 m</option><option value="1">1 km</option><option value="2">2 km</option><option value="5">5 km</option><option value="10">10 km</option></select>
       </label>
+      <label>Language
+        <select id="languageSelect"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="de">Deutsch</option></select>
+      </label>
       <label class="check"><input id="rememberFilters" type="checkbox" /> Remember my filters between visits</label>
       <p class="muted small">When this is off, Pers opens showing all saved places. Your last location is retained only to help Find Place Online.</p>
       <hr />
       <section class="app-update-card">
         <h3>App Updates</h3>
         <div class="connection-grid">
-          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.20</strong></div>
+          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.21</strong></div>
           <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
         </div>
         <div class="inline-actions">
@@ -268,6 +281,7 @@
       <h3>Owner</h3>
       <p class="owner-callout">Owner controls Pers data and collection presentation. Technical service configuration remains in System Administrator.</p>
       <div class="owner-tool-grid">
+        <button id="manageListsBtn" class="secondary">Manage lists</button>
         <button id="importBtn" class="secondary">Import places</button>
         <button id="managePhotosBtn" class="secondary">Manage venue photos <span id="pendingPhotoBadge" class="count-badge hidden">0</span></button>
         <button id="showArchiveBtn" class="secondary">View archived places</button>
@@ -293,6 +307,7 @@
       <h3>System Administrator</h3>
       <p class="muted small">Technical/system controls only. Owner collection settings and private commercial/payment information are not managed here.</p>
       <div class="owner-tool-grid">
+        <button id="sysadminManageListsBtn" class="secondary">Manage lists</button>
         <button id="sysadminImportBtn" class="secondary">Import places</button>
         <button id="sysadminExportBackupBtn" class="secondary">Export full backup</button>
       </div>
@@ -324,6 +339,13 @@
         </div>
         <span id="placesEndpointStatus" class="small muted"></span>
       </fieldset>
+      <fieldset class="external-service-card">
+        <legend>External Services - TripAdvisor</legend>
+        <label>TripAdvisor service endpoint<input id="settingTripadvisorEndpoint" type="url" placeholder="https://your-compliant-service.example.com/tripadvisor-search" /></label>
+        <p class="muted small">Use only an authorised TripAdvisor integration. Pers must comply with current API, licensing, attribution, storage and branding requirements; no scraping.</p>
+        <button id="saveTripadvisorEndpointBtn" type="button" class="secondary compact">Save endpoint</button>
+        <span id="tripadvisorEndpointStatus" class="small muted"></span>
+      </fieldset>
       <hr />
       <h3>Authentication status</h3>
       <p class="muted small"><strong>Production:</strong> protected account roles are required. Passkey/WebAuthn + Face ID remains a production-authentication item; this local trial does not pretend that password autofill is a true passkey implementation.</p>
@@ -332,7 +354,15 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.20</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.21</span></p>
+  </dialog>
+
+  <dialog id="masterListsDialog" class="modal">
+    <div class="modal-head"><h2>Manage lists</h2><button id="masterListsClose" class="icon-button">×</button></div>
+    <p class="muted small">These master lists feed both Filters and Add/Edit. Owner and System Administrator can add, rename, reorder, archive and restore entries.</p>
+    <label>List<select id="masterListCategory"></select></label>
+    <div class="inline-actions"><input id="masterListNewValue" placeholder="New list item" /><button id="masterListAddBtn" class="primary compact" type="button">Add</button></div>
+    <div id="masterListItems" class="master-list-items"></div>
   </dialog>
 
   <dialog id="recoveryDialog" class="modal">

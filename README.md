@@ -1,9 +1,26 @@
 # Pers Favourites PWA
 
-Version: **0.27.20**  
+Version: **0.27.21**  
 Date: **19 September 2026**
 
-Pers Favourites is a curated PWA catalogue. Normal catalogue search/filtering searches **Pers data only**. Google Places is an Owner/System Administrator enrichment service used when adding or matching venues; it is not a replacement for the Pers catalogue.
+Pers Favourites is a curated PWA catalogue. Pers remains the primary catalogue. v0.27.21 can optionally add authorised Google Places and TripAdvisor search results to a combined discovery view while keeping Pers records first and clearly identifying each source.
+
+## 0.27.21 update
+
+- Adds a per-user **Language** choice under User settings. The preference is remembered for that user/device and changes the core catalogue/navigation wording immediately; venue names, addresses, reviews and Owner-authored content are not machine-translated.
+- Repairs catalogue filter selectors so the controlled taxonomy lists used by **Filters** and **Add/Edit** come from one shared master-list model.
+- Adds **Manage lists** for Owner and System Administrator. Controlled lists can be added to, renamed, reordered, archived and restored. A rename also updates venues already using that value.
+- Adds **Open Now**. Google Places Text Search receives Google's official `openNow` refinement when the Google source is selected/available; opening status is treated as live provider data rather than permanently cached.
+- Adds optional **Google Places** and **TripAdvisor** source selectors. Pers results remain first; external-only results appear under **More Places Nearby**, are de-duplicated against Pers, and use the same applicable filters/sort.
+- Adds Google and TripAdvisor rating display alongside Pers/User ratings when authorised live provider data is available. Provider ratings remain source-specific; Pers does not create a synthetic combined score.
+- Adds stored TripAdvisor Location ID / TripAdvisor URL fields and a one-tap TripAdvisor link where a compliant match exists.
+- Third-party data is accessed only through authorised integrations. No TripAdvisor scraping is implemented. Provider ratings/opening-hours data is treated as live/transient; only stable identifiers/links are stored by Pers.
+- Existing production Supabase rollouts must apply `supabase/migration_v02720_to_v02721.sql`.
+- The Cloudflare Places Worker source changed in this version to request Google rating/current opening-hours fields and to pass `openNow`. Deploy that Worker update intentionally; a GitHub Pages update alone does not update Cloudflare.
+
+### v0.27.21 QA gate
+
+Before release, verify JavaScript syntax, HTML control IDs, version consistency, list management permissions, filter/list sharing, country-region-city cascade regression, Open Now, external-source de-duplication, ratings/links, service-worker cache version and package contents.
 
 ## 0.27.20 update
 
@@ -73,7 +90,7 @@ The live D1 database was repaired separately during testing. Copying this reposi
 2. Replace the existing GitHub working-folder files with this version's files, preserving the repository itself.
 3. Commit and push to the existing `pglennonau/pers-favourites` `main` branch.
 4. On the PWA, use **☰ → User → App Updates → Check for Update → Install Update**.
-5. Confirm the displayed version is **0.27.20** and verify existing venues remain present.
+5. Confirm the displayed version is **0.27.21** and verify existing venues remain present.
 
 ## 0.27.20 acceptance checks
 
