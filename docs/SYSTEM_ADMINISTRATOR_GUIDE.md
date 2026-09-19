@@ -1,6 +1,6 @@
 # Pers Favourites — System Administrator Guide
 
-Version: **0.27.23 development**
+Version: **0.27.23**
 
 This is the complete technical and operational reference for Pers Favourites. The System Administrator must understand both the technical system and the Owner/User workflows. It is intentionally broader than the Owner Guide.
 
@@ -159,6 +159,8 @@ The Worker refuses TripAdvisor API calls when `USAGE_DB` is unavailable, because
 - No configured free allowance: API remains blocked unless both paid-use gates are explicitly enabled.
 
 Paid usage must never begin from the PWA checkbox alone.
+
+TripAdvisor activation is optional for initial v0.27.23 deployment. If the developer/API account is not yet configured, leave `TRIPADVISOR_ENABLED=false`; the rest of the release can be deployed and tested normally.
 
 ### Allowance/reset model
 
