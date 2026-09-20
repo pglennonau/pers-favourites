@@ -1,6 +1,6 @@
 # Pers Favourites PWA
 
-Version: **0.27.24**
+Version: **0.27.25**
 Date: **20 September 2026**
 
 Pers Favourites is a curated PWA catalogue. The current release stores the Pers collection locally on the device/browser. Cloudflare is the only backend/service direction for this project.
@@ -123,3 +123,10 @@ Keep one current deployable PWA package and one current consolidated documentati
 - All cards use compact rating pills. Existing one-to-four uploaded-photo collages remain intact.
 - Cloudflare Worker, API secrets, quotas, authentication and local storage identifiers are unchanged. Photo availability still depends on provider data and service limits.
 - QA: `node qa/release-check.mjs`, `node qa/worker-unit.mjs`, and `node qa/frontend-check.cjs` (requires jsdom 30.1.0 in the test environment).
+
+
+## v0.27.25 draft update
+
+Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
+
+This remains a local trial, with no secure email/password accounts. See [the QA audit](docs/QA_V0.27.25.md) and [account implementation requirements](docs/ACCOUNT_SETUP.md) for outstanding work.

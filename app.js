@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.24',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.25',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -115,7 +115,7 @@ let locationEditorOpen=false;
 let catalogueFiltersOpen=false;
 
 function defaultFilters(){ return Object.fromEntries(FILTER_KEYS.map(k=>[k,''])); }
-function defaultPreferences(){ return {view:'list',sort:'nearest',preferredDistance:'1',rememberFilters:false,language:'en',externalSources:{google:false,tripadvisor:false},lastLocation:{country:'',region:'',city:''},filters:defaultFilters()}; }
+function defaultPreferences(){ return {view:'list',sort:'nearest',preferredDistance:'1',rememberFilters:false,summaryCollapsed:false,language:'en',externalSources:{google:false,tripadvisor:false},lastLocation:{country:'',region:'',city:''},filters:defaultFilters()}; }
 function orderedUnique(values){const out=[],seen=new Set();for(const raw of values||[]){const v=clean(raw),k=foldText(v);if(!v||seen.has(k))continue;seen.add(k);out.push(v);}return out;}
 function defaultMasterLists(){const out={};for(const [k,vals] of Object.entries(MASTER_LIST_DEFAULTS))out[k]={active:[...vals],archived:[]};return out;}
 function normalizeMasterLists(raw){
@@ -289,7 +289,7 @@ function overpassResultToPlace(x,ctx={}){const t=x.tags||{},lat=Number(x.lat??x.
 function googleWorkerResultToPlace(x){const lat=Number(x.lat),lng=Number(x.lng);return {id:uid(),name:clean(x.name),placeType:clean(x.placeType||x.primaryType),cuisine:clean(x.cuisine),country:clean(x.country),stateRegion:clean(x.stateRegion||x.region),city:clean(x.city),suburb:clean(x.suburb),address:clean(x.address),lat:Number.isFinite(lat)?lat:null,lng:Number.isFinite(lng)?lng:null,price:clean(x.price),persRating:0,googleRating:+x.rating||0,googleRatingCount:+x.userRatingCount||0,openNow:x.openNow===true,openingHours:Array.isArray(x.weekdayDescriptions)?x.weekdayDescriptions:[],phone:clean(x.phone),website:clean(x.website),googleMapsUrl:clean(x.googleMapsUrl)||((Number.isFinite(lat)&&Number.isFinite(lng))?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`:''),googlePlaceId:clean(x.id),googlePhotoRef:clean(x.photoRef),googlePhotoAttribution:Array.isArray(x.photoAttribution)?x.photoAttribution:[],googlePhotoGoogleMapsUri:clean(x.photoGoogleMapsUri),googlePhotoFlagContentUri:clean(x.photoFlagContentUri),tripadvisorLocationId:'',tripadvisorUrl:'',tripadvisorRating:0,tripadvisorRatingCount:0,bookingUrl:'',mealTypes:[],greatFor:[],features:[],dietary:[],tags:['Find Place Online','Google Places'],mustTry:'',notes:'',createdAt:nowISO(),updatedAt:nowISO(),archivedAt:''};}
 async function googlePlacesSearch(raw,loc,ctx,widen=false,searchFilters={}){const endpoint=clean(state?.settings?.placesSearchEndpoint||CFG.placesSearchEndpoint);if(!endpoint)return null;const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:raw,normalizedQuery:normalizeOnlineQuery(raw),location:loc||null,context:ctx||{},widen:!!widen,filters:searchFilters||{}})});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(clean(j?.error)||`Google Places search failed (${r.status}).`);return Array.isArray(j?.places)?j.places:[];}
 function googleMapsSearchUrl(q,ctx){const text=[clean(q),clean(ctx?.label)].filter(Boolean).join(' ');return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;}
-function dedupeOnlineRows(rows){const seen=new Set(),out=[];for(const x of rows){const p=x.place||{};const key=Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)?`${foldText(p.name)}:${(+p.lat).toFixed(4)}:${(+p.lng).toFixed(4)}`:`${foldText(p.name)}:${foldText(p.address)}`;if(!key||seen.has(key))continue;seen.add(key);out.push(x);}return out;}
+function dedupeOnlineRows(rows){const seen=new Set(),out=[];for(const x of rows){const p=x.place||{};const key=validCoordinates(p)?`${foldText(p.name)}:${(+p.lat).toFixed(4)}:${(+p.lng).toFixed(4)}`:`${foldText(p.name)}:${foldText(p.address)}`;if(!key||seen.has(key))continue;seen.add(key);out.push(x);}return out;}
 function rankOnlineRows(rows,q,loc,widen=false){return rows.map(x=>{const d=loc&&Number.isFinite(+x.place.lat)&&Number.isFinite(+x.place.lng)?distanceKm(loc,{lat:+x.place.lat,lng:+x.place.lng}):null;const nameScore=onlineNameScore(x.place.name,q);const distanceBonus=d==null?0:Math.max(0,300-Math.min(d,300));const providerBonus=x.provider==='Google Places'?80:x.provider==='OpenStreetMap local'?50:0;return {...x,distance:d,score:nameScore+distanceBonus+providerBonus};}).filter(x=>widen||!loc||x.distance==null||x.distance<=120).sort((a,b)=>b.score-a.score||(a.distance??99999)-(b.distance??99999)||a.place.name.localeCompare(b.place.name));}
 function renderOnlineResults(){
   $('findPlaceResults').innerHTML=onlinePlaceResults.map((x,i)=>{
@@ -465,7 +465,7 @@ function matchesSavedPlace(p){
     if(p.tripadvisorLocationId&&x.tripadvisorLocationId&&p.tripadvisorLocationId===x.tripadvisorLocationId)return true;
     if(foldText(p.name)!==foldText(x.name))return false;
     if(p.city&&x.city&&geoSame(p.city,x.city))return true;
-    if(Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&Number.isFinite(+x.lat)&&Number.isFinite(+x.lng))return haversine(+p.lat,+p.lng,+x.lat,+x.lng)<0.15;
+    if(validCoordinates(p)&&Number.isFinite(+x.lat)&&Number.isFinite(+x.lng))return haversine(+p.lat,+p.lng,+x.lat,+x.lng)<0.15;
     return !p.city&&!x.city;
   });
 }
@@ -571,9 +571,16 @@ function renderSelectionSummary(){
   let note=sort.value==='nearest'?(currentPosition?'Distances are straight-line from your device location.':'Location needed for Nearest; showing A–Z until location is available.'):'Missing values appear last; ties use A–Z.';
   if(['persRating','userRating','recent','visited'].includes(sort.value)&&sources.length>1)note+=' This sort applies to Pers; external results use A–Z.';
   $('selectionSummary').innerHTML=`<strong>${active?'Showing filtered places':'All places'}</strong>${query?` · Search: ${esc(query)}`:''}<div class="selection-controls"><button type="button" data-summary-sort>Sorted by: ${esc(sort.selectedOptions[0]?.textContent)}</button><button type="button" data-summary-sources>Sources selected: ${esc(sources.join(' + '))}</button>${sort.value==='nearest'?'<button type="button" data-summary-location>Update my location</button>':''}</div><p class="selection-note">${esc(note)}</p>${sources.length>1?`<p class="selection-note">Tap Search selected apps in Filters to refresh external results. ${esc($('externalSearchStatus').textContent)}</p>`:''}`;
+  const count=Object.values(filters).filter(Boolean).length+(mapBoundsFilter?1:0)+(query?1:0);
+  const collapsed=!!preferences.summaryCollapsed;
+  $('summaryToggle').textContent=`${collapsed?'Show':'Hide'} details · ${[filters.city,filters.region,filters.country].filter(Boolean).join(', ')||'All locations'} · ${count} filters · ${sort.selectedOptions[0]?.textContent||''}`;
+  $('summaryToggle').setAttribute('aria-expanded',String(!collapsed));
+  $('selectionDetails').hidden=collapsed;
   $('resetFiltersBtn').hidden=!active;
 }
 function renderExternalResults(){
+  const previousPhotos=new Map([...document.querySelectorAll('.external-results-panel [data-google-photo-place]')].map(frame=>[frame.dataset.visualIdentity,frame]));
+  for(const frame of previousPhotos.values())googlePhotoObserver?.unobserve(frame);
   for(const id of ['externalResultsPanel','externalGoogleResultsPanel','externalTripadvisorResultsPanel'])$(id)?.remove();
   const rows=sortExternalRows(externalPlaceResults.filter(p=>p.provider==='Google Places'?$('sourceGoogle').checked:$('sourceTripadvisor').checked).filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));
   if(!rows.length)return;
@@ -596,7 +603,9 @@ function renderExternalResults(){
     panel.innerHTML=`<div class="results-head"><div><strong>${esc(g.title)}</strong><span class="result-count">${g.rows.length}</span></div></div>${attribution}`+g.rows.map(card).join('');
     anchor.after(panel);anchor=panel;
     for(const [i,article] of [...panel.querySelectorAll('article')].entries()){
-      const p=g.rows[i],frame=document.createElement('div');frame.className='google-fallback-frame place-card-google';frame.dataset.googlePhotoPlace=p.id;frame.innerHTML='<div class="place-card-placeholder">Photo</div>';article.prepend(frame);
+      const p=g.rows[i],key=photoIdentity(p);let frame=previousPhotos.get(key);
+      if(!frame){frame=document.createElement('div');frame.className='google-fallback-frame place-card-google';frame.dataset.googlePhotoPlace=p.id;frame.dataset.visualIdentity=key;frame.innerHTML='<div class="place-card-placeholder">Photo</div>';}
+      article.prepend(frame);
     }
     hydrateGoogleFallbacks(panel);
     panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
@@ -757,6 +766,8 @@ async function compressPhoto(file){
   } finally {URL.revokeObjectURL(src);}
 }
 async function photoObjectUrl(ph){
+  // IndexedDB is keyed by photo ID. Ambiguous imports must never display another venue's blob.
+  if(photos.filter(x=>x.id===ph.id).some(x=>x.placeId!==ph.placeId))return '';
   if(photoUrlCache.has(ph.id))return photoUrlCache.get(ph.id);
   if(CFG.mode!=='local')return '';
   const blob=await localPhotoGet(ph.id);if(!blob)return '';const url=URL.createObjectURL(blob);photoUrlCache.set(ph.id,url);return url;
@@ -769,7 +780,15 @@ function bannerPhotosForPlace(placeId){const xs=approvedPhotosForPlace(placeId);
 function coverPhotoForPlace(placeId){return bannerPhotosForPlace(placeId)[0]||null;}
 function photoCredit(ph,forEditor=false){const ownerName=state?.settings?.ownerDisplayName||CFG.ownerDisplayName||'Owner';if(ph.uploaderRole==='owner')return `${ownerName} - Owner`;if(ph.uploaderRole==='admin')return 'Admin photo';return forEditor&&ph.uploaderDisplayName?`User contribution - ${ph.uploaderDisplayName}`:'User contribution';}
 async function hydratePhotoImages(root=document){
-  const imgs=[...root.querySelectorAll('img[data-photo-id]')];await Promise.all(imgs.map(async img=>{const ph=photos.find(x=>x.id===img.dataset.photoId);if(!ph)return;try{const u=await photoObjectUrl(ph);if(u)img.src=u;}catch{img.alt='Photo unavailable';}}));
+  const imgs=[...root.querySelectorAll('img[data-photo-id]')];await Promise.all(imgs.map(async img=>{const id=img.dataset.photoId,placeId=img.dataset.photoPlace;const matches=photos.filter(x=>x.id===id&&(!placeId||x.placeId===placeId));const ph=matches[0];if(!ph||!canSeePhoto(ph))return;try{const u=await photoObjectUrl(ph);if(u&&img.isConnected&&img.dataset.photoId===id&&img.dataset.photoPlace===placeId&&photos.includes(ph)&&canSeePhoto(ph))img.src=u;}catch{img.alt='Photo unavailable';}}));
+}
+function photoIdentity(place){return JSON.stringify([place.id,place.name,place.googlePlaceId,place.tripadvisorLocationId,place.city,place.stateRegion,place.country,place.lat,place.lng]);}
+function providerPhotoMatch(place,rows){
+  if(place.googlePlaceId)return rows.find(x=>clean(x.id)===clean(place.googlePlaceId)&&x.photoRef);
+  const matches=rows.filter(x=>x.photoRef&&foldText(x.name)===foldText(place.name)&&(
+    validCoordinates(place)&&validCoordinates(x)?haversine(+place.lat,+place.lng,+x.lat,+x.lng)<0.3:
+    clean(place.city)&&foldText(x.city)===foldText(place.city)&&(!clean(place.country)||foldText(x.country)===foldText(place.country))));
+  return matches.length===1?matches[0]:null;
 }
 function clearLegacyGooglePhotoStorage(){
   try{localStorage.removeItem(LS_OBSOLETE_GOOGLE_PHOTO_REFS);}catch{}
@@ -802,26 +821,27 @@ function googlePhotoValueFromMeta(meta,photoUri){
 }
 async function resolveGooglePhoto(place){
   if(!place||approvedPhotosForPlace(place.id).length||!placesEndpoint())return null;
-  const displayed=displayedGooglePhotos.get(place.id);
+  const key=photoIdentity(place);
+  const displayed=displayedGooglePhotos.get(key);
   if(displayed&&Date.now()-displayed.at<60000)return displayed.photo;
-  const failure=googlePhotoFailures.get(place.id);
+  const failure=googlePhotoFailures.get(key);
   if(failure&&Date.now()-failure.at<60000)throw new Error(failure.message);
-  if(googlePhotoPending.has(place.id))return googlePhotoPending.get(place.id);
+  if(googlePhotoPending.has(key))return googlePhotoPending.get(key);
   const pending=(async()=>{
     const loc=validCoordinates(place)?{lat:+place.lat,lng:+place.lng}:null;
     const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
     const live=liveExternalByPlace.get(place.id);
-    const direct=place.googlePhotoRef?place:live;
+    const direct=place.googlePhotoRef?place:(live?.googlePlaceId===place.googlePlaceId?live:null);
     const rows=direct?.googlePhotoRef?[{id:direct.googlePlaceId,name:place.name,photoRef:direct.googlePhotoRef,photoAttribution:direct.googlePhotoAttribution,photoGoogleMapsUri:direct.googlePhotoGoogleMapsUri,photoFlagContentUri:direct.googlePhotoFlagContentUri}]:await googlePlacesSearch(place.name,loc,ctx,false);
-    const exact=(rows||[]).find(x=>place.googlePlaceId&&clean(x.id)===clean(place.googlePlaceId)&&x.photoRef)
-      ||(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef);
-    if(!exact){googlePhotoFailures.set(place.id,{at:Date.now(),message:'No matching Google photo available.'});return null;}
+    const exact=providerPhotoMatch(place,rows||[]);
+    if(!exact){googlePhotoFailures.set(key,{at:Date.now(),message:'No matching Google photo available.'});return null;}
     const photoUri=await requestGooglePhotoUri(exact.photoRef);
     if(!photoUri)return null;
     const photo=googlePhotoValueFromMeta(exact,photoUri);
-    displayedGooglePhotos.set(place.id,{photo,at:Date.now()});return photo;
-  })().catch(e=>{googlePhotoFailures.set(place.id,{at:Date.now(),message:clean(e.message)});throw e;}).finally(()=>googlePhotoPending.delete(place.id));
-  googlePhotoPending.set(place.id,pending);return pending;
+    if(key!==photoIdentity(place))return null;
+    displayedGooglePhotos.set(key,{photo,at:Date.now()});return photo;
+  })().catch(e=>{googlePhotoFailures.set(key,{at:Date.now(),message:clean(e.message)});throw e;}).finally(()=>googlePhotoPending.delete(key));
+  googlePhotoPending.set(key,pending);return pending;
 }
 function googleAttributionHtml(photo={}){
   const items=Array.isArray(photo.attribution)?photo.attribution:[];
@@ -840,13 +860,13 @@ function renderGooglePhotoFrame(frame,place,photo){
   if(!frame||!photo?.photoUri)return false;
   frame.dataset.googlePhotoLoaded='1';
   frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="Google Maps photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(photo)}</div>`;
-  frame.querySelector('.google-place-photo').onerror=()=>{displayedGooglePhotos.delete(place.id);showPhotoUnavailable(frame,'Photo could not load.');};
+  frame.querySelector('.google-place-photo').onerror=()=>{displayedGooglePhotos.delete(photoIdentity(place));showPhotoUnavailable(frame,'Photo could not load.');};
   frame.classList.add('loaded');return true;
 }
 function showPhotoUnavailable(frame,message){
   frame.classList.remove('loaded');
   frame.innerHTML=`<div class="photo-unavailable"><span>${esc(message)}</span><button type="button">Retry photo</button></div>`;
-  frame.querySelector('button').onclick=()=>{googlePhotoFailures.delete(frame.dataset.googlePhotoPlace);displayedGooglePhotos.delete(frame.dataset.googlePhotoPlace);frame.dataset.googlePhotoLoaded='';loadGoogleFallback(frame);};
+  frame.querySelector('button').onclick=()=>{googlePhotoFailures.delete(frame.dataset.photoIdentity);displayedGooglePhotos.delete(frame.dataset.photoIdentity);frame.dataset.googlePhotoLoaded='';loadGoogleFallback(frame);};
 }
 function rememberTripadvisorMatch(place,match){
   if(!place||!match)return;
@@ -856,34 +876,36 @@ function rememberTripadvisorMatch(place,match){
 }
 async function resolveTripadvisorPhoto(place){
   if(!place||approvedPhotosForPlace(place.id).length||!tripadvisorEndpoint())return null;
-  if(tripadvisorPhotoCache.has(place.id))return tripadvisorPhotoCache.get(place.id);
-  if(tripadvisorPhotoPending.has(place.id))return tripadvisorPhotoPending.get(place.id);
+  const key=photoIdentity(place);
+  if(tripadvisorPhotoCache.has(key))return tripadvisorPhotoCache.get(key);
+  if(tripadvisorPhotoPending.has(key))return tripadvisorPhotoPending.get(key);
   const pending=(async()=>{
     let locationId=clean(place.tripadvisorLocationId),directPhoto='';
     if(!locationId){
       const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
       let rows=[];try{rows=await tripadvisorSearch(place.name,null,ctx);}catch{return null;}
-      const exact=(rows||[]).find(x=>foldText(x.name)===foldText(place.name))||(rows||[])[0];
-      if(!exact){tripadvisorPhotoCache.set(place.id,null);return null;}
+      const matches=(rows||[]).filter(x=>foldText(x.name)===foldText(place.name)&&clean(place.city)&&foldText(x.city)===foldText(place.city)&&(!clean(place.country)||foldText(x.country)===foldText(place.country)));
+      const exact=matches.length===1?matches[0]:null;
+      if(!exact){tripadvisorPhotoCache.set(key,null);return null;}
       locationId=clean(exact.tripadvisorLocationId);
       directPhoto=clean(exact.tripadvisorPhotoUri);
-      rememberTripadvisorMatch(place,exact);
+
     }
     if(directPhoto){
       const value={photoUri:directPhoto,url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
-      tripadvisorPhotoCache.set(place.id,value);return value;
+      tripadvisorPhotoCache.set(key,value);return value;
     }
-    if(!locationId){tripadvisorPhotoCache.set(place.id,null);return null;}
+    if(!locationId){tripadvisorPhotoCache.set(key,null);return null;}
     const endpoint=tripadvisorPhotoEndpoint();if(!endpoint)return null;
     const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locationId})});
     let j={};try{j=await r.json()}catch{}
     handleTripadvisorUsageStatus(j?.usage);
     if(!r.ok)return null;
-    if(!clean(j?.photoUri)){tripadvisorPhotoCache.set(place.id,null);return null;}
+    if(!clean(j?.photoUri)){tripadvisorPhotoCache.set(key,null);return null;}
     const value={photoUri:clean(j.photoUri),url:clean(place.tripadvisorUrl),attribution:'TripAdvisor'};
-    tripadvisorPhotoCache.set(place.id,value);return value;
-  })().catch(()=>null).finally(()=>tripadvisorPhotoPending.delete(place.id));
-  tripadvisorPhotoPending.set(place.id,pending);return pending;
+    tripadvisorPhotoCache.set(key,value);return value;
+  })().catch(()=>null).finally(()=>tripadvisorPhotoPending.delete(key));
+  tripadvisorPhotoPending.set(key,pending);return pending;
 }
 function tripadvisorAttributionHtml(place,photo){
   const url=safeUrl(photo?.url||place?.tripadvisorUrl||'');
@@ -895,13 +917,14 @@ async function loadGoogleFallback(frame){
   frame.dataset.googlePhotoLoaded='1';
   const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace)||externalPlaceResults.find(x=>x.id===frame.dataset.googlePhotoPlace);
   if(!place||approvedPhotosForPlace(place.id).length)return;
+  const identity=photoIdentity(place);frame.dataset.photoIdentity=identity;
   let googleError='';
   const google=place.provider==='TripAdvisor'?null:await resolveGooglePhoto(place).catch(e=>{googleError=clean(e.message);return null;});
-  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected)return;
+  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected||identity!==photoIdentity(place)||approvedPhotosForPlace(place.id).length)return;
   if(google&&renderGooglePhotoFrame(frame,place,google))return;
   showPhotoUnavailable(frame,googleError||'No Google photo available. Checking other sources…');
   const ta=await resolveTripadvisorPhoto(place);
-  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected)return;
+  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected||identity!==photoIdentity(place)||approvedPhotosForPlace(place.id).length)return;
   if(ta){
     frame.innerHTML=`<img class="google-place-photo" src="${esc(ta.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,ta)}</div>`;
     frame.classList.add('loaded');
@@ -935,7 +958,7 @@ async function boot(){
   setBranding();bindEvents();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.24 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.25 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -1010,7 +1033,7 @@ function placeMatchesFilter(p,key,value){
   }
 }
 function rowsForFilterChoice(excludeKey=''){
-  let rows=places.filter(p=>!p.archivedAt).filter(catalogueSearchMatches);if(mapBoundsFilter&&map)rows=rows.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&mapBoundsFilter.contains([+p.lat,+p.lng]));
+  let rows=places.filter(p=>!p.archivedAt).filter(catalogueSearchMatches);if(mapBoundsFilter&&map)rows=rows.filter(p=>validCoordinates(p)&&mapBoundsFilter.contains([+p.lat,+p.lng]));
   const geoIgnored=excludeKey==='country'?new Set(['country','region','city']):excludeKey==='region'?new Set(['region','city']):excludeKey==='city'?new Set(['city']):new Set();
   for(const key of FILTER_KEYS){if(key===excludeKey||geoIgnored.has(key)||!filters[key])continue;rows=rows.filter(p=>placeMatchesFilter(p,key,filters[key]));}return rows;
 }
@@ -1109,7 +1132,7 @@ function applyFilters(){
   if(filters.meal) xs=xs.filter(p=>(p.mealTypes||[]).includes(filters.meal));if(filters.greatFor) xs=xs.filter(p=>(p.greatFor||[]).includes(filters.greatFor));if(filters.feature) xs=xs.filter(p=>(p.features||[]).includes(filters.feature));if(filters.dietary) xs=xs.filter(p=>(p.dietary||[]).includes(filters.dietary));if(filters.tag) xs=xs.filter(p=>(p.tags||[]).includes(filters.tag));
   if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>liveProviderView(p).openNow===true);
   if(filters.status){xs=xs.filter(p=>{const x=getPersonal(p.id);switch(filters.status){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}});}
-  if(mapBoundsFilter && map){xs=xs.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&mapBoundsFilter.contains([+p.lat,+p.lng]));}
+  if(mapBoundsFilter && map){xs=xs.filter(p=>validCoordinates(p)&&mapBoundsFilter.contains([+p.lat,+p.lng]));}
   sortPlaceRows(xs);
   filteredPlaces=xs;return xs;
 }
@@ -1155,11 +1178,22 @@ function renderChips(){
 }
 function renderList(){
   const box=$('listPanel');if(!filteredPlaces.length){box.innerHTML=`<div class="empty">${esc(t('noMatch'))}</div>`;return;}
-  box.innerHTML=filteredPlaces.map(p=>{
+  const previous=new Map([...box.querySelectorAll('article[data-place]')].map(card=>[card.dataset.place,card.firstElementChild]));
+  const next=document.createElement('template');
+  next.innerHTML=filteredPlaces.map(p=>{
     const x=getPersonal(p.id),pv=liveProviderView(p),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
-    const visual=banner.length?`<div class="place-card-banner banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="google-fallback-frame place-card-google" data-google-photo-place="${p.id}"><div class="place-card-placeholder">${initials}</div></div>`;
+    const visual=banner.length?`<div class="place-card-banner banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${esc(ph.id)}" data-photo-place="${esc(ph.placeId)}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="google-fallback-frame place-card-google" data-google-photo-place="${p.id}"><div class="place-card-placeholder">${initials}</div></div>`;
     return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${pv.googleRating?`<span class="rating-pill">${googleMapsAttributionHtml()} ★ ${esc((+pv.googleRating).toFixed(1))}${pv.googleRatingCount?` (${pv.googleRatingCount})`:''}</span>`:''}${pv.tripadvisorRating?`<span class="rating-pill">${safeUrl(pv.tripadvisorRatingIconUrl)?`<img class="tripadvisor-rating-icon" src="${esc(safeUrl(pv.tripadvisorRatingIconUrl))}" alt="TripAdvisor rating" /> `:''}TripAdvisor ${safeUrl(pv.tripadvisorRatingIconUrl)?'':'★ '}${esc((+pv.tripadvisorRating).toFixed(1))}${pv.tripadvisorRatingCount?` (${pv.tripadvisorRatingCount})`:''}</span>`:''}${pv.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
-  }).join('');hydratePhotoImages(box);hydrateGoogleFallbacks(box);
+  }).join('');
+  for(const card of next.content.querySelectorAll('article[data-place]')){
+    const p=filteredPlaces.find(x=>x.id===card.dataset.place),visual=card.firstElementChild;
+    const key=photoIdentity(p)+JSON.stringify(bannerPhotosForPlace(p.id).map(ph=>[ph.id,ph.updatedAt,ph.storagePath]));
+    visual.dataset.visualIdentity=key;
+    const old=previous.get(p.id);
+    if(old?.dataset.visualIdentity===key)visual.replaceWith(old);
+  }
+  for(const frame of box.querySelectorAll('[data-google-photo-place]'))googlePhotoObserver?.unobserve(frame);
+  box.replaceChildren(next.content);hydratePhotoImages(box);hydrateGoogleFallbacks(box);
 }
 function ensureMap(){
   if(map || !window.L) return;
@@ -1169,7 +1203,7 @@ function ensureMap(){
 }
 function renderMap(){
   ensureMap();if(!map)return;setTimeout(()=>map.invalidateSize(),0);mapMarkers.forEach(m=>m.remove());mapMarkers=[];
-  const mappable=filteredPlaces.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng));
+  const mappable=filteredPlaces.filter(p=>validCoordinates(p));
   for(const p of mappable){const m=L.marker([+p.lat,+p.lng]).addTo(map).bindPopup(`<strong>${esc(p.name)}</strong><br>${esc([p.cuisine,p.city].filter(Boolean).join(' · '))}<br><button onclick="window.PERS_TEST.openPlace('${p.id}')">Open</button>`);mapMarkers.push(m);}
   if(currentPosition){mapMarkers.push(L.circleMarker([currentPosition.lat,currentPosition.lng],{radius:7}).addTo(map).bindPopup('My location'));}
   if(mappable.length && !mapBoundsFilter){const b=L.latLngBounds(mappable.map(p=>[+p.lat,+p.lng]));map.fitBounds(b.pad(.12),{maxZoom:15});}
@@ -1191,13 +1225,13 @@ function renderPhotoGallery(placeId){
   const tiles=xs.map(ph=>{
     const statusClass=ph.status==='pending'?'pending':ph.status==='hidden'?'hidden-status':'';const ownerClass=ph.uploaderRole==='owner'?'owner':'';
     const manage=canEdit()?`<div class="photo-actions"><button data-photo-caption="${ph.id}">Caption</button>${ph.status!=='approved'?`<button data-photo-approve="${ph.id}">Approve</button>`:''}${ph.status!=='hidden'?`<button data-photo-hide="${ph.id}">Hide</button>`:''}${ph.status==='approved'?`<button data-photo-cover="${ph.id}">${ph.isCover?'Remove from banner':'Add to banner'}</button>`:''}${ph.status==='approved'?`<button data-photo-earlier="${ph.id}">Move earlier</button><button data-photo-later="${ph.id}">Move later</button>`:''}<button data-photo-delete="${ph.id}">Delete</button></div>`:(ph.uploadedBy===currentUser?.id?`<div class="photo-actions"><button data-photo-delete="${ph.id}">Remove my photo</button></div>`:'');
-    return `<div class="photo-tile"><button class="photo-open-button" data-photo-open="${ph.id}" aria-label="Open photo"><img data-photo-id="${ph.id}" alt="Venue photo" /></button><div class="photo-tile-body"><p class="photo-caption">${esc(ph.caption||'')}</p><div class="photo-credit">${esc(photoCredit(ph,canEdit()))}</div><div class="detail-badges">${ph.isCover?'<span class="photo-badge">Banner</span>':''}<span class="photo-badge ${statusClass} ${ownerClass}">${esc(ph.status==='approved'?'Visible':ph.status==='pending'?'Pending approval':'Hidden')}</span></div></div>${manage}</div>`;
+    return `<div class="photo-tile"><button class="photo-open-button" data-photo-open="${ph.id}" aria-label="Open photo"><img data-photo-id="${esc(ph.id)}" data-photo-place="${esc(ph.placeId)}" alt="Venue photo" /></button><div class="photo-tile-body"><p class="photo-caption">${esc(ph.caption||'')}</p><div class="photo-credit">${esc(photoCredit(ph,canEdit()))}</div><div class="detail-badges">${ph.isCover?'<span class="photo-badge">Banner</span>':''}<span class="photo-badge ${statusClass} ${ownerClass}">${esc(ph.status==='approved'?'Visible':ph.status==='pending'?'Pending approval':'Hidden')}</span></div></div>${manage}</div>`;
   }).join('');
   const contributionOpen=state?.settings?.allowUserPhotos!==false;const addButton=(canEdit()||contributionOpen)?`<button class="primary compact" data-add-photo="${placeId}">+ Add photos</button>`:'';const note=canEdit()?`Owner uploads appear immediately. User uploads require approval before other users see them.`:(contributionOpen?`You can contribute photos. If you are not signed in, the app will ask for your email only when you upload. The ${esc(ownerName)} collection Owner approves user photos before they appear to everyone.`:`User photo contributions are currently turned off by the Owner.`);return `<section class="photo-section"><div class="photo-section-head"><div><strong>Venue photos</strong><div class="muted small">${xs.length?`${xs.length} available to you`:'No photos yet'}</div></div>${addButton}</div><p class="photo-upload-note">${note}</p><div class="photo-strip">${tiles||'<div class="empty">No venue photos yet.</div>'}</div></section>`;
 }
 function openDetail(id){
   const p=places.find(x=>x.id===id);if(!p)return;activeDetailPlaceId=id;const x=getPersonal(id),pv=liveProviderView(p);$('detailName').textContent=p.name;
-  const d=distanceFor(p),banner=bannerPhotosForPlace(id),ownerName=state?.settings?.ownerDisplayName||CFG.ownerDisplayName||'Owner';const hero=banner.length?`<div class="detail-hero banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${ph.id}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="detail-hero google-fallback-frame" data-google-photo-place="${p.id}"><div class="detail-hero-empty">${esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF')}</div></div>`;
+  const d=distanceFor(p),banner=bannerPhotosForPlace(id),ownerName=state?.settings?.ownerDisplayName||CFG.ownerDisplayName||'Owner';const hero=banner.length?`<div class="detail-hero banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${esc(ph.id)}" data-photo-place="${esc(ph.placeId)}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="detail-hero google-fallback-frame" data-google-photo-place="${p.id}"><div class="detail-hero-empty">${esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF')}</div></div>`;
   $('detailBody').innerHTML=`${hero}<div class="detail-grid"><div class="k">Type</div><div>${esc([p.placeType,p.cuisine].filter(Boolean).join(' · ')||'—')}</div><div class="k">Location</div><div>${esc([p.suburb,p.city,p.stateRegion,p.country].filter(Boolean).join(', ')||'—')}</div><div class="k">Distance</div><div>${d==null?'—':esc(d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km')}</div><div class="k">Price</div><div>${esc(p.price||'—')}</div><div class="k">Must try</div><div>${esc(p.mustTry||'—')}</div><div class="k">${esc(ownerName)} says</div><div>${esc(p.notes||'—')}</div><div class="k">Tags</div><div>${esc((p.tags||[]).join(', ')||'—')}</div></div>
   ${renderPhotoGallery(id)}
   <div class="rating-panel"><strong>Ratings</strong>
@@ -1278,7 +1312,7 @@ async function deletePhoto(id){
 function openPhotoViewer(id){const ph=photos.find(x=>x.id===id);if(!ph||!canSeePhoto(ph))return;const place=places.find(x=>x.id===ph.placeId);$('photoViewerTitle').textContent=place?.name||'Venue photo';$('photoViewerMeta').textContent=`${photoCredit(ph,canEdit())} · ${ph.status}`;$('photoViewerCaption').textContent=ph.caption||'';$('photoViewerImage').removeAttribute('src');photoObjectUrl(ph).then(u=>{if(u)$('photoViewerImage').src=u;}).catch(()=>{});$('photoViewerDialog').showModal();}
 function renderPhotoModeration(){
   if(!canEdit())return;const mode=$('photoModerationFilter').value;let xs=photos.slice().sort((a,b)=>clean(b.createdAt).localeCompare(clean(a.createdAt)));if(mode!=='all')xs=xs.filter(x=>x.status===mode);$('photoModerationCount').textContent=`${xs.length} ${xs.length===1?'photo':'photos'}`;
-  $('photoModerationList').innerHTML=xs.length?xs.map(ph=>{const pl=places.find(x=>x.id===ph.placeId);return `<div class="moderation-row"><img data-photo-id="${ph.id}" alt="Venue photo"/><div><div class="moderation-title">${esc(pl?.name||'Unknown venue')}</div><div class="moderation-meta">${esc(photoCredit(ph,true))} · ${esc(ph.status)}${ph.isCover?' · Banner':''}</div>${ph.caption?`<div class="small">${esc(ph.caption)}</div>`:''}<div class="moderation-actions"><button data-photo-open="${ph.id}">Open</button><button data-photo-caption="${ph.id}">Caption</button>${ph.status!=='approved'?`<button data-photo-approve="${ph.id}">Approve</button>`:''}${ph.status!=='hidden'?`<button data-photo-hide="${ph.id}">Hide</button>`:''}${ph.status==='approved'?`<button data-photo-cover="${ph.id}">${ph.isCover?'Remove from banner':'Add to banner'}</button>`:''}${ph.status==='approved'?`<button data-photo-earlier="${ph.id}">Earlier</button><button data-photo-later="${ph.id}">Later</button>`:''}<button class="danger-secondary" data-photo-delete="${ph.id}">Delete</button></div></div></div>`;}).join(''):'<div class="empty">No photos in this category.</div>';hydratePhotoImages($('photoModerationList'));
+  $('photoModerationList').innerHTML=xs.length?xs.map(ph=>{const pl=places.find(x=>x.id===ph.placeId);return `<div class="moderation-row"><img data-photo-id="${esc(ph.id)}" data-photo-place="${esc(ph.placeId)}" alt="Venue photo"/><div><div class="moderation-title">${esc(pl?.name||'Unknown venue')}</div><div class="moderation-meta">${esc(photoCredit(ph,true))} · ${esc(ph.status)}${ph.isCover?' · Banner':''}</div>${ph.caption?`<div class="small">${esc(ph.caption)}</div>`:''}<div class="moderation-actions"><button data-photo-open="${ph.id}">Open</button><button data-photo-caption="${ph.id}">Caption</button>${ph.status!=='approved'?`<button data-photo-approve="${ph.id}">Approve</button>`:''}${ph.status!=='hidden'?`<button data-photo-hide="${ph.id}">Hide</button>`:''}${ph.status==='approved'?`<button data-photo-cover="${ph.id}">${ph.isCover?'Remove from banner':'Add to banner'}</button>`:''}${ph.status==='approved'?`<button data-photo-earlier="${ph.id}">Earlier</button><button data-photo-later="${ph.id}">Later</button>`:''}<button class="danger-secondary" data-photo-delete="${ph.id}">Delete</button></div></div></div>`;}).join(''):'<div class="empty">No photos in this category.</div>';hydratePhotoImages($('photoModerationList'));
 }
 function openPhotoModeration(){if(!canEdit())return;$('photoModerationFilter').value='pending';renderPhotoModeration();$('photoModerationDialog').showModal();}
 
@@ -1317,6 +1351,7 @@ async function savePlace(e){
       live.googleRating=+transientMeta.googleRating||0;live.googleRatingCount=+transientMeta.googleRatingCount||0;
       if(transientMeta.openNow===true||transientMeta.openNow===false)live.googleOpenNow=transientMeta.openNow;
       if(transientMeta.googlePlaceId)live.googlePlaceId=clean(transientMeta.googlePlaceId);
+      for(const key of ['googlePhotoRef','googlePhotoAttribution','googlePhotoGoogleMapsUri','googlePhotoFlagContentUri'])if(transientMeta[key])live[key]=transientMeta[key];
       if(p.googleMapsUrl)live.googleMapsUrl=clean(p.googleMapsUrl);
     }
     if(+transientMeta.tripadvisorRating||+transientMeta.tripadvisorRatingCount||transientMeta.tripadvisorLocationId){
@@ -1339,13 +1374,13 @@ async function savePlace(e){
     }catch{}
   }
 
-  googleNoPhotoCache.delete(p.id);tripadvisorPhotoCache.delete(p.id);
+  if(immediateGooglePhoto)displayedGooglePhotos.set(photoIdentity(p),{photo:immediateGooglePhoto,at:Date.now()});
+  googlePhotoFailures.delete(photoIdentity(p));googleNoPhotoCache.delete(p.id);tripadvisorPhotoCache.clear();
   pendingOnlinePlaceMeta=null;
   closePlaceEditor();populateFilterOptions();render();
 
   const frames=[...document.querySelectorAll('[data-google-photo-place]')].filter(x=>x.dataset.googlePhotoPlace===p.id);
-  if(immediateGooglePhoto)frames.forEach(frame=>renderGooglePhotoFrame(frame,p,immediateGooglePhoto));
-  else setTimeout(()=>frames.forEach(frame=>loadGoogleFallback(frame)),60);
+  setTimeout(()=>frames.forEach(frame=>loadGoogleFallback(frame)),60);
   toast(old?'Place updated':'Place added');
 }
 async function archivePlace(id){if(!canEdit())return;const p=places.find(x=>x.id===id);if(!p)return;if(!confirm(`Move “${p.name}” to Archive? It can be restored later.`))return;await makeCheckpoint('Before archive');if(CFG.mode==='local'){p.archivedAt=nowISO();saveLocalState();}else{await rest('places',{method:'PATCH',body:{archived_at:nowISO()},filters:`?id=eq.${encodeURIComponent(id)}`});p.archivedAt=nowISO();}closePlaceEditor();populateFilterOptions();render();toast('Moved to Archive');}
@@ -1484,6 +1519,7 @@ function bindEvents(){
   $('filtersToggleBtn').onclick=()=>{catalogueFiltersOpen=!catalogueFiltersOpen;syncCatalogueFilters();};
   $('quickPresetSelect').onchange=async()=>{const which=$('quickPresetSelect').value;$('quickPresetSelect').value='';if(which)await quickFilter(which);};
   $('listViewBtn').onclick=()=>setView('list');$('mapViewBtn').onclick=()=>setView('map');$('sortSelect').onchange=async()=>{render();if($('sortSelect').value==='nearest'){await getDeviceLocation(true);render();}};
+  $('summaryToggle').onclick=()=>{preferences.summaryCollapsed=!preferences.summaryCollapsed;renderSelectionSummary();persistPreferences();};
   $('selectionSummary').onclick=async e=>{if(e.target.closest('[data-summary-sort]')){const s=$('sortSelect');s.focus();try{s.showPicker?.();}catch{}}if(e.target.closest('[data-summary-sources]')){catalogueFiltersOpen=true;syncCatalogueFilters();$('sourceGoogle').focus();}if(e.target.closest('[data-summary-location]')){await getDeviceLocation(true);render();}};
   $('moreFiltersBtn').onclick=()=>{$('moreFiltersPanel').classList.toggle('hidden');};
   $('editLocationBtn').onclick=()=>{locationEditorOpen=!locationEditorOpen;syncLocationBanner();if(locationEditorOpen)setTimeout(()=>$('countryFilter')?.focus(),0);};

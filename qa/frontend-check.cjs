@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.24'})};
+ return {ok:true,json:async()=>({version:'0.27.25'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -53,13 +53,58 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  read(`externalPlaceResults=[Object.assign(googleWorkerResultToPlace(${JSON.stringify(googleRow)}),{provider:'Google Places'})];render()`);await tick();
  check('external Google photo rendered',()=>assert.ok(w.document.querySelector('#externalGoogleResultsPanel .google-place-photo')));
  check('attribution preserved',()=>assert.match(w.document.querySelector('#externalGoogleResultsPanel .google-photo-attribution').textContent,/Test Photographer.*View source photo.*Report/));
+ const externalFrame=w.document.querySelector('#externalGoogleResultsPanel [data-google-photo-place]');
  const before=photoCalls;read('render()');await tick();check('sort/render reuses displayed photo',()=>assert.equal(photoCalls,before));
+ check('external sorting retains its photo element',()=>assert.equal(w.document.querySelector('#externalGoogleResultsPanel [data-google-photo-place]'),externalFrame));
  w.document.getElementById('sourceGoogle').checked=false;ev('sourceGoogle');check('source off hides its results',()=>assert.equal(w.document.getElementById('externalGoogleResultsPanel'),null));
  read(`places.push(normalizeLegacyPlace({id:'don',name:'Cafeteria Don Pepe',googlePlaceId:'google-don',city:'Córdoba',lat:37.88,lng:-4.77}));render()`);await tick();
  check('saved Google photo rendered',()=>assert.ok(w.document.querySelector('[data-google-photo-place="don"] .google-place-photo')));
- failPhoto=true;read('displayedGooglePhotos.clear();render()');await new Promise(r=>setTimeout(r,1500));
+ failPhoto=true;read('displayedGooglePhotos.clear();$("listPanel").replaceChildren();render()');await new Promise(r=>setTimeout(r,1500));
  check('provider failure visible',()=>assert.match(w.document.querySelector('[data-google-photo-place="don"]').textContent,/minute limit reached/));
  failPhoto=false;w.document.querySelector('[data-google-photo-place="don"] button').click();await tick();check('retry photo recovers',()=>assert.ok(w.document.querySelector('[data-google-photo-place="don"] .google-place-photo')));
+ const donFrame=w.document.querySelector('[data-google-photo-place="don"]');
+ const callsBeforeSort=photoCalls;
+ w.document.getElementById('sortSelect').value='name';ev('sortSelect');await tick();
+ check('sorting retains the same venue photo element',()=>assert.equal(w.document.querySelector('[data-google-photo-place="don"]'),donFrame));
+ check('sorting makes no new saved photo request',()=>assert.equal(photoCalls,callsBeforeSort));
+ read(`places.push(normalizeLegacyPlace({id:'casa',name:'Casa El Pimpo',city:'Córdoba',googlePlaceId:'google-casa'}));render()`);await tick();
+ check('adding a venue retains existing images',()=>assert.equal(w.document.querySelector('[data-google-photo-place="don"]'),donFrame));
+ check('new venue cannot borrow Don Pepe photo',()=>assert.equal(w.document.querySelector('[data-google-photo-place="casa"] .google-place-photo'),null));
+ check('provider ID mismatch rejects same name',()=>assert.equal(read(`providerPhotoMatch({googlePlaceId:'other',name:'Cafeteria Don Pepe'},[${JSON.stringify(googleRow)}])`),undefined));
+ check('ambiguous name matches rejected',()=>assert.equal(read(`providerPhotoMatch({name:'Cafeteria Don Pepe',city:'Córdoba',country:'Spain'},[${JSON.stringify(googleRow)},${JSON.stringify(googleRow)}])`),null));
+ read('filters.type="Cafe";render()');w.document.getElementById('summaryToggle').click();
+ check('summary collapses',()=>assert.equal(w.document.getElementById('selectionDetails').hidden,true));
+ check('collapsed summary keeps filter count',()=>assert.match(w.document.getElementById('summaryToggle').textContent,/1 filters/));
+ check('summary exposes expanded state',()=>assert.equal(w.document.getElementById('summaryToggle').getAttribute('aria-expanded'),'false'));
+ read('render()');check('collapse survives rendering',()=>assert.equal(w.document.getElementById('selectionDetails').hidden,true));
+ check('collapse preference saved',()=>assert.ok(w.localStorage.getItem('pers-v027f-db:pers-favourites-per-trial').includes('"summaryCollapsed":true')));
+ w.document.getElementById('summaryToggle').click();check('summary expands without clearing filters',()=>{assert.equal(w.document.getElementById('selectionDetails').hidden,false);assert.equal(read('filters.type'),'Cafe');});
+ read('filters=defaultFilters();places=places.filter(p=>p.id!=="casa");');
+ read('render()');await tick();
+ await read('openPlaceEditor()');w.document.getElementById('placeName').value='QA newly saved venue';
+ const retainedBeforeSave=w.document.querySelector('[data-google-photo-place="don"]');
+ await read('savePlace({preventDefault(){}})');await tick();
+ check('actual Save Place retains existing photo',()=>assert.equal(w.document.querySelector('[data-google-photo-place="don"]'),retainedBeforeSave));
+ check('actual Save Place persists new venue',()=>assert.ok(w.localStorage.getItem('pers-v027f-db:pers-favourites-per-trial').includes('QA newly saved venue')));
+ read('places=places.filter(p=>p.name!=="QA newly saved venue");');
+ const normalFetch=w.fetch,pendingPhotos=new Map();
+ w.fetch=async(url,options)=>{
+  const ref=options?.body?JSON.parse(options.body).photoRef:'';
+  if(String(url).includes('/photo')&&ref?.includes('race-'))return new Promise(resolve=>pendingPhotos.set(ref,()=>resolve({ok:true,json:async()=>({photoUri:'https://example.test/'+ref.split('/')[1]+'.jpg'})})));
+  return normalFetch(url,options);
+ };
+ read(`places.push(...['race-one','race-two'].map(id=>normalizeLegacyPlace({id,name:id,googlePlaceId:id,city:'Córdoba'})));for(const p of places.filter(p=>p.id.startsWith('race-')))liveExternalByPlace.set(p.id,{googlePlaceId:p.googlePlaceId,googlePhotoRef:'places/'+p.id+'/photos/test'});render()`);await tick();
+ w.document.getElementById('sortSelect').value='recent';ev('sortSelect');await tick();
+ pendingPhotos.get('places/race-two/photos/test')();await tick();pendingPhotos.get('places/race-one/photos/test')();await tick();
+ for(const id of ['race-one','race-two'])check('out-of-order photo stays with '+id,()=>assert.equal(w.document.querySelector('[data-google-photo-place="'+id+'"] img.google-place-photo').src,'https://example.test/'+id+'.jpg'));
+ w.fetch=normalFetch;read('places=places.filter(p=>!p.id.startsWith("race-"));');
+ const originalFetch=w.fetch;let finishOld;
+ w.fetch=async(url,options)=>String(url).includes('/photo')?new Promise(resolve=>{finishOld=()=>resolve({ok:true,json:async()=>({photoUri:'https://example.test/old-venue.jpg'})});}):originalFetch(url,options);
+ const stalePhoto=read(`window.qaChangingPlace={id:'changed',name:'Old venue',googlePlaceId:'old',googlePhotoRef:'places/old/photos/one'};resolveGooglePhoto(window.qaChangingPlace)`);
+ await tick();read(`window.qaChangingPlace.name='New venue';window.qaChangingPlace.googlePlaceId='new';`);finishOld();
+ const staleResult=await stalePhoto;check('late response from edited venue rejected',()=>assert.equal(staleResult,null));w.fetch=originalFetch;
+ read(`photos=[{id:'shared',placeId:'b',status:'approved'},{id:'shared',placeId:'c',status:'approved'}]`);
+ const ambiguousBlob=await read('photoObjectUrl(photos[0])');check('duplicate photo ID across venues fails closed',()=>assert.equal(ambiguousBlob,''));read('photos=[]');
  check('photo names not persisted',()=>assert.ok(!w.localStorage.getItem('pers-v027f-db:pers-favourites-per-trial').includes('places/google-don/photos/test')));
  read('filters.country="Spain";filters.region="Andalusia";filters.city="Córdoba";populateFilterOptions();render()');check('geographic cascade',()=>assert.deepEqual(Array.from(read('filteredPlaces.map(p=>p.id)')),['b']));
  read('filters=defaultFilters();photos=[1,2,3,4,5].map(n=>({id:"ph"+n,placeId:"b",status:"approved",isCover:true,sortOrder:n}));');check('collage capped at four',()=>assert.equal(read('bannerPhotosForPlace("b").length'),4));

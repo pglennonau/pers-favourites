@@ -1,6 +1,6 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.24**
+Version: **0.27.25**
 
 This guide is for ordinary Users of Pers Favourites. You do not need an Owner/System Administrator account just to browse the collection.
 
@@ -215,3 +215,10 @@ Tap Sorted by to focus the sort control. Tap Sources selected to open Filters. T
 Nearest now requests your device location. Allow location when prompted. Distances are straight-line distances, not walking routes. If unavailable, the summary explains the A–Z fallback. Use Update my location to retry. Venues without coordinates appear last. Missing ratings/dates/prices appear last; tied values use A–Z. Pers/User ratings and personal dates do not apply to unsaved external venues, which use A–Z for those choices.
 
 Google photos appear when supplied by the service. If a photo cannot load, read the message and tap Retry photo. A usage-limit message means wait until the service limit resets. Uploaded photo collages still support up to four selected banner photos.
+
+
+## v0.27.25 draft update
+
+Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
+
+This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.

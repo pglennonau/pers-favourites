@@ -1,6 +1,6 @@
 # Pers Favourites — Owner Guide
 
-Version: **0.27.24**
+Version: **0.27.25**
 
 This is the operating manual for the collection Owner. It is written for normal day-to-day use of Pers Favourites. Technical deployment, API secrets, Cloudflare configuration and recovery are handled in the System Administrator Guide.
 
@@ -251,3 +251,10 @@ The System Administrator Guide contains the complete technical instructions and 
 Cards now use compact ratings consistently, including cards with uploaded collages. Google photos can appear on saved and external cards; missing/failed provider photos show a message and retry button. No saved venue, photo or rating migration is required. A venue without a provider photo cannot be guaranteed a photo; add your own through Venue photos if desired.
 
 Filters, sort and source selections remain visible above the results. Nearest asks for current device location; unknown values sort last. Saved Pers entries remain first. External entries cannot be sorted by a Pers/User rating or a personal visit date and use A–Z for those choices.
+
+
+## v0.27.25 draft update
+
+Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
+
+This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.

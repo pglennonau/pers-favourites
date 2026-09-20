@@ -1,5 +1,5 @@
 {
-  "version": "0.27.24",
+  "version": "0.27.25",
   "published": "2026-09-20",
-  "notes": "Visible filter/sort/source summary; Nearest requests device location; stable sorting with missing values last; Google photos on external results; saved-photo retry and error messages; compact ratings and preserved four-photo collage. Frontend-only release; no Cloudflare redeployment required."
+  "notes": "Draft: stable venue photo identity during sorting and additions; stricter provider matching; collapsible selection details; missing map coordinates excluded. Secure accounts remain pending backend implementation and provisioning."
 }

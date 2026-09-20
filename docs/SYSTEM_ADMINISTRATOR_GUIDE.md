@@ -1,6 +1,6 @@
 # Pers Favourites — System Administrator Guide
 
-Version: **0.27.24**
+Version: **0.27.25**
 
 This is the complete technical and operational reference for Pers Favourites. The System Administrator must understand both the technical system and the Owner/User workflows. It is intentionally broader than the Owner Guide.
 
@@ -348,3 +348,10 @@ Keep the existing deploymentId and local storage keys. Test entries are confined
 Changes: visible selections outside collapsed filters; location request on Nearest; missing-value/tie handling; external photo rendering; reuse of displayed Google photos in memory for up to one minute; explicit provider/photo errors and manual retry; compact rating badges. No Google photo resource names are written to localStorage or exports. Existing Google attribution and separate provider sections remain.
 
 The DOM regression suite reproduces the v0.27.23 Nearest failure and passes in v0.27.24. It uses synthetic data and mocked services, so it does not certify a particular live venue's photo or an iPhone location permission setting. TripAdvisor requires its existing service configuration and entitlement.
+
+
+## v0.27.25 draft update
+
+Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
+
+This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.

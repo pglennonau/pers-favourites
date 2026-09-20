@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const VERSION='0.27.24';
+const VERSION='0.27.25';
 const root=process.cwd();
 const failures=[];
 const passes=[];
@@ -81,10 +81,10 @@ for(const key of [
 assert(worker.includes("TRIPADVISOR_FREE_ALLOWANCE',0"),'TripAdvisor allowance has no hidden free-call default');
 assert(app.includes('tripadvisorSearchChain'),'TripAdvisor sustained request queue present');
 assert(app.includes('resolveTripadvisorPhoto'),'TripAdvisor last-resort photo fallback present');
-assert(app.indexOf('const google=await resolveGooglePhoto(place)')<app.indexOf('const ta=await resolveTripadvisorPhoto(place)'),'photo fallback order is Google before TripAdvisor');
+assert(app.indexOf("const google=place.provider===")>=0&&app.indexOf("const google=place.provider===")<app.indexOf('const ta=await resolveTripadvisorPhoto(place)'),'photo fallback order is Google before TripAdvisor');
 
 for(const p of ['docs/OWNER_GUIDE.md','docs/SYSTEM_ADMINISTRATOR_GUIDE.md','docs/USER_GUIDE.md']){
-  const d=read(p);assert(d.includes('0.27.24'),`${p} updated for v0.27.24`);
+  const d=read(p);assert(d.includes('0.27.25'),`${p} updated for v0.27.25`);
 }
 assert(read('docs/SYSTEM_ADMINISTRATOR_GUIDE.md').includes('Documentation Change Log'),'System Administrator Guide contains documentation change log');
 const ownerGuide=read('docs/OWNER_GUIDE.md');
