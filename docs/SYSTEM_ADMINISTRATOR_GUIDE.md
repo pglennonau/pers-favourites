@@ -355,3 +355,45 @@ The DOM regression suite reproduces the v0.27.23 Nearest failure and passes in v
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 
 This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.
+
+## Appendix A — Open Actions
+
+This is the ongoing register of matters still to be completed, including items deliberately left until handover. Review it before each release and at handover. Keep completed items in the register and record the completion date and evidence; do not mark an action complete merely because its screen or button exists.
+
+Status at this update: v0.27.25 is a tested draft, not the live release. Secure accounts and the recovery-email controls below are requirements, not activated features. Account email addresses have been supplied privately; verify them during provisioning rather than publishing them in this manual.
+
+### Before secure account activation
+
+| ID | Open action | Responsible | Completion evidence | Status |
+| --- | --- | --- | --- | --- |
+| OA-01 | Provision authentication and the email service for account setup and password recovery; confirm Cloudflare configuration and approved return URLs. | Administrator | Setup, verification and recovery messages delivered successfully; secrets remain server-side. | Open |
+| OA-02 | Create Per's permanent Owner account and Pat's account with Administrator plus Temporary Owner permissions. Both access the same collection through their own credentials. | Administrator, with Per | Each identity signs in successfully; direct API permission tests pass. | Open — account identities supplied |
+| OA-03 | Initially use Pat's recovery address for Per, and implement a separate Recovery email field that Per can change. Require re-authentication and verification of the new address before it becomes active. Changing recovery email must not change Per's login email. | Administrator implements; Per controls changes | Verified change, failed/unverified change, recovery delivery and old-address rejection tests pass. | Open |
+| OA-04 | Implement Per-controlled removal of Pat's Temporary Owner permission, with no automatic expiry of that role. Keep Pat's Administrator role separate. Normal login-session expiry still applies. | Administrator implements; Per authorises removal | Server denies Owner operations after revocation, including from an existing session, while Administrator access still works. | Open |
+| OA-05 | Implement shared catalogue/photo storage, public/private separation and cross-device access. Remove reliance on local trial roles for protection. | Administrator | Two-device tests and unauthorised access tests pass; private fields cannot be retrieved through public responses, caches or exports. | Open |
+| OA-06 | Complete password-change, recovery, session-revocation and audit-trail tests; protect against accidentally removing the last permanent Owner. | Administrator | Account acceptance tests recorded, including Owner recovery after loss of access. | Open |
+
+### Before release acceptance
+
+| ID | Open action | Responsible | Completion evidence | Status |
+| --- | --- | --- | --- | --- |
+| OA-07 | Verify the photo fixes against a safe copy of the affected collection: Don Pepe, Golden Stack, Gran Bar and Casa El Pimpo. Test adding, editing and sorting while photos load. | Administrator, with Pat | Each image remains attached to the correct venue; unavailable images have a clear explanation. | Open — automated draft checks passed; actual collection check pending |
+| OA-08 | Test mobile layouts and functions on iPhone Safari and the installed PWA: filters, cascades, sort, summary collapse, map, keyboard, long labels and one-to-four-photo layouts. | Administrator, with Pat/Per | Device checklist and any remaining defects recorded and resolved. | Open |
+| OA-09 | Resolve saved provider name/location behaviour after adding and reloading a venue, while preserving provider-data restrictions. | Administrator | Broad-search/add/reload tests retain the intended venue identity and obtain the correct live details. | Open |
+| OA-10 | Validate full backup and restore, including photo files, missing-file reporting, duplicate identifiers and safe recovery. Back up the existing collection before any migration. | Administrator | Successful restore into a disposable collection with matching record/photo counts and associations. | Open |
+| OA-11 | Clarify which spending limits are enforced by the server and which are only recorded locally. Keep API keys in Cloudflare; do not enable browser key management without protected server permissions. | Administrator; Per approves spending | Enforced limits tested and documentation/UI accurately distinguish budgets from safeguards. | Open |
+| OA-12 | Confirm whether TripAdvisor and Ask Pers will be enabled. Configure authorised services and test them, or explicitly retain them as disabled/deferred. | Per decides; Administrator configures | Recorded decision; enabled services pass live tests, or disabled services show clear status. | Open — optional activation |
+| OA-13 | Finish imported-identifier validation and output escaping before accepting untrusted shared data. | Administrator | Malformed import and markup-injection regression tests pass. | Open |
+| OA-14 | Complete the release gate: resolve blocking defects, compare with the previous working version, verify documentation/package contents, deploy the approved build and check the installed version. | Administrator | QA evidence, approved release identifier and post-deployment checks recorded. | Open — v0.27.25 remains a draft |
+
+### At handover — timing controlled by Per
+
+| ID | Open action | Responsible | Completion evidence | Status |
+| --- | --- | --- | --- | --- |
+| OA-15 | Close out Pat's Temporary Owner access when Per decides it is no longer needed. Do not remove it automatically or merely because development is finished. Preserve Pat's Administrator access. | Per authorises and controls timing; Administrator verifies | Per's decision/date recorded; temporary grant removed; active-session and direct API tests confirm Owner access is gone. | Open — deferred until Per requests closure |
+| OA-16 | Replace Pat's initial recovery address with an address controlled by Per before confidential Owner information is introduced. This is separate from removing Temporary Owner permission. | Per changes and verifies; Administrator verifies the process | Recovery goes only to Per's verified address; previous recovery links cannot restore access through Pat's address. | Open — handover prerequisite for confidential information |
+| OA-17 | Confirm Per can independently sign in, recover access, manage the collection and create/restore a complete backup. Check that retained Administrator access cannot expose Owner-confidential information through the app or exports. | Per, supported by Administrator | Handover checklist signed off, backup verified and remaining optional actions explicitly accepted or deferred. | Open |
+
+Important: removing Temporary Owner permission alone does **not** close the recovery route while Pat's address remains Per's recovery address. Both OA-15 and OA-16 must be checked before treating the Owner account as handed over for confidential use. Revocation cannot retract information already downloaded.
+
+For each closure, record: action ID, completion date, person confirming completion, test/evidence reference and any accepted limitation. Add newly discovered matters here so they are not lost in chat or left only at the end of a QA report.
