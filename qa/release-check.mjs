@@ -28,6 +28,11 @@ assert(configExample.includes(`version: "${VERSION}"`),'config.example.js versio
 assert(sw.includes(`pers-favourites-${VERSION}-shell`),'service worker cache version matches release');
 assert(index.includes(`id="versionLabel">${VERSION}</span>`),'visible version label matches release');
 assert(index.includes('id="currentAppVersion">'+VERSION+'</strong>'),'update panel version matches release');
+for(const asset of ['config.js','branding.js','geo-fallback.js','app.js','styles.css']){
+  assert(index.includes(`${asset}?v=${VERSION}`),`HTML version-pins ${asset}`);
+  assert(sw.includes(`${asset}?v=${VERSION}`),`offline shell includes version-pinned ${asset}`);
+}
+assert(sw.includes("cache:'reload'"),'shell install revalidates HTTP cache');
 
 const ids=[...index.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
 const dupIds=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];

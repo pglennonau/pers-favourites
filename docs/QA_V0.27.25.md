@@ -20,6 +20,7 @@ This is a source audit, automated regression run and targeted live desktop inspe
 | Duplicate photo IDs in an import could point to another venue's blob | Refuse cross-venue ambiguous IDs; include venue on image metadata | Ambiguous blob lookup returns no image |
 | Expanded selection summary occupied too much space | Add Show/Hide details, remembered preference and accessible expanded state | Collapse, expand, rerender and preference persistence checked; filters retained |
 | Missing coordinates were interpreted as zero by map filtering | Reuse valid coordinate validation for map and bounds filtering | Source inspection plus null coordinate regression |
+| Live upgrade loaded new HTML with older cached scripts | Pin local asset URLs to the release version and revalidate service-worker precache requests | Added eleven release assertions; repeat the live Install Update check before handoff |
 
 No stored provider photo references were added. Provider attribution/source/report links remain present. Missing or ambiguous photos show an unavailable state instead of substituting another venue's image.
 
@@ -28,7 +29,7 @@ No stored provider photo references were added. Provider attribution/source/repo
 | Suite | Result | What this establishes |
 | --- | --- | --- |
 | JavaScript syntax | Pass | Modified application parses |
-| Release checks | 104 passed, 0 failed | Required files, version consistency, markup references and source assertions |
+| Release checks | 115 passed, 0 failed | Required files, version consistency, version-pinned assets, markup references and source assertions |
 | Worker unit checks | 15 passed, 0 failed | Mocked service parsers and usage safeguards |
 | Frontend interaction checks | 67 passed | Sorting/filtering, photo identity, errors/retry, summary state and existing role/archive behaviours |
 
@@ -50,6 +51,8 @@ The interaction suite covers all seven sort choices and their rendered order, tw
 The existing live v0.27.24 site opened successfully. Account & Settings showed `OWNER · owner@local.test`. Clicking the Administrator padlock kept it locked and displayed: switch to the System Administrator test identity. The desktop modal was readable and scrollable. These observations confirm the reported lock and the local trial state; they do not validate production permissions.
 
 The live browser showed a Don Pepe Google photo with attribution. Two synthetic test venues without location showed a location-unavailable error. This does not prove that Golden Stack, the user's Don Pepe record or Casa El Pimpo have correct photos on the user's device.
+
+During final deployment checks, Google Places reported its configured demo daily limit had been reached. Fresh live Google photo loading therefore could not be verified in that session. The quota was not increased or bypassed; this is distinct from photo-to-venue association, which is covered by the mocked regression tests.
 
 ## Outstanding functionality and risks
 

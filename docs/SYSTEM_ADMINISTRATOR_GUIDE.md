@@ -352,6 +352,8 @@ The DOM regression suite reproduces the v0.27.23 Nearest failure and passes in v
 
 ## v0.27.25 local-trial update
 
+Local script and stylesheet URLs are pinned to v0.27.25, and service-worker installation revalidates cached files. Keep those version pins aligned in future releases so an update does not combine new HTML with older scripts. Install Update must preserve local venue/photo storage; do not clear site data to update the app.
+
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 
 This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.
