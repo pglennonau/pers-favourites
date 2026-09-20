@@ -1,6 +1,6 @@
 # Pers Favourites — System Administrator Guide
 
-Version: **0.27.23**
+Version: **0.27.24**
 
 This is the complete technical and operational reference for Pers Favourites. The System Administrator must understand both the technical system and the Owner/User workflows. It is intentionally broader than the Owner Guide.
 
@@ -53,7 +53,7 @@ If an Owner-facing feature changes, this guide and the Owner Guide must both be 
 ## 3. Architecture
 
 - **PWA hosting:** GitHub Pages.
-- **Active Pers catalogue storage in v0.27.23:** local browser/device storage.
+- **Active Pers catalogue storage in v0.27.24:** local browser/device storage.
 - **Backend/service direction:** Cloudflare only.
 - **Google Places:** PWA → Cloudflare Worker → Google Places API.
 - **TripAdvisor:** PWA → Cloudflare Worker → authorised Tripadvisor Terra API.
@@ -65,7 +65,7 @@ If an Owner-facing feature changes, this guide and the Owner Guide must both be 
 
 The release branch for this version is:
 
-`release/0.27.23`
+`release/0.27.24`
 
 Key files:
 
@@ -160,7 +160,7 @@ The Worker refuses TripAdvisor API calls when `USAGE_DB` is unavailable, because
 
 Paid usage must never begin from the PWA checkbox alone.
 
-TripAdvisor activation is optional for initial v0.27.23 deployment. If the developer/API account is not yet configured, leave `TRIPADVISOR_ENABLED=false`; the rest of the release can be deployed and tested normally.
+TripAdvisor activation is optional for initial v0.27.24 deployment. If the developer/API account is not yet configured, leave `TRIPADVISOR_ENABLED=false`; the rest of the release can be deployed and tested normally.
 
 ### Allowance/reset model
 
@@ -238,7 +238,7 @@ Ask Pers must translate natural-language requests into controlled structured fil
 
 ## 12. Authentication and handover
 
-Current v0.27.23 is a local-data/local-role test release. Production authentication remains a later Cloudflare-based implementation.
+Current v0.27.24 is a local-data/local-role test release. Production authentication remains a later Cloudflare-based implementation.
 
 Production protected access requirements remain:
 
@@ -277,13 +277,13 @@ The Terms page incorporates Google Maps Platform terms by reference. The Privacy
 
 ## 15. Deployment procedure
 
-1. Confirm the source branch is `release/0.27.23`.
+1. Confirm the source branch is `release/0.27.24`.
 2. Confirm the branch is based on the correct preceding release.
 3. Run JavaScript syntax checks.
 4. Run `node qa/release-check.mjs`.
 5. Run `node qa/worker-unit.mjs`.
 6. Confirm the GitHub Actions **Pers Favourites Release QA** workflow is green.
-7. Confirm version `0.27.23` in app/config/version file/service worker/UI.
+7. Confirm version `0.27.24` in app/config/version file/service worker/UI.
 8. Confirm Owner, System Administrator and User guides are current.
 9. Confirm Documentation Change Log is current.
 10. Build/download the code ZIP generated from the release branch.
@@ -295,7 +295,7 @@ The Terms page incorporates Google Maps Platform terms by reference. The Privacy
 16. If TripAdvisor is being activated, verify the actual account plan/allowance before enabling it.
 17. Test Owner Costs & Payments status.
 18. Test filters/cascades/search, roles, archive, import/export, ratings and photos.
-19. Confirm the installed PWA displays `0.27.23`.
+19. Confirm the installed PWA displays `0.27.24`.
 
 ## 16. Troubleshooting
 
@@ -338,3 +338,13 @@ Use **My Settings → App Updates**, then fully close/reopen if the browser has 
 - **Code/QA:** v0.27.23 release QA validates provider separation, photo fallback order, provider-data safeguards, connection/cost controls and documentation presence.
 
 Every future release must update all affected guides before the release is considered complete.
+
+### v0.27.24 deployment and change log
+
+Frontend-only update. Deploy the repository's main branch through GitHub Pages. Do not redeploy the Cloudflare Worker for this release: its code, secrets, bindings, limits and integration contracts are unchanged from v0.27.23.
+
+Keep the existing deploymentId and local storage keys. Test entries are confined to the QA environment and must not be imported into the user's phone. A new service-worker shell version handles the update; do not clear browser site data.
+
+Changes: visible selections outside collapsed filters; location request on Nearest; missing-value/tie handling; external photo rendering; reuse of displayed Google photos in memory for up to one minute; explicit provider/photo errors and manual retry; compact rating badges. No Google photo resource names are written to localStorage or exports. Existing Google attribution and separate provider sections remain.
+
+The DOM regression suite reproduces the v0.27.23 Nearest failure and passes in v0.27.24. It uses synthetic data and mocked services, so it does not certify a particular live venue's photo or an iPhone location permission setting. TripAdvisor requires its existing service configuration and entitlement.

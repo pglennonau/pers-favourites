@@ -1,11 +1,11 @@
 # Pers Favourites PWA
 
-Version: **0.27.23**  
+Version: **0.27.24**
 Date: **20 September 2026**
 
 Pers Favourites is a curated PWA catalogue. The current release stores the Pers collection locally on the device/browser. Cloudflare is the only backend/service direction for this project.
 
-## 0.27.23 release scope
+## Foundation retained from 0.27.23
 
 - Builds on v0.27.22 with **Cloudflare as the sole backend/service direction**.
 - Adds the v0.27.23 foundation for authorised TripAdvisor Terra API access; no scraping.
@@ -17,7 +17,7 @@ Pers Favourites is a curated PWA catalogue. The current release stores the Pers 
 - Corrects Google Places demo/production handling so demo caps are not incorrectly applied to production mode.
 - All third-party copyright, licensing, attribution, privacy, storage and rate-limit requirements remain mandatory.
 
-TripAdvisor may remain disabled at deployment until the actual developer/API entitlement, allowance period and credentials are confirmed. This does not block deployment of the rest of v0.27.23.
+TripAdvisor may remain disabled at deployment until the actual developer/API entitlement, allowance period and credentials are confirmed. This does not block deployment of the rest of v0.27.24.
 
 ## Current architecture
 
@@ -48,14 +48,14 @@ The Worker source is in:
 
 `cloudflare/places-search-worker.js`
 
-For v0.27.23, configure these directly in Cloudflare:
+For initial service setup, configure these directly in Cloudflare. Existing v0.27.23 installations need no Cloudflare changes for v0.27.24:
 
 - `GOOGLE_PLACES_API_KEY` as a Worker secret.
 - `GOOGLE_PLACES_MODE` as a Worker secret, typically `demo` or `production`.
 - `ALLOWED_ORIGIN` to the deployed Pers Favourites site where appropriate.
 - `USAGE_DB` D1 binding if usage tracking/rate limiting is enabled.
 
-For v0.27.23 TripAdvisor support, also configure:
+For v0.27.24 TripAdvisor support, also configure:
 
 - `TRIPADVISOR_API_KEY` as a Worker secret.
 - `TRIPADVISOR_ENABLED` — default `false`.
@@ -79,22 +79,22 @@ Pers Favourites must use official or otherwise authorised APIs and links. Do not
 ## Deployment
 
 1. Export a current backup from Pers Favourites before a material update.
-2. Replace the files in the local GitHub repository folder with the v0.27.23 package contents.
+2. Replace the files in the local GitHub repository folder with the v0.27.24 package contents.
 3. Do not copy the ZIP itself into the repository.
 4. In GitHub Desktop confirm repository **pers-favourites** and branch **main**.
 5. Review the changed files.
-6. Commit with a message such as `Deploy v0.27.23`.
+6. Commit with a message such as `Deploy v0.27.24`.
 7. Push origin.
-8. Open the PWA and confirm the displayed version is **0.27.23**.
+8. Open the PWA and confirm the displayed version is **0.27.24**.
 9. Use **Account & Settings → App Updates** if the installed PWA still shows an older cached version.
 
-## v0.27.23 QA gate
+## v0.27.24 QA gate
 
 Before release:
 
 - JavaScript and Cloudflare Worker syntax pass.
 - No duplicate or missing static HTML control IDs.
-- Version is 0.27.23 consistently in app, config, service worker and version file.
+- Version is 0.27.24 consistently in app, config, service worker and version file.
 - No legacy backend name, URL, key, schema or migration file remains anywhere in the release tree.
 - The deployable ZIP contains `index.html`, app assets, icons and Cloudflare Worker source.
 - Filter/master-list, language, Open Now, external search, ratings, archive, import/export and local photo paths remain wired.
@@ -113,3 +113,13 @@ The System Administrator Guide contains the documentation change log. Every rele
 ## Core file discipline
 
 Keep one current deployable PWA package and one current consolidated documentation set. Older versions are archive/history rather than parallel current copies.
+
+## v0.27.24 changes
+
+- Current filters, sort and selected sources remain visible above results when Filters is closed. Remove individual chips or clear filters; sorting and source choices are retained.
+- Selecting Nearest requests device location. Missing location is explained; missing venue coordinates sort last. Other sorts use A–Z for ties and put missing values last.
+- Pers rating, user rating and personal date sorts apply to saved Pers entries. External results use A–Z for those choices, with an explanation in the summary.
+- External Google cards now show available photos with attribution. Saved Google photos are reused briefly within the page session so sorting does not repeatedly request the same displayed photo. Failures show an explanation and Retry photo.
+- All cards use compact rating pills. Existing one-to-four uploaded-photo collages remain intact.
+- Cloudflare Worker, API secrets, quotas, authentication and local storage identifiers are unchanged. Photo availability still depends on provider data and service limits.
+- QA: `node qa/release-check.mjs`, `node qa/worker-unit.mjs`, and `node qa/frontend-check.cjs` (requires jsdom 30.1.0 in the test environment).

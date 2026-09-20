@@ -1,6 +1,6 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.23**
+Version: **0.27.24**
 
 This guide is for ordinary Users of Pers Favourites. You do not need an Owner/System Administrator account just to browse the collection.
 
@@ -12,7 +12,7 @@ Your Owner/System Administrator will give you the Pers Favourites web address.
 2. Wait for the collection to load.
 3. The current collection name appears at the top of the screen.
 
-The current v0.27.23 local rollout may show a **Local test** screen. Production browsing is intended to open without requiring an ordinary User login.
+The current v0.27.24 local rollout may show a **Local test** screen. Production browsing is intended to open without requiring an ordinary User login.
 
 ## 2. Add Pers Favourites to an iPhone Home Screen
 
@@ -205,3 +205,13 @@ Those controls belong to the Owner/System Administrator.
 For a missing/incorrect venue or Pers information, contact the Owner.
 
 For connection, update or technical problems, the Owner can ask the System Administrator to check the service status and deployment.
+
+## v0.27.24: see your selections
+
+Below the sort control, the summary shows your active filters, selected sort and selected sources even when Filters is closed. Tap a filter's × to remove it. Clear filters removes filters and search text, while keeping your sort and source choices.
+
+Tap Sorted by to focus the sort control. Tap Sources selected to open Filters. Tick Google Places or TripAdvisor, then tap Search selected apps. Pers stays first; external results stay in separate provider sections. A selected provider may have no results or may not be connected; read the search status shown in the summary.
+
+Nearest now requests your device location. Allow location when prompted. Distances are straight-line distances, not walking routes. If unavailable, the summary explains the A–Z fallback. Use Update my location to retry. Venues without coordinates appear last. Missing ratings/dates/prices appear last; tied values use A–Z. Pers/User ratings and personal dates do not apply to unsaved external venues, which use A–Z for those choices.
+
+Google photos appear when supplied by the service. If a photo cannot load, read the message and tap Retry photo. A usage-limit message means wait until the service limit resets. Uploaded photo collages still support up to four selected banner photos.

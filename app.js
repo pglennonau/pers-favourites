@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.23',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.24',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -89,6 +89,9 @@ let pendingOnlinePlaceMeta = null;
 const photoUrlCache = new Map();
 const googleNoPhotoCache = new Set();
 const googlePhotoPending = new Map();
+// Display-only state for this page session; never exported or written to storage.
+const displayedGooglePhotos = new Map();
+const googlePhotoFailures = new Map();
 const liveExternalByPlace = new Map();
 const tripadvisorPhotoCache = new Map();
 const tripadvisorPhotoPending = new Map();
@@ -531,6 +534,7 @@ function enrichSavedFromExternal(saved,p){
     live.googleOpeningHours=Array.isArray(p.openingHours)?p.openingHours:[];
     if(p.googlePlaceId)live.googlePlaceId=clean(p.googlePlaceId);
     if(p.googleMapsUrl)live.googleMapsUrl=clean(p.googleMapsUrl);
+    for(const key of ['googlePhotoRef','googlePhotoAttribution','googlePhotoGoogleMapsUri','googlePhotoFlagContentUri'])if(p[key])live[key]=p[key];
   }
   if(p.provider==='TripAdvisor'){
     live.tripadvisorRating=+p.tripadvisorRating||0;
@@ -544,12 +548,34 @@ function enrichSavedFromExternal(saved,p){
   liveExternalByPlace.set(saved.id,live);
 }
 function sortExternalRows(rows){
+  return sortPlaceRows(rows,true);
+}
+function sortPlaceRows(rows,external=false){
   const sort=$('sortSelect')?.value||'nearest';
-  return rows.sort((a,b)=>{if(sort==='name')return a.name.localeCompare(b.name);if(sort==='userRating'||sort==='persRating')return Math.max(+b.googleRating||0,+b.tripadvisorRating||0)-Math.max(+a.googleRating||0,+a.tripadvisorRating||0);if(sort==='price')return (a.price?.length||9)-(b.price?.length||9);const da=distanceFor(a),db=distanceFor(b);return (da??Infinity)-(db??Infinity)||a.name.localeCompare(b.name);});
+  const date=v=>Number.isFinite(Date.parse(v))?Date.parse(v):null;
+  const value=p=>{
+    if(sort==='nearest')return distanceFor(p);
+    if(sort==='price')return clean(p.price)?p.price.length:null;
+    if(external)return null; // Pers/user ratings and personal dates do not belong to providers.
+    if(sort==='persRating')return +p.persRating>0?+p.persRating:null;
+    if(sort==='userRating'){const r=userRatingSummary(p.id);return r.count?r.avg:null;}
+    if(sort==='recent')return date(p.createdAt);
+    if(sort==='visited')return date(getPersonal(p.id).lastVisited);
+    return null;
+  };
+  return rows.sort((a,b)=>{const name=clean(a.name).localeCompare(clean(b.name),undefined,{sensitivity:'base',numeric:true});if(sort==='name')return name;const av=value(a),bv=value(b);if(av==null||bv==null)return av==null&&bv==null?name:av==null?1:-1;return (['nearest','price'].includes(sort)?av-bv:bv-av)||name;});
+}
+function renderSelectionSummary(){
+  const sort=$('sortSelect'),query=clean($('searchInput').value),active=Object.values(filters).some(Boolean)||!!mapBoundsFilter||!!query;
+  const sources=['Pers'];if($('sourceGoogle').checked)sources.push('Google');if($('sourceTripadvisor').checked)sources.push('TripAdvisor');
+  let note=sort.value==='nearest'?(currentPosition?'Distances are straight-line from your device location.':'Location needed for Nearest; showing A–Z until location is available.'):'Missing values appear last; ties use A–Z.';
+  if(['persRating','userRating','recent','visited'].includes(sort.value)&&sources.length>1)note+=' This sort applies to Pers; external results use A–Z.';
+  $('selectionSummary').innerHTML=`<strong>${active?'Showing filtered places':'All places'}</strong>${query?` · Search: ${esc(query)}`:''}<div class="selection-controls"><button type="button" data-summary-sort>Sorted by: ${esc(sort.selectedOptions[0]?.textContent)}</button><button type="button" data-summary-sources>Sources selected: ${esc(sources.join(' + '))}</button>${sort.value==='nearest'?'<button type="button" data-summary-location>Update my location</button>':''}</div><p class="selection-note">${esc(note)}</p>${sources.length>1?`<p class="selection-note">Tap Search selected apps in Filters to refresh external results. ${esc($('externalSearchStatus').textContent)}</p>`:''}`;
+  $('resetFiltersBtn').hidden=!active;
 }
 function renderExternalResults(){
   for(const id of ['externalResultsPanel','externalGoogleResultsPanel','externalTripadvisorResultsPanel'])$(id)?.remove();
-  const rows=sortExternalRows(externalPlaceResults.filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));
+  const rows=sortExternalRows(externalPlaceResults.filter(p=>p.provider==='Google Places'?$('sourceGoogle').checked:$('sourceTripadvisor').checked).filter(externalPassesFilters).filter(p=>!matchesSavedPlace(p)));
   if(!rows.length)return;
   const groups=[
     {id:'externalGoogleResultsPanel',title:t('moreGoogle'),provider:'Google Places',rows:rows.filter(p=>p.provider==='Google Places')},
@@ -569,6 +595,10 @@ function renderExternalResults(){
     const attribution=g.provider==='Google Places'?`<div class="provider-attribution-note">${googleMapsAttributionHtml()} content is shown separately from Pers results.</div>`:'';
     panel.innerHTML=`<div class="results-head"><div><strong>${esc(g.title)}</strong><span class="result-count">${g.rows.length}</span></div></div>${attribution}`+g.rows.map(card).join('');
     anchor.after(panel);anchor=panel;
+    for(const [i,article] of [...panel.querySelectorAll('article')].entries()){
+      const p=g.rows[i],frame=document.createElement('div');frame.className='google-fallback-frame place-card-google';frame.dataset.googlePhotoPlace=p.id;frame.innerHTML='<div class="place-card-placeholder">Photo</div>';article.prepend(frame);
+    }
+    hydrateGoogleFallbacks(panel);
     panel.onclick=e=>{const b=e.target.closest('[data-add-external]');if(!b)return;const p=externalPlaceResults.find(x=>externalKey(x)===b.dataset.addExternal);if(!p)return;openPlaceEditor().then(()=>useExternalPlace(p));};
   }
 }
@@ -695,7 +725,8 @@ function splitCsvLine(line){
   for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===','&&!q){out.push(cur);cur='';}else cur+=c;}out.push(cur);return out;
 }
 function haversine(lat1,lon1,lat2,lon2){const R=6371,toR=d=>d*Math.PI/180;const dLat=toR(lat2-lat1),dLon=toR(lon2-lon1);const a=Math.sin(dLat/2)**2+Math.cos(toR(lat1))*Math.cos(toR(lat2))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
-function distanceFor(p){ if(!currentPosition || !Number.isFinite(+p.lat)||!Number.isFinite(+p.lng)) return null; return haversine(currentPosition.lat,currentPosition.lng,+p.lat,+p.lng); }
+function validCoordinates(p){return p&&clean(p.lat)!==''&&clean(p.lng)!==''&&Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&Math.abs(+p.lat)<=90&&Math.abs(+p.lng)<=180;}
+function distanceFor(p){ if(!validCoordinates(currentPosition)||!validCoordinates(p)) return null; return haversine(currentPosition.lat,currentPosition.lng,+p.lat,+p.lng); }
 
 function photoDb(){
   if(!('indexedDB' in window)) return Promise.reject(new Error('Photo storage is not available in this browser.'));
@@ -770,19 +801,26 @@ function googlePhotoValueFromMeta(meta,photoUri){
   };
 }
 async function resolveGooglePhoto(place){
-  if(!place||approvedPhotosForPlace(place.id).length||!placesEndpoint()||googleNoPhotoCache.has(place.id))return null;
+  if(!place||approvedPhotosForPlace(place.id).length||!placesEndpoint())return null;
+  const displayed=displayedGooglePhotos.get(place.id);
+  if(displayed&&Date.now()-displayed.at<60000)return displayed.photo;
+  const failure=googlePhotoFailures.get(place.id);
+  if(failure&&Date.now()-failure.at<60000)throw new Error(failure.message);
   if(googlePhotoPending.has(place.id))return googlePhotoPending.get(place.id);
   const pending=(async()=>{
-    const loc=Number.isFinite(+place.lat)&&Number.isFinite(+place.lng)?{lat:+place.lat,lng:+place.lng}:null;
+    const loc=validCoordinates(place)?{lat:+place.lat,lng:+place.lng}:null;
     const ctx={city:place.city,region:place.stateRegion,country:place.country,label:[place.city,place.stateRegion,place.country].filter(Boolean).join(', ')};
-    const rows=await googlePlacesSearch(place.name,loc,ctx,false);
+    const live=liveExternalByPlace.get(place.id);
+    const direct=place.googlePhotoRef?place:live;
+    const rows=direct?.googlePhotoRef?[{id:direct.googlePlaceId,name:place.name,photoRef:direct.googlePhotoRef,photoAttribution:direct.googlePhotoAttribution,photoGoogleMapsUri:direct.googlePhotoGoogleMapsUri,photoFlagContentUri:direct.googlePhotoFlagContentUri}]:await googlePlacesSearch(place.name,loc,ctx,false);
     const exact=(rows||[]).find(x=>place.googlePlaceId&&clean(x.id)===clean(place.googlePlaceId)&&x.photoRef)
       ||(rows||[]).find(x=>foldText(x.name)===foldText(place.name)&&x.photoRef);
-    if(!exact){googleNoPhotoCache.add(place.id);return null;}
+    if(!exact){googlePhotoFailures.set(place.id,{at:Date.now(),message:'No matching Google photo available.'});return null;}
     const photoUri=await requestGooglePhotoUri(exact.photoRef);
-    if(!photoUri){googleNoPhotoCache.add(place.id);return null;}
-    return googlePhotoValueFromMeta(exact,photoUri);
-  })().catch(()=>null).finally(()=>googlePhotoPending.delete(place.id));
+    if(!photoUri)return null;
+    const photo=googlePhotoValueFromMeta(exact,photoUri);
+    displayedGooglePhotos.set(place.id,{photo,at:Date.now()});return photo;
+  })().catch(e=>{googlePhotoFailures.set(place.id,{at:Date.now(),message:clean(e.message)});throw e;}).finally(()=>googlePhotoPending.delete(place.id));
   googlePhotoPending.set(place.id,pending);return pending;
 }
 function googleAttributionHtml(photo={}){
@@ -802,7 +840,13 @@ function renderGooglePhotoFrame(frame,place,photo){
   if(!frame||!photo?.photoUri)return false;
   frame.dataset.googlePhotoLoaded='1';
   frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="Google Maps photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${googleAttributionHtml(photo)}</div>`;
+  frame.querySelector('.google-place-photo').onerror=()=>{displayedGooglePhotos.delete(place.id);showPhotoUnavailable(frame,'Photo could not load.');};
   frame.classList.add('loaded');return true;
+}
+function showPhotoUnavailable(frame,message){
+  frame.classList.remove('loaded');
+  frame.innerHTML=`<div class="photo-unavailable"><span>${esc(message)}</span><button type="button">Retry photo</button></div>`;
+  frame.querySelector('button').onclick=()=>{googlePhotoFailures.delete(frame.dataset.googlePhotoPlace);displayedGooglePhotos.delete(frame.dataset.googlePhotoPlace);frame.dataset.googlePhotoLoaded='';loadGoogleFallback(frame);};
 }
 function rememberTripadvisorMatch(place,match){
   if(!place||!match)return;
@@ -847,16 +891,22 @@ function tripadvisorAttributionHtml(place,photo){
 }
 async function loadGoogleFallback(frame){
   if(!frame||frame.dataset.googlePhotoLoaded==='1')return;
+  const attempt=String(+(frame.dataset.photoAttempt||0)+1);frame.dataset.photoAttempt=attempt;
   frame.dataset.googlePhotoLoaded='1';
-  const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace);
+  const place=places.find(x=>x.id===frame.dataset.googlePhotoPlace)||externalPlaceResults.find(x=>x.id===frame.dataset.googlePhotoPlace);
   if(!place||approvedPhotosForPlace(place.id).length)return;
-  const google=await resolveGooglePhoto(place);
+  let googleError='';
+  const google=place.provider==='TripAdvisor'?null:await resolveGooglePhoto(place).catch(e=>{googleError=clean(e.message);return null;});
+  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected)return;
   if(google&&renderGooglePhotoFrame(frame,place,google))return;
+  showPhotoUnavailable(frame,googleError||'No Google photo available. Checking other sources…');
   const ta=await resolveTripadvisorPhoto(place);
+  if(frame.dataset.photoAttempt!==attempt||!frame.isConnected)return;
   if(ta){
     frame.innerHTML=`<img class="google-place-photo" src="${esc(ta.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,ta)}</div>`;
     frame.classList.add('loaded');
-  }
+    frame.querySelector('img').onerror=()=>showPhotoUnavailable(frame,'Photo could not load.');
+  }else showPhotoUnavailable(frame,googleError||'No provider photo available.');
 }
 function hydrateGoogleFallbacks(root=document){
   const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;
@@ -885,7 +935,7 @@ async function boot(){
   setBranding();bindEvents();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.23 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.24 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -1060,8 +1110,7 @@ function applyFilters(){
   if(filters.rating) xs=xs.filter(p=>ratingFilterMatches(p,filters.rating));if(filters.distance) xs=xs.filter(p=>{const d=distanceFor(p);return d!=null&&d<=+filters.distance;});if(filters.openNow)xs=xs.filter(p=>liveProviderView(p).openNow===true);
   if(filters.status){xs=xs.filter(p=>{const x=getPersonal(p.id);switch(filters.status){case'favourite':return x.favourite;case'want':return x.want;case'visited':return x.visited;case'regular':return x.favourite&&x.visited;case'unrated':return !x.rating;default:return true;}});}
   if(mapBoundsFilter && map){xs=xs.filter(p=>Number.isFinite(+p.lat)&&Number.isFinite(+p.lng)&&mapBoundsFilter.contains([+p.lat,+p.lng]));}
-  const sort=$('sortSelect').value;
-  xs.sort((a,b)=>{if(sort==='name')return a.name.localeCompare(b.name);if(sort==='userRating')return userRatingSummary(b.id).avg-userRatingSummary(a.id).avg;if(sort==='persRating')return (+b.persRating||0)-(+a.persRating||0);if(sort==='recent')return clean(b.createdAt).localeCompare(clean(a.createdAt));if(sort==='visited')return clean(getPersonal(b.id).lastVisited).localeCompare(clean(getPersonal(a.id).lastVisited));if(sort==='price')return (a.price?.length||9)-(b.price?.length||9);const da=distanceFor(a),db=distanceFor(b);return (da??Infinity)-(db??Infinity)||a.name.localeCompare(b.name);});
+  sortPlaceRows(xs);
   filteredPlaces=xs;return xs;
 }
 function syncLocationBanner(){
@@ -1074,7 +1123,7 @@ function syncLocationBanner(){
 }
 function activeCatalogueFilterCount(){return Object.entries(filters).filter(([k,v])=>v&&!['country','region','city'].includes(k)).length+(mapBoundsFilter?1:0);}
 function syncCatalogueFilters(){const n=activeCatalogueFilterCount();if($('catalogueFiltersPanel'))$('catalogueFiltersPanel').classList.toggle('hidden',!catalogueFiltersOpen);if($('filtersToggleBtn'))$('filtersToggleBtn').textContent=n?`${t('filters')} (${n})`:t('filters');}
-function render(){applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit()||archiveMode);syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();translateTextNodes(document.body);persistPreferences();}
+function render(){applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit()||archiveMode);syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
 function userRatingSummary(placeId){
   if(CFG.mode==='local'){
     const viewerIds=new Set((state?.users||[]).filter(u=>u.role==='viewer').map(u=>u.id));
@@ -1422,6 +1471,7 @@ function showArchive(){archiveMode=true;$('accountDialog').close();resetFilters(
 async function signOut(){await persistPreferences();localStorage.removeItem(LS_SESSION);location.reload();}
 
 function bindEvents(){
+  for(const id of ['sourceGoogle','sourceTripadvisor'])$(id).addEventListener('change',()=>{renderExternalResults();renderSelectionSummary();});
   $('startLocalBtn').onclick=()=>{localStorage.setItem(LS_SESSION,'local-started');enterLocal();};
   $('authClose').onclick=()=>$('authScreen').close();
   $('loginBtn').onclick=async()=>{try{$('authMessage').textContent='Signing in…';const next=await signIn($('loginEmail').value,$('loginPassword').value);session=next;localStorage.setItem(LS_SESSION,JSON.stringify(session));await hydrateSessionUser();await loadProductionData();if((authPurpose==='owner'&&!hasOwnerAccess())||(authPurpose==='sysadmin'&&!canManageSystem())){try{await api('/auth/v1/logout',{method:'POST'});}catch{}localStorage.removeItem(LS_SESSION);session=null;await loadPublicProductionData();$('authMessage').textContent=authPurpose==='sysadmin'?'That account does not have System Administrator rights.':'That account does not have Owner rights.';return;}showApp();if($('authScreen').open)$('authScreen').close();}catch(e){$('authMessage').textContent=e.message;}};
@@ -1433,7 +1483,8 @@ function bindEvents(){
   $('clearSearchBtn').onclick=()=>{$('searchInput').value='';rebuildAndRender();};$('searchInput').oninput=rebuildAndRender;
   $('filtersToggleBtn').onclick=()=>{catalogueFiltersOpen=!catalogueFiltersOpen;syncCatalogueFilters();};
   $('quickPresetSelect').onchange=async()=>{const which=$('quickPresetSelect').value;$('quickPresetSelect').value='';if(which)await quickFilter(which);};
-  $('listViewBtn').onclick=()=>setView('list');$('mapViewBtn').onclick=()=>setView('map');$('sortSelect').onchange=render;
+  $('listViewBtn').onclick=()=>setView('list');$('mapViewBtn').onclick=()=>setView('map');$('sortSelect').onchange=async()=>{render();if($('sortSelect').value==='nearest'){await getDeviceLocation(true);render();}};
+  $('selectionSummary').onclick=async e=>{if(e.target.closest('[data-summary-sort]')){const s=$('sortSelect');s.focus();try{s.showPicker?.();}catch{}}if(e.target.closest('[data-summary-sources]')){catalogueFiltersOpen=true;syncCatalogueFilters();$('sourceGoogle').focus();}if(e.target.closest('[data-summary-location]')){await getDeviceLocation(true);render();}};
   $('moreFiltersBtn').onclick=()=>{$('moreFiltersPanel').classList.toggle('hidden');};
   $('editLocationBtn').onclick=()=>{locationEditorOpen=!locationEditorOpen;syncLocationBanner();if(locationEditorOpen)setTimeout(()=>$('countryFilter')?.focus(),0);};
   $('locationDoneBtn').onclick=()=>{locationEditorOpen=false;syncLocationBanner();};

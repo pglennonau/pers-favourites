@@ -1,5 +1,5 @@
 {
-  "version": "0.27.23",
+  "version": "0.27.24",
   "published": "2026-09-20",
-  "notes": "Release: TripAdvisor cost-control foundation, separate provider result sections, Owner Costs & Payments controls, Google demo/production safeguards, and photo priority Pers → Google Places → TripAdvisor → placeholder. TripAdvisor can remain disabled until account/API entitlement is configured."
+  "notes": "Visible filter/sort/source summary; Nearest requests device location; stable sorting with missing values last; Google photos on external results; saved-photo retry and error messages; compact ratings and preserved four-photo collage. Frontend-only release; no Cloudflare redeployment required."
 }

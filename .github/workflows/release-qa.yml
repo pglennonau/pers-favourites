@@ -31,6 +31,11 @@ jobs:
       - name: Cloudflare worker unit tests
         run: node qa/worker-unit.mjs
 
+      - name: Frontend interaction regression checks
+        run: |
+          npm install --prefix /tmp/pers-qa jsdom@30.1.0
+          NODE_PATH=/tmp/pers-qa/node_modules node qa/frontend-check.cjs
+
       - name: Build code package
         run: |
           mkdir -p release-package
@@ -42,25 +47,25 @@ jobs:
             --exclude 'worker-unit-report.json' \
             --exclude 'package-contents.txt'
           cd release-package
-          zip -qr "../Pers_Favourites_v0.27.23_Code.zip" .
+          zip -qr "../Pers_Favourites_v0.27.24_Code.zip" .
           cd ..
-          unzip -l Pers_Favourites_v0.27.23_Code.zip | tee package-contents.txt
-          test -f Pers_Favourites_v0.27.23_Code.zip
-          test -s Pers_Favourites_v0.27.23_Code.zip
-          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'index.html'
-          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
-          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
-          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
-          unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'docs/USER_GUIDE.md'
-          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'qa-report.json'
-          ! unzip -Z1 Pers_Favourites_v0.27.23_Code.zip | grep -qx 'worker-unit-report.json'
+          unzip -l Pers_Favourites_v0.27.24_Code.zip | tee package-contents.txt
+          test -f Pers_Favourites_v0.27.24_Code.zip
+          test -s Pers_Favourites_v0.27.24_Code.zip
+          unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'index.html'
+          unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
+          unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'docs/USER_GUIDE.md'
+          ! unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'qa-report.json'
+          ! unzip -Z1 Pers_Favourites_v0.27.24_Code.zip | grep -qx 'worker-unit-report.json'
 
       - name: Upload QA evidence and code ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Pers_Favourites_v0.27.23_QA
+          name: Pers_Favourites_v0.27.24_QA
           path: |
-            Pers_Favourites_v0.27.23_Code.zip
+            Pers_Favourites_v0.27.24_Code.zip
             qa-report.json
             worker-unit-report.json
             package-contents.txt
