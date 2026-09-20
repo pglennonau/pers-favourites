@@ -176,7 +176,7 @@ The Owner can record Pers-side spending caps for Google, TripAdvisor, Cloudflare
 
 TripAdvisor API use is optional.
 
-The Cloudflare Worker is the authoritative API-call counter. The default v0.27.24 control design is:
+The Cloudflare Worker is the authoritative API-call counter. The default v0.27.25 control design is:
 
 - warning at **50%** of the configured free allowance;
 - automatic API pause at **95%** of that allowance;
@@ -201,7 +201,7 @@ The Owner can see mode/usage status. The System Administrator controls the prote
 
 ### Cloudflare
 
-Cloudflare is the approved backend/service direction for Pers Favourites. Current v0.27.24 Pers catalogue data remains local, while Cloudflare is used for authorised external-service routing and usage safeguards. Future shared storage/auth/photos are intended to use Cloudflare components.
+Cloudflare is the approved backend/service direction for Pers Favourites. Current v0.27.25 Pers catalogue data remains local, while Cloudflare is used for authorised external-service routing and usage safeguards. Future shared storage/auth/photos are intended to use Cloudflare components.
 
 ### OpenAI / Ask Pers
 
@@ -253,7 +253,7 @@ Cards now use compact ratings consistently, including cards with uploaded collag
 Filters, sort and source selections remain visible above the results. Nearest asks for current device location; unknown values sort last. Saved Pers entries remain first. External entries cannot be sorted by a Pers/User rating or a personal visit date and use A–Z for those choices.
 
 
-## v0.27.25 draft update
+## v0.27.25 local-trial update
 
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 

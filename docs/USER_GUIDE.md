@@ -12,7 +12,7 @@ Your Owner/System Administrator will give you the Pers Favourites web address.
 2. Wait for the collection to load.
 3. The current collection name appears at the top of the screen.
 
-The current v0.27.24 local rollout may show a **Local test** screen. Production browsing is intended to open without requiring an ordinary User login.
+The current v0.27.25 local rollout may show a **Local test** screen. Production browsing is intended to open without requiring an ordinary User login.
 
 ## 2. Add Pers Favourites to an iPhone Home Screen
 
@@ -217,7 +217,7 @@ Nearest now requests your device location. Allow location when prompted. Distanc
 Google photos appear when supplied by the service. If a photo cannot load, read the message and tap Retry photo. A usage-limit message means wait until the service limit resets. Uploaded photo collages still support up to four selected banner photos.
 
 
-## v0.27.25 draft update
+## v0.27.25 local-trial update
 
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 

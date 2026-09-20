@@ -17,7 +17,7 @@ Pers Favourites is a curated PWA catalogue. The current release stores the Pers 
 - Corrects Google Places demo/production handling so demo caps are not incorrectly applied to production mode.
 - All third-party copyright, licensing, attribution, privacy, storage and rate-limit requirements remain mandatory.
 
-TripAdvisor may remain disabled at deployment until the actual developer/API entitlement, allowance period and credentials are confirmed. This does not block deployment of the rest of v0.27.24.
+TripAdvisor may remain disabled at deployment until the actual developer/API entitlement, allowance period and credentials are confirmed. This does not block deployment of the rest of v0.27.25.
 
 ## Current architecture
 
@@ -48,14 +48,14 @@ The Worker source is in:
 
 `cloudflare/places-search-worker.js`
 
-For initial service setup, configure these directly in Cloudflare. Existing v0.27.23 installations need no Cloudflare changes for v0.27.24:
+For initial service setup, configure these directly in Cloudflare. Existing v0.27.23 installations need no Cloudflare changes for v0.27.25:
 
 - `GOOGLE_PLACES_API_KEY` as a Worker secret.
 - `GOOGLE_PLACES_MODE` as a Worker secret, typically `demo` or `production`.
 - `ALLOWED_ORIGIN` to the deployed Pers Favourites site where appropriate.
 - `USAGE_DB` D1 binding if usage tracking/rate limiting is enabled.
 
-For v0.27.24 TripAdvisor support, also configure:
+For v0.27.25 TripAdvisor support, also configure:
 
 - `TRIPADVISOR_API_KEY` as a Worker secret.
 - `TRIPADVISOR_ENABLED` — default `false`.
@@ -79,22 +79,22 @@ Pers Favourites must use official or otherwise authorised APIs and links. Do not
 ## Deployment
 
 1. Export a current backup from Pers Favourites before a material update.
-2. Replace the files in the local GitHub repository folder with the v0.27.24 package contents.
+2. Replace the files in the local GitHub repository folder with the v0.27.25 package contents.
 3. Do not copy the ZIP itself into the repository.
 4. In GitHub Desktop confirm repository **pers-favourites** and branch **main**.
 5. Review the changed files.
-6. Commit with a message such as `Deploy v0.27.24`.
+6. Commit with a message such as `Deploy v0.27.25`.
 7. Push origin.
-8. Open the PWA and confirm the displayed version is **0.27.24**.
+8. Open the PWA and confirm the displayed version is **0.27.25**.
 9. Use **Account & Settings → App Updates** if the installed PWA still shows an older cached version.
 
-## v0.27.24 QA gate
+## v0.27.25 QA gate
 
 Before release:
 
 - JavaScript and Cloudflare Worker syntax pass.
 - No duplicate or missing static HTML control IDs.
-- Version is 0.27.24 consistently in app, config, service worker and version file.
+- Version is 0.27.25 consistently in app, config, service worker and version file.
 - No legacy backend name, URL, key, schema or migration file remains anywhere in the release tree.
 - The deployable ZIP contains `index.html`, app assets, icons and Cloudflare Worker source.
 - Filter/master-list, language, Open Now, external search, ratings, archive, import/export and local photo paths remain wired.
@@ -125,7 +125,7 @@ Keep one current deployable PWA package and one current consolidated documentati
 - QA: `node qa/release-check.mjs`, `node qa/worker-unit.mjs`, and `node qa/frontend-check.cjs` (requires jsdom 30.1.0 in the test environment).
 
 
-## v0.27.25 draft update
+## v0.27.25 local-trial update
 
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 

@@ -53,7 +53,7 @@ If an Owner-facing feature changes, this guide and the Owner Guide must both be 
 ## 3. Architecture
 
 - **PWA hosting:** GitHub Pages.
-- **Active Pers catalogue storage in v0.27.24:** local browser/device storage.
+- **Active Pers catalogue storage in v0.27.25:** local browser/device storage.
 - **Backend/service direction:** Cloudflare only.
 - **Google Places:** PWA → Cloudflare Worker → Google Places API.
 - **TripAdvisor:** PWA → Cloudflare Worker → authorised Tripadvisor Terra API.
@@ -65,7 +65,7 @@ If an Owner-facing feature changes, this guide and the Owner Guide must both be 
 
 The release branch for this version is:
 
-`release/0.27.24`
+`release/0.27.25`
 
 Key files:
 
@@ -160,7 +160,7 @@ The Worker refuses TripAdvisor API calls when `USAGE_DB` is unavailable, because
 
 Paid usage must never begin from the PWA checkbox alone.
 
-TripAdvisor activation is optional for initial v0.27.24 deployment. If the developer/API account is not yet configured, leave `TRIPADVISOR_ENABLED=false`; the rest of the release can be deployed and tested normally.
+TripAdvisor activation is optional for initial v0.27.25 deployment. If the developer/API account is not yet configured, leave `TRIPADVISOR_ENABLED=false`; the rest of the release can be deployed and tested normally.
 
 ### Allowance/reset model
 
@@ -238,7 +238,7 @@ Ask Pers must translate natural-language requests into controlled structured fil
 
 ## 12. Authentication and handover
 
-Current v0.27.24 is a local-data/local-role test release. Production authentication remains a later Cloudflare-based implementation.
+Current v0.27.25 is a local-data/local-role test release. Production authentication remains a later Cloudflare-based implementation.
 
 Production protected access requirements remain:
 
@@ -277,13 +277,13 @@ The Terms page incorporates Google Maps Platform terms by reference. The Privacy
 
 ## 15. Deployment procedure
 
-1. Confirm the source branch is `release/0.27.24`.
+1. Confirm the source branch is `release/0.27.25`.
 2. Confirm the branch is based on the correct preceding release.
 3. Run JavaScript syntax checks.
 4. Run `node qa/release-check.mjs`.
 5. Run `node qa/worker-unit.mjs`.
 6. Confirm the GitHub Actions **Pers Favourites Release QA** workflow is green.
-7. Confirm version `0.27.24` in app/config/version file/service worker/UI.
+7. Confirm version `0.27.25` in app/config/version file/service worker/UI.
 8. Confirm Owner, System Administrator and User guides are current.
 9. Confirm Documentation Change Log is current.
 10. Build/download the code ZIP generated from the release branch.
@@ -295,7 +295,7 @@ The Terms page incorporates Google Maps Platform terms by reference. The Privacy
 16. If TripAdvisor is being activated, verify the actual account plan/allowance before enabling it.
 17. Test Owner Costs & Payments status.
 18. Test filters/cascades/search, roles, archive, import/export, ratings and photos.
-19. Confirm the installed PWA displays `0.27.24`.
+19. Confirm the installed PWA displays `0.27.25`.
 
 ## 16. Troubleshooting
 
@@ -350,7 +350,7 @@ Changes: visible selections outside collapsed filters; location request on Neare
 The DOM regression suite reproduces the v0.27.23 Nearest failure and passes in v0.27.24. It uses synthetic data and mocked services, so it does not certify a particular live venue's photo or an iPhone location permission setting. TripAdvisor requires its existing service configuration and entitlement.
 
 
-## v0.27.25 draft update
+## v0.27.25 local-trial update
 
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 
@@ -360,7 +360,7 @@ This remains a local trial, with no secure email/password accounts. See [the QA 
 
 This is the ongoing register of matters still to be completed, including items deliberately left until handover. Review it before each release and at handover. Keep completed items in the register and record the completion date and evidence; do not mark an action complete merely because its screen or button exists.
 
-Status at this update: v0.27.25 is a tested draft, not the live release. Secure accounts and the recovery-email controls below are requirements, not activated features. Account email addresses have been supplied privately; verify them during provisioning rather than publishing them in this manual.
+Status at this update: v0.27.25 is approved for deployment as a local-trial bug-fix release. Secure accounts and the recovery-email controls below are requirements, not activated features. Account email addresses have been supplied privately; verify them during provisioning rather than publishing them in this manual. Remaining account and confidential-use blockers are not waived by deployment.
 
 ### Before secure account activation
 
@@ -384,7 +384,7 @@ Status at this update: v0.27.25 is a tested draft, not the live release. Secure 
 | OA-11 | Clarify which spending limits are enforced by the server and which are only recorded locally. Keep API keys in Cloudflare; do not enable browser key management without protected server permissions. | Administrator; Per approves spending | Enforced limits tested and documentation/UI accurately distinguish budgets from safeguards. | Open |
 | OA-12 | Confirm whether TripAdvisor and Ask Pers will be enabled. Configure authorised services and test them, or explicitly retain them as disabled/deferred. | Per decides; Administrator configures | Recorded decision; enabled services pass live tests, or disabled services show clear status. | Open — optional activation |
 | OA-13 | Finish imported-identifier validation and output escaping before accepting untrusted shared data. | Administrator | Malformed import and markup-injection regression tests pass. | Open |
-| OA-14 | Complete the release gate: resolve blocking defects, compare with the previous working version, verify documentation/package contents, deploy the approved build and check the installed version. | Administrator | QA evidence, approved release identifier and post-deployment checks recorded. | Open — v0.27.25 remains a draft |
+| OA-14 | Complete the release gate: resolve blocking defects, compare with the previous working version, verify documentation/package contents, deploy the approved build and check the installed version. | Administrator | QA evidence, approved release identifier and post-deployment checks recorded. | In progress — local-trial deployment authorised; device acceptance and secure-account release remain open |
 
 ### At handover — timing controlled by Per
 

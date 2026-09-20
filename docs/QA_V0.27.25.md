@@ -1,14 +1,14 @@
-# Pers Favourites v0.27.25 draft QA audit
+# Pers Favourites v0.27.25 QA audit
 
 20 September 2026. Base: v0.27.24, commit `7999c8673bc18c8d1667e9bd326f9c31df07284b`.
 
 ## Release assessment
 
-The draft repairs several concrete photo/rendering problems and adds the requested collapsible summary. It is **not ready for confidential Owner information or real account activation**. Email/password authentication, password recovery and shared catalogue storage remain unfinished. A frontend-only GitHub release cannot provide them.
+The local-trial release repairs several concrete photo/rendering problems and adds the requested collapsible summary. It is **not ready for confidential Owner information or real account activation**. Email/password authentication, password recovery and shared catalogue storage remain unfinished. A frontend-only GitHub release cannot provide them.
 
 This is a source audit, automated regression run and targeted live desktop inspection, not a claim that every feature or device has passed. The user's phone database and uploaded photo blobs were not available. The exact Casa El Pimpo incident cannot yet be proven to have one particular cause.
 
-## Changes verified in this draft
+## Changes verified in this release
 
 | Finding | Change | Verification |
 | --- | --- | --- |
@@ -66,11 +66,11 @@ The live browser showed a Don Pepe Google photo with attribution. Two synthetic 
 | Medium | TripAdvisor | Unconfigured/disabled service is expected to return no results | Provision entitlement, credentials and allowance before live testing |
 | Medium | Ask Pers | Requires a configured endpoint; none supplied in default settings | Implement and configure it or leave disabled with a clear status |
 | Medium | Imported identifiers | Some existing markup interpolates IDs directly | Validate imported IDs and complete output escaping before accepting untrusted shared data |
-| Verification | Mobile layout and PWA | Current-turn live visual inspection was desktop v0.27.24 | Test draft on iPhone Safari and installed PWA; portrait/landscape, keyboard, long labels, one-to-four images, updates and offline restart |
+| Verification | Mobile layout and PWA | Current-turn live visual inspection was desktop v0.27.24 | Test release on iPhone Safari and installed PWA; portrait/landscape, keyboard, long labels, one-to-four images, updates and offline restart |
 
 ## Remaining acceptance pass
 
-1. Test the draft with a copy of the affected collection: Don Pepe, Golden Stack, Gran Bar and Casa El Pimpo; sort repeatedly while photos are loading and while switching filters and sources.
+1. Test the release with a copy of the affected collection: Don Pepe, Golden Stack, Gran Bar and Casa El Pimpo; sort repeatedly while photos are loading and while switching filters and sources.
 2. Test local photo upload, moderation, cover selection, one/two/three/four image layouts and rapid photo-viewer switching on a real browser with IndexedDB. The DOM suite does not exercise image decoding or iOS storage behaviour.
 3. Test reload/offline/update recovery, import, full photo backup and restore in a disposable collection. Never overwrite the only copy of the phone's data for QA.
 4. Complete all account, recovery, revocation and cross-device tests in ACCOUNT_SETUP.md before adding confidential information.
