@@ -162,3 +162,21 @@ body{padding-bottom:var(--venue-bar-space,0px)}
 #listPanel .photo-unavailable span,#listPanel .photo-unavailable button{display:none}
 #listPanel .photo-unavailable::after{content:'No photo'}
 #listPanel .place-card-google,#listPanel .place-card-banner,#listPanel .place-card-placeholder{min-height:96px}
+
+/* v28 compact top navigation and explicit photo viewing */
+.topbar{position:relative}
+#catalogueTopControls{position:sticky;top:0;z-index:25;background:var(--paper,#fffdf9);padding:5px 0}
+#catalogueTopControls.compact{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:calc(6px + env(safe-area-inset-top)) 4px 6px;box-shadow:0 3px 8px #0002}
+#catalogueTopControls.compact .catalogue-head{display:contents}
+#catalogueTopControls.compact .catalogue-head>div:first-child{display:flex;flex-direction:column;gap:0;font-size:.85rem}
+#catalogueTopControls.compact .catalogue-head-actions{order:3}
+#catalogueTopControls.compact .toolbar{margin:0;padding:0}
+#catalogueTopControls.compact #adminActions,#catalogueTopControls.compact #sortSelect{display:none}
+#catalogueTopControls.compact button{min-height:42px;padding:7px 9px;font-size:.85rem}
+#backToTopBtn{position:fixed;right:12px;bottom:calc(var(--venue-bar-space,0px) + 14px);z-index:29;background:var(--accent);color:white;box-shadow:0 2px 8px #0003;min-height:44px}
+#backToTopBtn[hidden]{display:none}
+[data-venue-photos]:focus-visible{outline:3px solid var(--accent-3);outline-offset:-3px}
+#photoViewerDialog .modal-head{position:sticky;top:-18px;background:#fffdf9;z-index:2;padding:8px 0}
+.photo-navigation{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:12px 0}
+.photo-navigation button{min-height:44px}
+#photoViewerAttribution .google-photo-attribution{position:static;background:#244c40;color:white;padding:8px}

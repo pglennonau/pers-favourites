@@ -1,6 +1,6 @@
 {
-  "version": "0.27.27",
-  "published": "2026-09-21",
-  "notes": "Expanded v27: geography choices, persistent region corrections, provider ID controls, compact list and collapsible contextual actions.",
-  "build": "20260921.3"
+  "version": "0.27.28",
+  "published": "2026-09-22",
+  "notes": "Compact sticky Places/List/Map/Filters controls; Top / Show all; explicit thumbnail viewer with previous/next and guarded image loading.",
+  "build": "20260922.1"
 }

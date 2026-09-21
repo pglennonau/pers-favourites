@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.27'})};
+ return {ok:true,json:async()=>({version:'0.27.28'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -192,5 +192,25 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
    check(dialog.id+' Return closes the subpage',()=>assert.equal(dialog.open,false));
  }
  check('pinch zoom remains enabled',()=>assert.doesNotMatch(w.document.querySelector('meta[name="viewport"]').content,/user-scalable\s*=\s*no|maximum-scale/));
+ w.scrollTo=()=>{};
+ const anchor=w.document.getElementById('catalogueTopAnchor');anchor.getBoundingClientRect=()=>({top:-20});w.dispatchEvent(new w.Event('scroll'));
+ check('scroll compacts top controls and exposes return button',()=>{assert.ok(w.document.getElementById('catalogueTopControls').classList.contains('compact'));assert.equal(w.document.getElementById('backToTopBtn').hidden,false);assert.match(w.document.getElementById('filtersToggleBtn').textContent,/Filters/);});
+ w.document.getElementById('filtersToggleBtn').click();
+ check('compact Filters restores top and opens criteria',()=>{assert.equal(read('catalogueFiltersOpen'),true);assert.equal(w.document.getElementById('catalogueTopControls').classList.contains('compact'),false);});
+ w.dispatchEvent(new w.Event('scroll'));w.document.getElementById('backToTopBtn').click();
+ check('Top restores full controls without granting Add access',()=>{assert.equal(w.document.getElementById('backToTopBtn').hidden,true);assert.ok(w.document.getElementById('adminActions').classList.contains('hidden'));});
+ read(`archiveMode=false;filters=defaultFilters();photos=[{id:'nav1',placeId:'a',status:'approved',isCover:true},{id:'nav2',placeId:'a',status:'approved',isCover:true}];render()`);
+ const thumbnail=w.document.querySelector('[data-venue-photos="a"]');thumbnail.click();
+ check('thumbnail opens named photo viewer',()=>{assert.equal(w.document.getElementById('photoViewerDialog').open,true);assert.equal(w.document.getElementById('photoPosition').textContent,'1 / 2');assert.equal(read('activeVenueId'),'a');});
+ w.document.getElementById('photoNext').click();
+ check('Next advances within the same venue',()=>{assert.equal(w.document.getElementById('photoPosition').textContent,'2 / 2');assert.equal(w.document.getElementById('photoNext').disabled,true);assert.equal(read('viewerPhotos[viewerIndex].placeId'),'a');});
+ w.document.getElementById('photoPrevious').click();
+ check('Previous returns to first photo',()=>assert.equal(w.document.getElementById('photoPosition').textContent,'1 / 2'));
+ w.document.getElementById('photoViewerClose').click();
+ check('photo Close returns to list',()=>assert.equal(w.document.getElementById('photoViewerDialog').open,false));
+ w.document.querySelector('[data-place="a"] h3').click();
+ check('name selects row without opening photos',()=>{assert.equal(read('activeVenueId'),'a');assert.equal(w.document.getElementById('photoViewerDialog').open,false);});
+ thumbnail.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+ check('keyboard thumbnail opens viewer',()=>assert.equal(w.document.getElementById('photoViewerDialog').open,true));
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

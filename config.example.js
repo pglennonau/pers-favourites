@@ -1,5 +1,5 @@
 window.PERS_CONFIG = {
-  version: "0.27.27",
+  version: "0.27.28",
   deploymentId: "CHANGE-TO-A-UNIQUE-ROLLOUT-ID",
   mode: "local",
   backend: "cloudflare",

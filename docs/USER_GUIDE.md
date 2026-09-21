@@ -1,6 +1,15 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.27**
+Version: **0.27.28**
+
+## v28 navigation and photos
+
+When scrolling, a compact bar keeps Places/count, List/Map and Filters available. Add and Sort are hidden only in this compact bar. Use **↑ Top / Show all** to return to the full search, location, Add and Sort controls. Filters from the compact bar returns to the top and opens the criteria. Existing filters and the bottom action-bar collapse state are retained.
+
+Tap a thumbnail to open that venue's photos. Local photos have Previous/Next and a photo count; Close or Return exits. Provider photos retain attribution. If no photo is loaded, the venue details open with Retry rather than a blank viewer. Tap a venue name to select its bottom-bar actions; Open venue shows the full details.
+
+This remains a local trial. Secure accounts and the existing provider photo/link retrieval issues are not fixed by this UI release. Physical iPhone testing remains necessary.
+
 
 ## v27 expanded release — location, provider links and compact list
 
