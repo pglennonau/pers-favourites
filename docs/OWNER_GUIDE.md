@@ -1,6 +1,20 @@
 # Pers Favourites — Owner Guide
 
-Version: **0.27.26**
+Version: **0.27.27**
+
+## v27 expanded release — location, provider links and compact list
+
+This build replaces the earlier v27 Set Location-only package. App version remains 0.27.27 (the change list calls it 0.027.27); build identifier is 20260921.3 and the offline shell is v3.
+
+- Set Location now offers the country and region geography lists independently of saved venues. Spain → Andalusia includes Córdoba, Granada and Málaga even with no saved places. City coverage uses bundled cities, saved venues and the online geography fallback where available; it is not a complete offline world-city database.
+- Venue editing no longer auto-completes partial location text while you type. Literal choices take precedence over equivalent names. For Spain, Andalicia, Andalucia and Andalucía are normalised to Andalusia when editing/saving the venue. This does not bulk-rewrite other records.
+- Edit Venue shows Google Place ID and TripAdvisor Location ID separately from their website links. Find Google match / Find TripAdvisor match uses the configured service. Check the name/address before selecting a match, then Save. Manual correction and clearing are supported. Provider searches require working service connections; no new API key is included.
+- Compact venue rows share a fixed bottom action bar. The highlighted row and venue name show which venue the actions apply to. Scroll to change the active venue, or tap/focus a row to select it. Hide actions collapses the bar; Show actions restores it. Collapsing frees list space and remains in effect while scrolling. Empty results and map view hide the bar.
+
+Permissions remain enforced through the existing Owner access rules. System Administrators have venue access in this local trial; in authenticated mode, they must also hold the existing Owner permission. This release does not grant broader server permissions.
+
+Deployment: replace the deployed application files with this ZIP's contents, keeping index.html at the site root. Commit and push using your existing GitHub deployment workflow. Reload/reopen the app after deployment; the new service-worker shell updates the cached files. Because the displayed version remains 0.27.27, the earlier v27 version-number check may report up to date. Confirm this build by the collapsible bottom bar and Google Place ID field. Do not clear site data. No Worker or database migration is required.
+
 
 ## v26 interface update
 

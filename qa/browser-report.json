@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "mobileViewport": "390x844",
+  "desktopViewport": "1280x900",
+  "expandedHeight": 123,
+  "collapsedHeight": 35,
+  "checks": [
+    "Scroll observer changes active venue",
+    "Collapse frees height",
+    "Collapsed state survives scrolling",
+    "Open targets active venue",
+    "Empty results hide bar",
+    "Region and provider ID survive reload",
+    "No uncaught browser errors"
+  ],
+  "externalServices": "blocked; no live provider claims"
+}

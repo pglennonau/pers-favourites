@@ -130,3 +130,35 @@ body{min-height:100dvh}
 @media(max-width:640px){input,select,textarea{font-size:max(16px,1rem)}.modal{overflow-wrap:anywhere}.ask-pers-input-row input{min-width:0}}
 
 .app-legal-footer{padding:18px 8px 8px;text-align:center;font-size:.82rem;color:var(--muted)}.app-legal-footer a{color:inherit}.legal-page{width:min(780px,calc(100% - 32px));margin:0 auto;padding:28px 0 48px;line-height:1.55}.legal-page h1,.legal-page h2{color:var(--accent)}.legal-page a{color:var(--accent)}
+
+/* v27 compact catalogue and contextual actions */
+body{padding-bottom:var(--venue-bar-space,0px)}
+#listPanel{gap:7px}
+#listPanel .place-card{display:grid;grid-template-columns:76px minmax(0,1fr);padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer}
+#listPanel .place-card.active-venue{border-color:var(--accent-3);box-shadow:0 0 0 2px var(--accent-3)}
+#listPanel .place-card:focus-visible{outline:3px solid var(--accent-3);outline-offset:3px}
+#listPanel .place-card-inner{padding:9px 10px;min-width:0}
+#listPanel .place-card-top{display:block}
+#listPanel .place-card h3{font-size:1rem;margin:0 0 3px}
+#listPanel .rating-pair{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;justify-content:flex-start}
+#listPanel .rating-pill{font-size:.72rem;padding:2px 5px}
+#listPanel .must-try{display:none}
+#listPanel .place-card-banner,#listPanel .place-card-google{width:76px;height:100%;min-height:105px;max-height:160px;margin:0;display:block}
+#listPanel .place-card-banner img{width:100%;height:100%;object-fit:cover}
+#listPanel .place-card-banner img:not(:first-child){display:none}
+#listPanel .place-card-placeholder{height:100%;min-height:105px;font-size:1.1rem}
+#listPanel .google-place-photo{height:80px;min-height:0;object-fit:cover}
+#listPanel .google-photo-attribution{font-size:8px;line-height:1.2;padding:2px;overflow-wrap:anywhere}
+#venueBar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,1000px);z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px 14px 0 0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px #0002;box-sizing:border-box}
+#venueBar[hidden],#venueBarActions[hidden]{display:none}
+.venue-bar-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#venueBarName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#venueBarToggle{font-size:.8rem;white-space:nowrap;padding:7px}
+#venueBarActions{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+#venueBarActions>*{font-size:.82rem;padding:8px 10px}
+#venueBar.collapsed{padding-top:2px;padding-bottom:calc(2px + env(safe-area-inset-bottom))}
+#listPanel .rating-pair{flex-direction:row;align-items:center}
+#listPanel .photo-unavailable{min-height:96px;padding:8px 4px;display:flex;align-items:center;justify-content:center;font-size:.7rem;text-align:center}
+#listPanel .photo-unavailable span,#listPanel .photo-unavailable button{display:none}
+#listPanel .photo-unavailable::after{content:'No photo'}
+#listPanel .place-card-google,#listPanel .place-card-banner,#listPanel .place-card-placeholder{min-height:96px}

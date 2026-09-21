@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.26'})};
+ return {ok:true,json:async()=>({version:'0.27.27'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -48,6 +48,27 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
   check('filter '+id,()=>assert.ok(read('filteredPlaces.length')<3));
  }
  read('resetFilters();');
+ w.document.getElementById('searchInput').value='no matching venue';
+ w.document.getElementById('searchInput').dispatchEvent(new w.Event('input',{bubbles:true}));
+ w.document.getElementById('editLocationBtn').click();
+ check('Country accepts focus with zero search results',()=>assert.equal(w.document.activeElement.id,'countryFilter'));
+ check('Country enabled with zero search results',()=>assert.equal(w.document.getElementById('countryFilter').disabled,false));
+ for(const [id,value] of [['countryFilter','Spain'],['regionFilter','Andalusia'],['cityFilter','Córdoba']]){
+  const el=w.document.getElementById(id);el.focus();
+  check(id+' receives focus',()=>assert.equal(w.document.activeElement,el));
+  el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));
+ }
+ check('Location commits with unrelated search active',()=>assert.equal(read('filters.city'),'Córdoba'));
+ check('City selection closes location panel',()=>assert.equal(w.document.getElementById('coreLocationFields').classList.contains('hidden'),true));
+ w.document.getElementById('editLocationBtn').click();w.document.getElementById('locationDoneBtn').click();
+ check('Done closes panel',()=>assert.equal(w.document.getElementById('coreLocationFields').classList.contains('hidden'),true));
+ w.document.getElementById('editLocationBtn').click();w.document.getElementById('editLocationBtn').click();
+ check('Hide closes panel',()=>assert.equal(w.document.getElementById('coreLocationFields').classList.contains('hidden'),true));
+ w.document.getElementById('clearLocationBtn').click();
+ check('Clear resets location',()=>assert.equal(read('[filters.country,filters.region,filters.city].join("")'),''));
+ check('Clear leaves Country enabled',()=>assert.equal(w.document.getElementById('countryFilter').disabled,false));
+ w.document.getElementById('clearSearchBtn').click();read('resetFilters()');
+
  check('managed cuisine values retained',()=>assert.ok(Array.from(read('masterValues("cuisine")')).includes('Spanish')));
  w.document.getElementById('sourceGoogle').checked=true;ev('sourceGoogle');check('source summary updates',()=>assert.match(w.document.getElementById('selectionSummary').textContent,/Pers \+ Google/));
  read(`externalPlaceResults=[Object.assign(googleWorkerResultToPlace(${JSON.stringify(googleRow)}),{provider:'Google Places'})];render()`);await tick();
@@ -131,10 +152,40 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('detail and list display the same recovered photo',()=>assert.equal(w.document.querySelector('#detailDialog [data-google-photo-place="don"] img').src,w.document.querySelector('#listPanel [data-google-photo-place="don"] img').src));
  check('recovered list retains photo attribution',()=>assert.match(w.document.querySelector('#listPanel [data-google-photo-place="don"]').textContent,/Test Photographer/));
  read('render()');await tick();
- check('all saved venue cards expose the same ordered actions',()=>{for(const card of w.document.querySelectorAll('#listPanel article'))assert.deepEqual([...card.querySelectorAll('[data-venue-action]')].map(x=>x.dataset.venueAction),['open','directions','website','call','book','tripadvisor']);});
- check('missing website is disabled and explained',()=>{const button=w.document.querySelector('#listPanel [data-place="a"] [data-venue-action="website"]');assert.equal(button.disabled,true);assert.match(button.getAttribute('aria-label'),/unavailable/);});
- read('Object.assign(places.find(p=>p.id==="a"),{website:"https://example.test/alpha",phone:"+34 123 456"});render()');
- check('saved website and phone actions work',()=>{const card=w.document.querySelector('#listPanel [data-place="a"]');assert.equal(card.querySelector('[data-venue-action="website"]').href,'https://example.test/alpha');assert.equal(card.querySelector('[data-venue-action="call"]').href,'tel:+34123456');});
+ check('no repeated actions on venue rows',()=>assert.equal(w.document.querySelectorAll('#listPanel [data-venue-action]').length,0));
+ read('selectVenue("a")');
+ check('shared bar exposes ordered actions',()=>assert.deepEqual([...w.document.querySelectorAll('#venueBar [data-venue-action]')].map(x=>x.dataset.venueAction),['open','directions','website','call','book','tripadvisor']));
+ check('missing website disabled',()=>assert.equal(w.document.querySelector('#venueBar [data-venue-action="website"]').disabled,true));
+ read('Object.assign(places.find(p=>p.id==="a"),{website:"https://example.test/alpha",phone:"+34 123 456"});render();selectVenue("a")');
+ check('shared website and phone actions work',()=>{assert.equal(w.document.querySelector('#venueBar [data-venue-action="website"]').href,'https://example.test/alpha');assert.equal(w.document.querySelector('#venueBar [data-venue-action="call"]').href,'tel:+34123456');});
+ w.document.getElementById('venueBarToggle').click();read('selectVenue("don")');
+ check('bar remains collapsed after venue change',()=>assert.equal(w.document.getElementById('venueBarActions').hidden,true));
+ w.document.getElementById('venueBarToggle').click();
+ check('expanded bar targets current venue',()=>assert.equal(w.document.querySelector('#venueBar [data-open]').dataset.open,'don'));
+ read('setView("map",false);syncVenueBar()');check('map hides bar',()=>assert.equal(w.document.getElementById('venueBar').hidden,true));read('setView("list",false);syncVenueBar()');
+ read('filters.country="Spain";filters.region="Andalusia";filters.city="Málaga";populateFilterOptions();render()');
+ check('location without venues retained',()=>assert.equal(read('filters.city'),'Málaga'));
+ check('empty list hides bar',()=>assert.equal(w.document.getElementById('venueBar').hidden,true));
+ read('filters=defaultFilters();currentUser=state.users.find(u=>u.role==="owner");places.find(p=>p.id==="a").stateRegion="Andalicia";places.find(p=>p.id==="a").country="Spain"');
+ await read('openPlaceEditor("a")');await tick();
+ check('legacy Andalicia canonicalised in editor',()=>assert.equal(w.document.getElementById('placeRegion').value,'Andalusia'));
+ const region=w.document.getElementById('placeRegion');region.focus();region.value='Anda';region.dispatchEvent(new w.Event('input',{bubbles:true}));await new Promise(r=>setTimeout(r,260));
+ check('editor does not replace partially typed region',()=>assert.equal(region.value,'Anda'));
+ region.value='Andalusia';region.dispatchEvent(new w.Event('change',{bubbles:true}));await tick();
+ await read('findProviderMatch("google")');
+ check('Google match selection lists results',()=>assert.ok(w.document.querySelector('#providerMatches button')));
+ w.document.querySelector('#providerMatches button').click();
+ check('Google match selection sets ID and link',()=>{assert.equal(w.document.getElementById('placeGoogleId').value,'google-don');assert.match(w.document.getElementById('placeGoogleUrl').value,/google-don/);});
+ const originalTA=read('tripadvisorSearch');w.__taMock=async()=>[{name:'Coffee Club',tripadvisorLocationId:'1234',tripadvisorUrl:'https://www.tripadvisor.com/Restaurant_Review-d1234.html'}];read('tripadvisorSearch=window.__taMock');await read('findProviderMatch("tripadvisor")');w.document.querySelector('#providerMatches button').click();
+ check('TripAdvisor selection sets ID and link',()=>{assert.equal(w.document.getElementById('placeTripadvisorId').value,'1234');assert.match(w.document.getElementById('placeTripadvisorUrl').value,/1234/);});w.__taOriginal=originalTA;read('tripadvisorSearch=window.__taOriginal');
+ w.document.getElementById('placeGoogleId').value='verified-google';w.document.getElementById('placeTripadvisorId').value='123456';
+ await read('savePlace({preventDefault(){}})');await read('openPlaceEditor("a")');await tick();
+ check('edited region survives save and reopen',()=>assert.equal(region.value,'Andalusia'));
+ check('provider IDs survive save and reopen',()=>{assert.equal(w.document.getElementById('placeGoogleId').value,'verified-google');assert.equal(w.document.getElementById('placeTripadvisorId').value,'123456');});
+ check('corrected region persists in saved data',()=>assert.equal(read('JSON.parse(localStorage.getItem(LS_DB)).places.find(p=>p.id==="a").stateRegion'),'Andalusia'));
+ w.document.getElementById('placeGoogleId').value='';w.document.getElementById('placeTripadvisorId').value='';await read('savePlace({preventDefault(){}})');
+ check('clearing provider IDs persists',()=>{assert.equal(read('places.find(p=>p.id==="a").googlePlaceId'),'');assert.equal(read('places.find(p=>p.id==="a").tripadvisorLocationId'),'');});
+ read('currentUser={id:"qa-viewer",role:"viewer"}');const beforeSave=read('JSON.stringify(places)');await read('savePlace({preventDefault(){}})');check('viewer save rejected',()=>assert.equal(read('JSON.stringify(places)'),beforeSave));
  for(const dialog of w.document.querySelectorAll('dialog')){
    check(dialog.id+' has one bottom Return control',()=>{assert.equal(dialog.querySelectorAll('.subpage-return button').length,1);assert.equal(dialog.lastElementChild.className,'subpage-return');assert.equal(dialog.lastElementChild.firstElementChild.type,'button');});
    dialog.showModal();dialog.querySelector('.subpage-return button').click();

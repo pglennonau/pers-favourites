@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const VERSION='0.27.26';
+const VERSION='0.27.27';
 const root=process.cwd();
 const failures=[];
 const passes=[];
@@ -89,7 +89,7 @@ assert(app.includes('resolveTripadvisorPhoto'),'TripAdvisor last-resort photo fa
 assert(app.indexOf("const google=place.provider===")>=0&&app.indexOf("const google=place.provider===")<app.indexOf('const ta=await resolveTripadvisorPhoto(place)'),'photo fallback order is Google before TripAdvisor');
 
 for(const p of ['docs/OWNER_GUIDE.md','docs/SYSTEM_ADMINISTRATOR_GUIDE.md','docs/USER_GUIDE.md']){
-  const d=read(p);assert(d.includes('0.27.26'),`${p} updated for v0.27.26`);
+  const d=read(p);assert(d.includes('0.27.27'),`${p} updated for v0.27.27`);
 }
 assert(read('docs/SYSTEM_ADMINISTRATOR_GUIDE.md').includes('Documentation Change Log'),'System Administrator Guide contains documentation change log');
 const ownerGuide=read('docs/OWNER_GUIDE.md');
