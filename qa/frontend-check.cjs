@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.25'})};
+ return {ok:true,json:async()=>({version:'0.27.26'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -74,7 +74,9 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('ambiguous name matches rejected',()=>assert.equal(read(`providerPhotoMatch({name:'Cafeteria Don Pepe',city:'Córdoba',country:'Spain'},[${JSON.stringify(googleRow)},${JSON.stringify(googleRow)}])`),null));
  read('filters.type="Cafe";render()');w.document.getElementById('summaryToggle').click();
  check('summary collapses',()=>assert.equal(w.document.getElementById('selectionDetails').hidden,true));
- check('collapsed summary keeps filter count',()=>assert.match(w.document.getElementById('summaryToggle').textContent,/1 filters/));
+ check('collapsed summary keeps filter count',()=>assert.match(w.document.getElementById('summaryOverview').textContent,/1 filter/));
+ check('summary button has a clear Filters label and decorative chevrons',()=>{const b=w.document.getElementById('summaryToggle');assert.equal(b.textContent,'Filters');assert.equal(b.querySelector('svg').getAttribute('aria-hidden'),'true');assert.equal(b.getAttribute('aria-label'),'Filters: expand details');});
+ check('separate editing control is distinguishable',()=>assert.match(w.document.getElementById('filtersToggleBtn').textContent,/Edit filters/));
  check('summary exposes expanded state',()=>assert.equal(w.document.getElementById('summaryToggle').getAttribute('aria-expanded'),'false'));
  read('render()');check('collapse survives rendering',()=>assert.equal(w.document.getElementById('selectionDetails').hidden,true));
  check('collapse preference saved',()=>assert.ok(w.localStorage.getItem('pers-v027f-db:pers-favourites-per-trial').includes('"summaryCollapsed":true')));
@@ -121,5 +123,23 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  read(`currentUser={id:'rating-qa-1',role:'viewer'};openDetail('b')`);
  check('viewer cannot edit Pers average',()=>assert.equal(w.document.querySelectorAll('[data-rating-kind="pers"] button').length,0));
  check('viewer retains separate personal rating controls',()=>assert.equal(w.document.querySelectorAll('[data-user-stars="b"] button').length,5));
+ read('photos=[];archiveMode=false;filters=defaultFilters();displayedGooglePhotos.clear();googlePhotoFailures.clear();$("listPanel").replaceChildren();');
+ failPhoto=true;read('render()');await tick();await tick();
+ check('list failure reproduced before detail recovery',()=>assert.ok(w.document.querySelector('#listPanel [data-google-photo-place="don"] .photo-unavailable')));
+ failPhoto=false;read('for(const failure of googlePhotoFailures.values())failure.at-=61000;openDetail("don")');await tick();await tick();
+ check('detail success repairs the existing failed list frame',()=>assert.equal(w.document.querySelector('#listPanel [data-google-photo-place="don"] img').src,'https://example.test/photo.jpg'));
+ check('detail and list display the same recovered photo',()=>assert.equal(w.document.querySelector('#detailDialog [data-google-photo-place="don"] img').src,w.document.querySelector('#listPanel [data-google-photo-place="don"] img').src));
+ check('recovered list retains photo attribution',()=>assert.match(w.document.querySelector('#listPanel [data-google-photo-place="don"]').textContent,/Test Photographer/));
+ read('render()');await tick();
+ check('all saved venue cards expose the same ordered actions',()=>{for(const card of w.document.querySelectorAll('#listPanel article'))assert.deepEqual([...card.querySelectorAll('[data-venue-action]')].map(x=>x.dataset.venueAction),['open','directions','website','call','book','tripadvisor']);});
+ check('missing website is disabled and explained',()=>{const button=w.document.querySelector('#listPanel [data-place="a"] [data-venue-action="website"]');assert.equal(button.disabled,true);assert.match(button.getAttribute('aria-label'),/unavailable/);});
+ read('Object.assign(places.find(p=>p.id==="a"),{website:"https://example.test/alpha",phone:"+34 123 456"});render()');
+ check('saved website and phone actions work',()=>{const card=w.document.querySelector('#listPanel [data-place="a"]');assert.equal(card.querySelector('[data-venue-action="website"]').href,'https://example.test/alpha');assert.equal(card.querySelector('[data-venue-action="call"]').href,'tel:+34123456');});
+ for(const dialog of w.document.querySelectorAll('dialog')){
+   check(dialog.id+' has one bottom Return control',()=>{assert.equal(dialog.querySelectorAll('.subpage-return button').length,1);assert.equal(dialog.lastElementChild.className,'subpage-return');assert.equal(dialog.lastElementChild.firstElementChild.type,'button');});
+   dialog.showModal();dialog.querySelector('.subpage-return button').click();
+   check(dialog.id+' Return closes the subpage',()=>assert.equal(dialog.open,false));
+ }
+ check('pinch zoom remains enabled',()=>assert.doesNotMatch(w.document.querySelector('meta[name="viewport"]').content,/user-scalable\s*=\s*no|maximum-scale/));
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

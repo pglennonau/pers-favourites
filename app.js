@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.25',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.26',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -573,7 +573,9 @@ function renderSelectionSummary(){
   $('selectionSummary').innerHTML=`<strong>${active?'Showing filtered places':'All places'}</strong>${query?` · Search: ${esc(query)}`:''}<div class="selection-controls"><button type="button" data-summary-sort>Sorted by: ${esc(sort.selectedOptions[0]?.textContent)}</button><button type="button" data-summary-sources>Sources selected: ${esc(sources.join(' + '))}</button>${sort.value==='nearest'?'<button type="button" data-summary-location>Update my location</button>':''}</div><p class="selection-note">${esc(note)}</p>${sources.length>1?`<p class="selection-note">Tap Search selected apps in Filters to refresh external results. ${esc($('externalSearchStatus').textContent)}</p>`:''}`;
   const count=Object.values(filters).filter(Boolean).length+(mapBoundsFilter?1:0)+(query?1:0);
   const collapsed=!!preferences.summaryCollapsed;
-  $('summaryToggle').textContent=`${collapsed?'Show':'Hide'} details · ${[filters.city,filters.region,filters.country].filter(Boolean).join(', ')||'All locations'} · ${count} filters · ${sort.selectedOptions[0]?.textContent||''}`;
+  $('summaryOverview').textContent=`${[filters.city,filters.region,filters.country].filter(Boolean).join(', ')||'All locations'} · ${count} ${count===1?'filter':'filters'} · ${sort.selectedOptions[0]?.textContent||''}`;
+  $('summaryToggle').setAttribute('aria-label',`Filters: ${collapsed?'expand':'collapse'} details`);
+  $('summaryToggle').title=collapsed?'Expand filter details':'Collapse filter details';
   $('summaryToggle').setAttribute('aria-expanded',String(!collapsed));
   $('selectionDetails').hidden=collapsed;
   $('resetFiltersBtn').hidden=!active;
@@ -866,7 +868,22 @@ function renderGooglePhotoFrame(frame,place,photo){
 function showPhotoUnavailable(frame,message){
   frame.classList.remove('loaded');
   frame.innerHTML=`<div class="photo-unavailable"><span>${esc(message)}</span><button type="button">Retry photo</button></div>`;
-  frame.querySelector('button').onclick=()=>{googlePhotoFailures.delete(frame.dataset.photoIdentity);displayedGooglePhotos.delete(frame.dataset.photoIdentity);frame.dataset.googlePhotoLoaded='';loadGoogleFallback(frame);};
+  frame.querySelector('button').onclick=()=>{googlePhotoFailures.delete(frame.dataset.photoIdentity);displayedGooglePhotos.delete(frame.dataset.photoIdentity);tripadvisorPhotoCache.delete(frame.dataset.photoIdentity);frame.dataset.googlePhotoLoaded='';loadGoogleFallback(frame);};
+}
+function publishVenuePhoto(place,photo,provider='Google'){
+  if(!photo?.photoUri||approvedPhotosForPlace(place.id).length)return;
+  const identity=photoIdentity(place);
+  for(const frame of document.querySelectorAll('[data-google-photo-place]')){
+    if(frame.dataset.googlePhotoPlace!==place.id||(frame.dataset.photoIdentity&&frame.dataset.photoIdentity!==identity))continue;
+    // A successful load supersedes outstanding attempts on every view of this venue.
+    frame.dataset.photoAttempt=String(+(frame.dataset.photoAttempt||0)+1);
+    frame.dataset.photoIdentity=identity;frame.dataset.googlePhotoLoaded='1';
+    if(provider==='Google'){googlePhotoFailures.delete(identity);renderGooglePhotoFrame(frame,place,photo);}
+    else{
+      frame.innerHTML=`<img class="google-place-photo" src="${esc(photo.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,photo)}</div>`;
+      frame.classList.add('loaded');frame.querySelector('img').onerror=()=>showPhotoUnavailable(frame,'Photo could not load.');
+    }
+  }
 }
 function rememberTripadvisorMatch(place,match){
   if(!place||!match)return;
@@ -921,15 +938,12 @@ async function loadGoogleFallback(frame){
   let googleError='';
   const google=place.provider==='TripAdvisor'?null:await resolveGooglePhoto(place).catch(e=>{googleError=clean(e.message);return null;});
   if(frame.dataset.photoAttempt!==attempt||!frame.isConnected||identity!==photoIdentity(place)||approvedPhotosForPlace(place.id).length)return;
-  if(google&&renderGooglePhotoFrame(frame,place,google))return;
+  if(google){publishVenuePhoto(place,google);return;}
   showPhotoUnavailable(frame,googleError||'No Google photo available. Checking other sources…');
   const ta=await resolveTripadvisorPhoto(place);
   if(frame.dataset.photoAttempt!==attempt||!frame.isConnected||identity!==photoIdentity(place)||approvedPhotosForPlace(place.id).length)return;
-  if(ta){
-    frame.innerHTML=`<img class="google-place-photo" src="${esc(ta.photoUri)}" alt="TripAdvisor photo of ${esc(place.name)}" referrerpolicy="no-referrer" /><div class="google-photo-attribution">${tripadvisorAttributionHtml(place,ta)}</div>`;
-    frame.classList.add('loaded');
-    frame.querySelector('img').onerror=()=>showPhotoUnavailable(frame,'Photo could not load.');
-  }else showPhotoUnavailable(frame,googleError||'No provider photo available.');
+  if(ta)publishVenuePhoto(place,ta,'TripAdvisor');
+  else showPhotoUnavailable(frame,googleError||'No provider photo available.');
 }
 function hydrateGoogleFallbacks(root=document){
   const frames=[...root.querySelectorAll('[data-google-photo-place]')];if(!frames.length)return;
@@ -955,10 +969,10 @@ function appPlaceToDb(p){return {name:p.name,place_type:p.placeType||null,cuisin
 
 async function boot(){
   clearLegacyGooglePhotoStorage();
-  setBranding();bindEvents();
+  setBranding();bindEvents();installReturnNavigation();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.25 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.26 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -1145,7 +1159,7 @@ function syncLocationBanner(){
   if($('clearLocationBtn'))$('clearLocationBtn').disabled=!hasScope;
 }
 function activeCatalogueFilterCount(){return Object.entries(filters).filter(([k,v])=>v&&!['country','region','city'].includes(k)).length+(mapBoundsFilter?1:0);}
-function syncCatalogueFilters(){const n=activeCatalogueFilterCount();if($('catalogueFiltersPanel'))$('catalogueFiltersPanel').classList.toggle('hidden',!catalogueFiltersOpen);if($('filtersToggleBtn'))$('filtersToggleBtn').textContent=n?`${t('filters')} (${n})`:t('filters');}
+function syncCatalogueFilters(){const n=activeCatalogueFilterCount();if($('catalogueFiltersPanel'))$('catalogueFiltersPanel').classList.toggle('hidden',!catalogueFiltersOpen);if($('filtersToggleBtn')){$('filtersToggleBtn').textContent=n?`${t('editFilters','Edit filters')} (${n})`:t('editFilters','Edit filters');$('filtersToggleBtn').setAttribute('aria-expanded',String(catalogueFiltersOpen));$('filtersToggleBtn').setAttribute('aria-controls','catalogueFiltersPanel');}}
 function render(){applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit()||archiveMode);syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
 function userRatingSummary(placeId){
   if(CFG.mode==='local'){
@@ -1176,6 +1190,11 @@ function renderChips(){
   const labels={country:t('country'),region:t('region'),city:t('cityTown'),type:t('placeType'),cuisine:t('cuisine'),rating:t('rating'),distance:t('distance'),openNow:t('openNow'),price:t('price'),meal:t('meal'),greatFor:t('greatFor'),feature:t('feature'),status:t('status'),dietary:t('dietary'),tag:t('personalTag')};
   $('activeChips').innerHTML=Object.entries(filters).filter(([,v])=>v).map(([k,v])=>`<span class="chip">${esc(labels[k])}: ${esc(k==='rating'&&v==='combined5'?'Pers 5 or Users 4.5+':v)} <button data-clear-filter="${k}" aria-label="Clear">×</button></span>`).join('')+(mapBoundsFilter?`<span class="chip">Map area <button data-clear-area="1">×</button></span>`:'');
 }
+function venueCardActions(p,pv){
+  const link=(label,url,kind)=>url?`<a data-venue-action="${kind}" href="${esc(url)}"${kind==='call'?'':' target="_blank" rel="noopener"'}>${label}</a>`:`<button type="button" data-venue-action="${kind}" disabled title="${label} details have not been saved for this venue" aria-label="${label} unavailable — details not saved">${label}</button>`;
+  const phone=clean(p.phone).replace(/[^+\d]/g,'');
+  return `<button data-open="${esc(p.id)}" data-venue-action="open">Open venue</button>${link('Directions',safeUrl(pv.googleMapsUrl),'directions')}${link('Website',safeUrl(p.website),'website')}${link('Call',phone?'tel:'+phone:'','call')}${link('Book',safeUrl(p.bookingUrl),'book')}${link('TripAdvisor',safeUrl(pv.tripadvisorUrl),'tripadvisor')}${canEdit()?`<button data-edit="${esc(p.id)}" data-venue-action="edit">Edit</button>`:''}`;
+}
 function renderList(){
   const box=$('listPanel');if(!filteredPlaces.length){box.innerHTML=`<div class="empty">${esc(t('noMatch'))}</div>`;return;}
   const previous=new Map([...box.querySelectorAll('article[data-place]')].map(card=>[card.dataset.place,card.firstElementChild]));
@@ -1183,7 +1202,7 @@ function renderList(){
   next.innerHTML=filteredPlaces.map(p=>{
     const x=getPersonal(p.id),pv=liveProviderView(p),d=distanceFor(p),meta=[p.placeType,p.cuisine,p.city,p.price,d!=null?`${d<1?Math.round(d*1000)+' m':d.toFixed(1)+' km'}`:''].filter(Boolean).join(' · ');const status=x.want?'Want to Visit':x.visited?'Visited':x.favourite?'Favourite':'';const urs=userRatingSummary(p.id);const banner=bannerPhotosForPlace(p.id),initials=esc(p.name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'PF');
     const visual=banner.length?`<div class="place-card-banner banner-${banner.length}">${banner.map(ph=>`<img data-photo-id="${esc(ph.id)}" data-photo-place="${esc(ph.placeId)}" alt="Photo of ${esc(p.name)}" />`).join('')}</div>`:`<div class="google-fallback-frame place-card-google" data-google-photo-place="${p.id}"><div class="place-card-placeholder">${initials}</div></div>`;
-    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${pv.googleRating?`<span class="rating-pill">${googleMapsAttributionHtml()} ★ ${esc((+pv.googleRating).toFixed(1))}${pv.googleRatingCount?` (${pv.googleRatingCount})`:''}</span>`:''}${pv.tripadvisorRating?`<span class="rating-pill">${safeUrl(pv.tripadvisorRatingIconUrl)?`<img class="tripadvisor-rating-icon" src="${esc(safeUrl(pv.tripadvisorRatingIconUrl))}" alt="TripAdvisor rating" /> `:''}TripAdvisor ${safeUrl(pv.tripadvisorRatingIconUrl)?'':'★ '}${esc((+pv.tripadvisorRating).toFixed(1))}${pv.tripadvisorRatingCount?` (${pv.tripadvisorRatingCount})`:''}</span>`:''}${pv.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions"><button data-open="${p.id}">Open venue</button>${safeUrl(pv.googleMapsUrl)?`<a href="${esc(safeUrl(pv.googleMapsUrl))}" target="_blank" rel="noopener">Directions</a>`:''}${safeUrl(p.website)?`<a href="${esc(safeUrl(p.website))}" target="_blank" rel="noopener">Website</a>`:''}${p.phone?`<a href="tel:${esc(p.phone.replace(/[^+\d]/g,''))}">Call</a>`:''}${safeUrl(p.bookingUrl)?`<a href="${esc(safeUrl(p.bookingUrl))}" target="_blank" rel="noopener">Book</a>`:''}${safeUrl(pv.tripadvisorUrl)?`<a href="${esc(safeUrl(pv.tripadvisorUrl))}" target="_blank" rel="noopener">TripAdvisor</a>`:''}${canEdit()?`<button data-edit="${p.id}">Edit</button>`:''}</div></div></article>`;
+    return `<article class="place-card ${banner.length?'has-photo':''}" data-place="${p.id}">${visual}<div class="place-card-inner"><div class="place-card-top"><div><h3>${esc(p.name)}</h3><div class="meta">${esc(meta)}</div>${status?`<span class="status-pill">${esc(status)}</span>`:''}</div><div class="rating-pair"><span class="rating-pill pers">${esc((state?.settings?.ownerDisplayName||'Pers')+' ★ ' +(p.persRating?p.persRating.toFixed(1):'—'))}</span><span class="rating-pill users">Users ★ ${esc(urs.count?urs.avg.toFixed(1):'—')}${urs.count?` (${urs.count})`:''}</span>${pv.googleRating?`<span class="rating-pill">${googleMapsAttributionHtml()} ★ ${esc((+pv.googleRating).toFixed(1))}${pv.googleRatingCount?` (${pv.googleRatingCount})`:''}</span>`:''}${pv.tripadvisorRating?`<span class="rating-pill">${safeUrl(pv.tripadvisorRatingIconUrl)?`<img class="tripadvisor-rating-icon" src="${esc(safeUrl(pv.tripadvisorRatingIconUrl))}" alt="TripAdvisor rating" /> `:''}TripAdvisor ${safeUrl(pv.tripadvisorRatingIconUrl)?'':'★ '}${esc((+pv.tripadvisorRating).toFixed(1))}${pv.tripadvisorRatingCount?` (${pv.tripadvisorRatingCount})`:''}</span>`:''}${pv.openNow===true?`<span class="status-pill">${esc(t('openNow'))}</span>`:''}</div></div>${p.mustTry?`<div class="must-try"><strong>Must try:</strong> ${esc(p.mustTry)}</div>`:''}<div class="card-actions venue-card-actions">${venueCardActions(p,pv)}</div></div></article>`;
   }).join('');
   for(const card of next.content.querySelectorAll('article[data-place]')){
     const p=filteredPlaces.find(x=>x.id===card.dataset.place),visual=card.firstElementChild;
@@ -1512,6 +1531,20 @@ async function saveCollectionSettings(){
 function showArchive(){archiveMode=true;$('accountDialog').close();resetFilters();$('resultCount').scrollIntoView({behavior:'smooth'});toast('Showing Archive');}
 async function signOut(){await persistPreferences();localStorage.removeItem(LS_SESSION);location.reload();}
 
+function installReturnNavigation(){
+  document.querySelectorAll('dialog').forEach(dialog=>{
+    if(dialog.querySelector('.subpage-return'))return;
+    const footer=document.createElement('footer'),button=document.createElement('button');
+    footer.className='subpage-return';button.type='button';button.textContent='Return';
+    button.onclick=()=>{
+      if(dialog.contains(document.activeElement))document.activeElement.blur();
+      const close=dialog.querySelector('.modal-head .icon-button');
+      if(close)close.click();else dialog.close();
+    };
+    footer.append(button);dialog.append(footer);
+    dialog.addEventListener('close',()=>requestAnimationFrame(()=>{if(map)map.invalidateSize();}));
+  });
+}
 function bindEvents(){
   for(const id of ['sourceGoogle','sourceTripadvisor'])$(id).addEventListener('change',()=>{renderExternalResults();renderSelectionSummary();});
   $('startLocalBtn').onclick=()=>{localStorage.setItem(LS_SESSION,'local-started');enterLocal();};

@@ -1,6 +1,14 @@
 # Pers Favourites — Owner Guide
 
-Version: **0.27.25**
+Version: **0.27.26**
+
+## v26 interface update
+
+The main-page **Filters** button expands/collapses the selection summary; **Edit filters** opens the criteria. All saved venue cards keep the same action positions. A disabled Website, Call, Book or TripAdvisor action means usable details are not saved; review the venue before entering verified details. Edit remains restricted to permitted roles.
+
+Pers and User rating summaries now share the same layout; only authorised roles may change Pers's rating. User averages remain read-only, with separate personal voting controls. Every app dialog includes a bottom **Return** button. Returning from an editor without saving does not save edits.
+
+Successful provider-photo recovery updates both the list and open venue. This does not override provider limits or guarantee a provider has a photo. No Cloudflare or spending-limit changes were made. Secure accounts remain outstanding; see the Administrator Open Actions appendix and [v26 QA](QA_V0.27.26.md).
 
 This is the operating manual for the collection Owner. It is written for normal day-to-day use of Pers Favourites. Technical deployment, API secrets, Cloudflare configuration and recovery are handled in the System Administrator Guide.
 

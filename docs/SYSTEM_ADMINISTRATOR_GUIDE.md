@@ -1,6 +1,14 @@
 # Pers Favourites — System Administrator Guide
 
-Version: **0.27.25**
+Version: **0.27.26**
+
+## v26 release update — 21 September 2026
+
+Current branch/package: `release/0.27.26` / `Pers_Favourites_v0.27.26_Code.zip`. Historical v25 deployment references below are retained; use v26 for this release. Keep HTML and offline-shell asset version pins aligned. No Worker code, Cloudflare configuration, API allowance or spending permissions change in v26.
+
+Implemented: same-venue list/detail photo synchronisation; stable action positions with unavailable links disabled; matching rating summaries; prominent Filters chevrons; bottom Return controls on all 12 app dialogs; mobile input-size and dynamic viewport safeguards. Return uses existing close handlers so cleanup is preserved. User pinch zoom stays enabled. See [v26 QA evidence and limits](QA_V0.27.26.md).
+
+Open Actions update: OA-07 now has automated list-failure/detail-recovery coverage, but the affected actual collection still needs checking. OA-08 must explicitly test returning after typing on iPhone Safari and the installed PWA, keyboard dismissal, nested dialogs, summary chevrons and disabled actions. OA-09 remains open: a consistent disabled action does not repair missing saved provider details. OA-14 requires deployed-version verification and device acceptance. Authentication and handover actions are unchanged.
 
 This is the complete technical and operational reference for Pers Favourites. The System Administrator must understand both the technical system and the Owner/User workflows. It is intentionally broader than the Owner Guide.
 

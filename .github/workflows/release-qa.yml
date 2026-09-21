@@ -47,25 +47,25 @@ jobs:
             --exclude 'worker-unit-report.json' \
             --exclude 'package-contents.txt'
           cd release-package
-          zip -qr "../Pers_Favourites_v0.27.25_Code.zip" .
+          zip -qr "../Pers_Favourites_v0.27.26_Code.zip" .
           cd ..
-          unzip -l Pers_Favourites_v0.27.25_Code.zip | tee package-contents.txt
-          test -f Pers_Favourites_v0.27.25_Code.zip
-          test -s Pers_Favourites_v0.27.25_Code.zip
-          unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'index.html'
-          unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
-          unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
-          unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
-          unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'docs/USER_GUIDE.md'
-          ! unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'qa-report.json'
-          ! unzip -Z1 Pers_Favourites_v0.27.25_Code.zip | grep -qx 'worker-unit-report.json'
+          unzip -l Pers_Favourites_v0.27.26_Code.zip | tee package-contents.txt
+          test -f Pers_Favourites_v0.27.26_Code.zip
+          test -s Pers_Favourites_v0.27.26_Code.zip
+          unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'index.html'
+          unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'cloudflare/places-search-worker.js'
+          unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'docs/OWNER_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'docs/SYSTEM_ADMINISTRATOR_GUIDE.md'
+          unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'docs/USER_GUIDE.md'
+          ! unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'qa-report.json'
+          ! unzip -Z1 Pers_Favourites_v0.27.26_Code.zip | grep -qx 'worker-unit-report.json'
 
       - name: Upload QA evidence and code ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: Pers_Favourites_v0.27.25_QA
+          name: Pers_Favourites_v0.27.26_QA
           path: |
-            Pers_Favourites_v0.27.25_Code.zip
+            Pers_Favourites_v0.27.26_Code.zip
             qa-report.json
             worker-unit-report.json
             package-contents.txt

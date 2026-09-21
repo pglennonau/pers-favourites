@@ -45,7 +45,12 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .rating-pill{flex:0 0 auto;line-height:1.3;height:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 .catalogue-summary{margin:8px 0 12px;padding:10px 12px;background:var(--accent-soft);border-radius:12px;font-size:.85rem}
 .catalogue-summary button{font-size:inherit}
-#summaryToggle{width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.summary-heading{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+#summaryToggle{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;min-width:130px;padding:9px 13px;background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:700;font-size:1rem;border-radius:10px}
+#summaryToggle:focus-visible{outline:3px solid var(--accent-2);outline-offset:3px}
+.summary-chevrons{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#summaryToggle[aria-expanded="false"] .summary-chevrons{transform:rotate(180deg)}
+#summaryOverview{flex:1 1 190px;min-width:0;overflow-wrap:anywhere;line-height:1.4}
 #selectionDetails[hidden]{display:none}
 #selectionDetails{margin-top:8px}
 .selection-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
@@ -87,8 +92,7 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 #findPlaceResults:not(:empty)::before{content:"Tap Use Details to load the selected venue into the Add Place form. Review the details, then tap Save Place.";display:block;padding:.72rem .8rem;border-radius:10px;background:var(--blue-soft);color:#285f83;font-size:.84rem;line-height:1.35}
 #findPlaceResults button[data-use-online]{font-size:0}
 #findPlaceResults button[data-use-online]::after{content:"Use Details";font-size:.84rem;line-height:1.2}
-#savePlaceBtn{font-size:0}
-#savePlaceBtn::after{content:"Save Place";font-size:1rem;line-height:1.2}
+#savePlaceBtn{font-size:1rem}
 
 /* 0.27.15 */
 .detail-hero{display:grid;grid-template-columns:1fr;grid-auto-rows:minmax(120px,1fr);max-height:360px}
@@ -112,5 +116,17 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .master-list-row button{padding:5px 8px}
 
 .tripadvisor-rating-icon{height:16px;max-width:92px;vertical-align:-3px;object-fit:contain}
+
+/* v26: stable actions and small-screen navigation without restricting pinch zoom. */
+.venue-card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.venue-card-actions>a,.venue-card-actions>button{display:flex;justify-content:center;align-items:center;min-width:0;min-height:44px;margin:0;text-align:center;overflow-wrap:anywhere}
+.venue-card-actions a:first-of-type{background:#f2f0eb;color:var(--ink)}
+.venue-card-actions a[data-venue-action="directions"]{background:var(--blue-soft);color:#285f83}
+.venue-card-actions button:disabled{opacity:1;background:#f5f4f0;color:#747970;border:1px dashed #c7cbc5;cursor:not-allowed}
+.subpage-return{display:flex;justify-content:flex-end;border-top:1px solid var(--line);padding-top:14px;margin-top:20px}
+.subpage-return button{min-height:44px;min-width:120px;background:var(--accent);color:#fff}
+.modal{max-height:88dvh;max-width:calc(100vw - 22px)}
+body{min-height:100dvh}
+@media(max-width:640px){input,select,textarea{font-size:max(16px,1rem)}.modal{overflow-wrap:anywhere}.ask-pers-input-row input{min-width:0}}
 
 .app-legal-footer{padding:18px 8px 8px;text-align:center;font-size:.82rem;color:var(--muted)}.app-legal-footer a{color:inherit}.legal-page{width:min(780px,calc(100% - 32px));margin:0 auto;padding:28px 0 48px;line-height:1.55}.legal-page h1,.legal-page h2{color:var(--accent)}.legal-page a{color:var(--accent)}

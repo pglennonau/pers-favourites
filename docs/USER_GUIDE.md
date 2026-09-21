@@ -1,6 +1,14 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.25**
+Version: **0.27.26**
+
+## v26 navigation and venue cards
+
+Use **Filters** with the double chevrons to expand/collapse the current selection details. The compact location/count/sort summary remains visible. Use **Edit filters** to change criteria.
+
+Venue actions have a consistent order. Greyed-out actions mean details are unavailable, not that your tap failed. Pers and User ratings use matching layouts; your own vote is still separate. Use the bottom **Return** button to close an app subpage/dialog and return to the screen underneath. Unsaved editor changes are not saved by Return.
+
+When opening a venue successfully retrieves a missing provider photo, its list photo updates as well. Retry remains available for failed loads. Provider limits still apply. Install v0.27.26 through the app update control; do not clear browser/site storage, which holds local-trial venues and photos.
 
 This guide is for ordinary Users of Pers Favourites. You do not need an Owner/System Administrator account just to browse the collection.
 

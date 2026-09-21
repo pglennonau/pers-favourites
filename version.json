@@ -1,5 +1,5 @@
 {
-  "version": "0.27.25",
-  "published": "2026-09-20",
-  "notes": "Stable venue photo identity during sorting and additions; stricter provider matching; collapsible selection details; missing map coordinates excluded; Administrator Open Actions appendix. Local-trial release: secure accounts and recovery-email controls are not yet enabled."
+  "version": "0.27.26",
+  "published": "2026-09-21",
+  "notes": "Synchronised list/detail venue photos; consistent venue actions with unavailable details disabled; matching Pers/User ratings; prominent Filters toggle; bottom Return controls and mobile sizing safeguards. Local trial: secure accounts remain unimplemented. No Cloudflare or quota changes."
 }

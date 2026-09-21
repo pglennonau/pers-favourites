@@ -1,6 +1,12 @@
 # Pers Favourites PWA
 
-Version: **0.27.25**
+Version: **0.27.26**
+
+## v26 update — 21 September 2026
+
+List/detail photo recovery now synchronises every visible frame for the same venue. Cards keep a consistent action order, with missing contact/link details disabled. Pers/User rating summaries share a layout, the summary uses a prominent **Filters** chevron toggle, and every app dialog has a bottom **Return** button. Mobile inputs and dialog sizes have additional viewport safeguards; real iPhone acceptance remains pending.
+
+Deploy `release/0.27.26`; the package is `Pers_Favourites_v0.27.26_Code.zip`. Confirm **0.27.26** after installing the update; do not clear site data. Older release notes below are historical. No Cloudflare deployment or quota increase is needed. See [v26 QA](docs/QA_V0.27.26.md).
 Date: **20 September 2026**
 
 Pers Favourites is a curated PWA catalogue. The current release stores the Pers collection locally on the device/browser. Cloudflare is the only backend/service direction for this project.
