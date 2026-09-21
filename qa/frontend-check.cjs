@@ -112,5 +112,14 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('owner rating excluded from user average',()=>{read('userRatings.push({placeId:"a",userId:state.users.find(u=>u.role!=="viewer").id,rating:1})');assert.equal(read('userRatingSummary("a").avg'),5);});
  read('archiveMode=false;places[0].archivedAt="2026-09-20";render()');check('archived venue hidden',()=>assert.ok(!read('filteredPlaces.some(p=>p.id==="b")')));
  read('archiveMode=true;render()');check('archive venue retained',()=>assert.ok(read('filteredPlaces.some(p=>p.id==="b")')));
+ read(`currentUser=state.users.find(u=>u.role==='owner');state.users.push({id:'rating-qa-1',role:'viewer'},{id:'rating-qa-2',role:'viewer'});userRatings=[{placeId:'b',userId:'rating-qa-1',rating:3},{placeId:'b',userId:'rating-qa-2',rating:4}];places.find(p=>p.id==='b').persRating=4;openDetail('b')`);
+ const ratingRows=[...w.document.querySelectorAll('.venue-rating-row')];
+ check('Pers and User ratings share the same row structure',()=>assert.deepEqual(ratingRows.map(row=>[...row.children].map(el=>el.className)),[...Array(2)].map(()=>['rating-label','stars','rating-value','rating-caption muted small'])));
+ check('both rating rows have five stars',()=>assert.deepEqual(ratingRows.map(row=>row.querySelectorAll('.rating-star').length),[5,5]));
+ check('user average displays fractional stars',()=>{assert.equal(ratingRows[1].querySelector('.rating-value').textContent,'3.5 / 5');assert.equal(ratingRows[1].querySelectorAll('.rating-star')[3].style.getPropertyValue('--star-fill'),'50%');});
+ check('Owner can edit only Pers rating',()=>{assert.equal(ratingRows[0].querySelectorAll('button[data-pers-rate]').length,5);assert.equal(ratingRows[1].querySelectorAll('button').length,0);});
+ read(`currentUser={id:'rating-qa-1',role:'viewer'};openDetail('b')`);
+ check('viewer cannot edit Pers average',()=>assert.equal(w.document.querySelectorAll('[data-rating-kind="pers"] button').length,0));
+ check('viewer retains separate personal rating controls',()=>assert.equal(w.document.querySelectorAll('[data-user-stars="b"] button').length,5));
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

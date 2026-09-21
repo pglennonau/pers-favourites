@@ -54,6 +54,13 @@ button{border:0;border-radius:11px;padding:10px 13px;background:#eceae6;color:va
 .rating-panel{display:grid;gap:.7rem;padding:.9rem;border:1px solid #ded8ca;border-radius:12px;margin:1rem 0;background:#fffdf9}
 .rating-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
 .rating-row .stars{margin:0}
+.venue-rating-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center}
+.venue-rating-row .rating-label,.venue-rating-row .rating-caption{grid-column:1/-1}
+.venue-rating-row .stars{display:flex;gap:2px;min-width:0}
+.venue-rating-row .rating-star{display:inline-grid;place-items:center;box-sizing:border-box;width:32px;min-width:0;height:40px;margin:0;padding:4px;border:0;font-size:1.35rem;line-height:1;border-radius:4px}
+.venue-rating-row .readonly-star{color:transparent;background:linear-gradient(to right,var(--gold) var(--star-fill),#9aa39d var(--star-fill));background-clip:text;-webkit-background-clip:text}
+.venue-rating-row .rating-value{font-size:.9rem;white-space:nowrap}
+.venue-rating-row .rating-caption{line-height:1.4}
 .import-step{border:1px solid #ded8ca;border-radius:12px;padding:.8rem;margin:.8rem 0;background:#fffdf9}
 .drop-zone{border:2px dashed #b8b2a4;border-radius:12px;padding:1rem;text-align:center;margin:.6rem 0;background:#faf8f1}
 .drop-zone.dragover{border-style:solid;background:#eef7ef}
