@@ -182,3 +182,8 @@ body{padding-bottom:var(--venue-bar-space,0px)}
 #photoViewerAttribution .google-photo-attribution{position:static;background:#244c40;color:white;padding:8px}
 
 .archive-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;margin:8px 0}.archive-banner[hidden]{display:none}
+
+/* Visible location suggestions work independently of native mobile datalists. */
+.geo-suggestions{display:flex;flex-direction:column;gap:2px;max-height:230px;overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:10px;padding:4px;background:#fff;box-shadow:0 3px 10px #0001;grid-column:1/-1;margin:4px 0 8px}
+.geo-suggestions[hidden]{display:none}.geo-suggestions button{display:block;width:100%;text-align:left;min-height:44px;padding:10px;font-size:16px;border:0;background:#f2f7f4;color:var(--ink)}.geo-suggestions button:hover,.geo-suggestions button:focus-visible{background:var(--accent);color:white;outline:2px solid var(--accent)}.geo-suggestions span{padding:8px;font-size:14px}
+#catalogueTopControls.compact{flex-wrap:wrap}#addPlaceBtn{white-space:nowrap}

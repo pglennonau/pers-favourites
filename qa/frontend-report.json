@@ -1,5 +1,5 @@
 {
-  "passed": 162,
+  "passed": 174,
   "passes": [
     "sort name",
     "rendered order name",
@@ -159,11 +159,23 @@
     "v29 new venue saves after archive navigation",
     "v29 explicit Back to Places leaves Archive",
     "v29 Add from Archive returns to active Places",
-    "v29 viewer still cannot Add",
+    "v30 viewer sees Add but cannot edit",
     "v29 viewer cannot enter Archive",
     "v29 sysadmin without Owner cannot Add",
-    "v29 dual-role account retains Add"
+    "v29 dual-role account retains Add",
+    "v30 Spai visibly offers Spain without completing text",
+    "v30 partial region visibly offers Andalusia",
+    "v30 Mala visibly offers Málaga",
+    "v30 tapping suggestion applies complete location",
+    "v30 keyboard reaches Spain option",
+    "v30 keyboard choice commits country",
+    "v30 viewer Add opens identity guidance without granting permission",
+    "editor Spain suggestion",
+    "editor Andalusia suggestion",
+    "editor Málaga suggestion",
+    "v30 Add form saves through actual submit button",
+    "v30 saved venue persists in local storage"
   ],
   "photoCalls": 7,
-  "searchCalls": 29
+  "searchCalls": 30
 }

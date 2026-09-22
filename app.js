@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.29',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.30',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -22,7 +22,7 @@ const MASTER_LIST_META={
 };
 const LANGUAGE_OPTIONS={en:'English',es:'Español',fr:'Français',it:'Italiano',de:'Deutsch'};
 const I18N={
-  en:{searchPlaceholder:'Search restaurants, places, notes…',location:'Location',allLocations:'All locations',setLocation:'Set location',change:'Change',hide:'Hide',clear:'Clear',done:'Done',places:'Places',place:'place',placesLower:'places',filters:'Filters',add:'+ Add',list:'List',map:'Map',openNow:'Open Now',hours:'Hours',quickFilter:'Quick filter',moreFilters:'More Filters ▾',resetFilters:'Reset filters',morePlaces:'More Places Nearby',moreGoogle:'More places from Google',tripadvisorResults:'TripAdvisor results',searchOtherApps:'Search selected apps',externalSources:'Add other app searches',language:'Language',noMatch:'No places match these filters.'},
+  en:{searchPlaceholder:'Search restaurants, places, notes…',location:'Location',allLocations:'All locations',setLocation:'Set location',change:'Change',hide:'Hide',clear:'Clear',done:'Done',places:'Places',place:'place',placesLower:'places',filters:'Filters',add:'+ Add venue',list:'List',map:'Map',openNow:'Open Now',hours:'Hours',quickFilter:'Quick filter',moreFilters:'More Filters ▾',resetFilters:'Reset filters',morePlaces:'More Places Nearby',moreGoogle:'More places from Google',tripadvisorResults:'TripAdvisor results',searchOtherApps:'Search selected apps',externalSources:'Add other app searches',language:'Language',noMatch:'No places match these filters.'},
   es:{searchPlaceholder:'Buscar restaurantes, lugares, notas…',location:'Ubicación',allLocations:'Todas las ubicaciones',setLocation:'Elegir ubicación',change:'Cambiar',hide:'Ocultar',clear:'Borrar',done:'Listo',places:'Lugares',place:'lugar',placesLower:'lugares',filters:'Filtros',add:'+ Añadir',list:'Lista',map:'Mapa',openNow:'Abierto ahora',hours:'Horario',quickFilter:'Filtro rápido',moreFilters:'Más filtros ▾',resetFilters:'Restablecer filtros',morePlaces:'Más lugares cercanos',moreGoogle:'Más lugares de Google',tripadvisorResults:'Resultados de TripAdvisor',searchOtherApps:'Buscar en apps seleccionadas',externalSources:'Añadir búsquedas de otras apps',language:'Idioma',noMatch:'Ningún lugar coincide con estos filtros.'},
   fr:{searchPlaceholder:'Rechercher restaurants, lieux, notes…',location:'Emplacement',allLocations:'Tous les emplacements',setLocation:'Définir le lieu',change:'Modifier',hide:'Masquer',clear:'Effacer',done:'Terminé',places:'Lieux',place:'lieu',placesLower:'lieux',filters:'Filtres',add:'+ Ajouter',list:'Liste',map:'Carte',openNow:'Ouvert maintenant',hours:'Horaires',quickFilter:'Filtre rapide',moreFilters:'Plus de filtres ▾',resetFilters:'Réinitialiser les filtres',morePlaces:'Plus de lieux à proximité',moreGoogle:'Plus de lieux de Google',tripadvisorResults:'Résultats TripAdvisor',searchOtherApps:'Rechercher dans les apps sélectionnées',externalSources:'Ajouter d’autres recherches',language:'Langue',noMatch:'Aucun lieu ne correspond à ces filtres.'},
   it:{searchPlaceholder:'Cerca ristoranti, luoghi, note…',location:'Posizione',allLocations:'Tutte le posizioni',setLocation:'Imposta posizione',change:'Cambia',hide:'Nascondi',clear:'Cancella',done:'Fatto',places:'Luoghi',place:'luogo',placesLower:'luoghi',filters:'Filtri',add:'+ Aggiungi',list:'Elenco',map:'Mappa',openNow:'Aperto ora',hours:'Orari',quickFilter:'Filtro rapido',moreFilters:'Altri filtri ▾',resetFilters:'Reimposta filtri',morePlaces:'Altri luoghi nelle vicinanze',moreGoogle:'Altri luoghi da Google',tripadvisorResults:'Risultati TripAdvisor',searchOtherApps:'Cerca nelle app selezionate',externalSources:'Aggiungi altre ricerche app',language:'Lingua',noMatch:'Nessun luogo corrisponde a questi filtri.'},
@@ -972,7 +972,7 @@ async function boot(){
   setBranding();bindEvents();installReturnNavigation();installCompactNavigation();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.29 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.30 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -1000,10 +1000,10 @@ function counted(values){const m=new Map();values.filter(Boolean).forEach(v=>m.s
 function choiceItems(values){return values.map(v=>typeof v==='string'?{value:v,label:v}:v).filter(v=>clean(v.value));}
 function populateSearchChoice(id,label,values,current='',disabled=false){
   const input=$(id),list=$(`${id}List`);if(!input||!list)return;
-  const items=choiceItems(values);searchableChoices.set(id,items);
+  const items=choiceItems(values).map(x=>geoKey(x.value)==='malaga'?{...x,value:'Málaga',label:'Málaga'}:geoAliasKey(x.value)==='andalusia'?{...x,value:'Andalusia',label:'Andalusia'}:x);searchableChoices.set(id,items);
   list.innerHTML=items.map(x=>`<option value="${esc(x.value)}" label="${esc(x.label||x.value)}"></option>`).join('');
   const next=current||'',keepDraft=document.activeElement===input&&input.committedChoice===next;
-  input.placeholder=label;input.disabled=!!disabled;if(!keepDraft)input.value=next;input.committedChoice=next;input.setAttribute('aria-label',label);
+  input.placeholder=label;input.disabled=!!disabled;if(!keepDraft)input.value=next;input.committedChoice=next;input.setAttribute('aria-label',label);if(document.activeElement===input)input.refreshSuggestions?.();
 }
 function levenshtein(a,b){a=foldText(a);b=foldText(b);const m=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=m[0];m[0]=i;for(let j=1;j<=b.length;j++){const old=m[j];m[j]=Math.min(m[j]+1,m[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return m[b.length];}
 function resolveSearchChoice(id,raw,{geo=false,fuzzy=true}={}){
@@ -1018,24 +1018,39 @@ function resolveSearchChoice(id,raw,{geo=false,fuzzy=true}={}){
 }
 function commitSearchChoice(id,opts={}){const input=$(id);if(!input)return '';const raw=clean(input.value);if(!raw){input.value='';return '';}const v=resolveSearchChoice(id,raw,opts);if(v){input.value=v;return v;}return '';}
 function bindTypeaheadChoice(id,onCommit,{geo=false}={}){
-  const el=$(id);if(!el)return;let timer=null;
+  const el=$(id);if(!el)return;
+  const menu=document.createElement('div');menu.id=id+'Suggestions';menu.className='geo-suggestions';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Suggested locations');menu.hidden=true;el.after(menu);
+  el.removeAttribute('list');el.setAttribute('role','combobox');el.setAttribute('aria-autocomplete','list');el.setAttribute('aria-controls',menu.id);el.setAttribute('aria-expanded','false');
+  const hide=()=>{menu.hidden=true;el.setAttribute('aria-expanded','false');};
   const setCommitted=v=>{const next=clean(v);if(next===el.committedChoice)return;el.committedChoice=next;onCommit(next);};
-  const resolveAndCommit=(fuzzy=true)=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){el.value='';setCommitted('');return '';}const v=resolveSearchChoice(id,raw,{geo,fuzzy});if(v){el.value=v;setCommitted(v);return v;}return '';};
-  // Programmatic fills (for example Google returning Spain) do not fire input/change.
-  // Re-sync when the user enters the field so an old country cannot snap back on iPhone Safari.
-  el.addEventListener('focus',()=>{clearTimeout(timer);const raw=clean(el.value);if(raw&&/^place(Country|Region|City)$/.test(id)){setTimeout(()=>{try{el.select();}catch{}},0);}try{el.showPicker?.();}catch{}});
+  const choose=v=>{el.value=v;hide();setCommitted(v);hide();};
+  const resolveAndCommit=()=>{const raw=clean(el.value);if(!raw){choose('');return '';}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v)choose(v);return v;};
+  const show=()=>{
+    if(el.disabled){hide();return;}
+    const q=foldText(el.value),seen=new Set();
+    const matches=(searchableChoices.get(id)||[]).filter(x=>{const key=geo?geoAliasKey(x.value):foldText(x.value);if(seen.has(key))return false;seen.add(key);return !q||foldText(x.value).includes(q)||(geo&&geoAliasKey(x.value).includes(geoAliasKey(q)));}).sort((a,b)=>Number(foldText(b.value).startsWith(q))-Number(foldText(a.value).startsWith(q))).slice(0,12);
+    menu.replaceChildren();
+    for(const item of matches){const button=document.createElement('button');button.type='button';button.setAttribute('role','option');button.setAttribute('aria-selected',String(item.value===el.committedChoice));button.textContent=item.value;button.onpointerdown=e=>e.preventDefault();button.onclick=()=>choose(item.value);menu.append(button);}
+    if(!matches.length){const hint=document.createElement('span');hint.textContent=/^place/.test(id)?'No suggestion — you can keep your entered location.':'No matches. Try a different spelling.';menu.append(hint);}
+    menu.hidden=false;el.setAttribute('aria-expanded','true');
+  };
+  el.refreshSuggestions=show;
+  el.addEventListener('focus',show);
   el.addEventListener('input',()=>{
-    clearTimeout(timer);const q=clean(el.value);
-    if(!q){setCommitted('');return;}
-    // iPhone datalist selections reliably produce an input event even when change/blur ordering varies.
+    const q=clean(el.value);if(!q){setCommitted('');show();return;}
     const exact=resolveSearchChoice(id,q,{geo,fuzzy:false});
-    const isExact=exact&&(geo?geoSame(exact,q):foldText(exact)===foldText(q));
-    if(isExact){el.value=exact;setCommitted(exact);return;}
-    // Partial input stays a draft until change, blur or Enter; never select a city on a typing timer.
+    if(exact&&(geo?geoSame(exact,q):foldText(exact)===foldText(q))){choose(exact);return;}
+    show();
   });
-  el.addEventListener('change',()=>resolveAndCommit(true));
-  el.addEventListener('blur',()=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){resolveAndCommit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;setCommitted(v);}/* keep unmatched text visible rather than restoring a stale prior country */});
-  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){const v=resolveSearchChoice(id,el.value,{geo,fuzzy:true});if(v){e.preventDefault();el.value=v;setCommitted(v);}}});
+  el.addEventListener('change',resolveAndCommit);
+  el.addEventListener('blur',e=>{if(menu.contains(e.relatedTarget))return;resolveAndCommit();hide();});
+  menu.addEventListener('focusout',e=>{if(!menu.contains(e.relatedTarget)&&e.relatedTarget!==el)hide();});
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();hide();}
+    if(e.key==='ArrowDown'){e.preventDefault();show();menu.querySelector('button')?.focus();}
+    if(e.key==='Enter'&&!e.isComposing){e.preventDefault();resolveAndCommit();}
+  });
+  menu.addEventListener('keydown',e=>{const buttons=[...menu.querySelectorAll('button')],i=buttons.indexOf(document.activeElement);if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();buttons[(i+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Escape'){e.preventDefault();e.stopPropagation();el.focus();hide();}});
 }
 
 function catalogueSearchMatches(p){const q=foldText($('searchInput')?.value||'');if(!q)return true;return foldText([p.name,p.placeType,p.cuisine,p.country,p.stateRegion,p.city,p.suburb,p.address,p.notes,p.mustTry,...(p.tags||[])].join(' ')).includes(q);}
@@ -1166,7 +1181,7 @@ function syncLocationBanner(){
 }
 function activeCatalogueFilterCount(){return Object.entries(filters).filter(([k,v])=>v&&!['country','region','city'].includes(k)).length+(mapBoundsFilter?1:0);}
 function syncCatalogueFilters(){const n=activeCatalogueFilterCount();if($('catalogueFiltersPanel'))$('catalogueFiltersPanel').classList.toggle('hidden',!catalogueFiltersOpen);if($('filtersToggleBtn')){$('filtersToggleBtn').textContent=n?`${($('catalogueTopControls').classList.contains('compact')?'Filters':t('editFilters','Edit filters'))} (${n})`:($('catalogueTopControls').classList.contains('compact')?'Filters':t('editFilters','Edit filters'));$('filtersToggleBtn').setAttribute('aria-expanded',String(catalogueFiltersOpen));$('filtersToggleBtn').setAttribute('aria-controls','catalogueFiltersPanel');}}
-function render(){ $('archiveBanner').hidden=!archiveMode;applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit());syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
+function render(){ $('archiveBanner').hidden=!archiveMode;applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.remove('hidden');syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
 function userRatingSummary(placeId){
   if(CFG.mode==='local'){
     const viewerIds=new Set((state?.users||[]).filter(u=>u.role==='viewer').map(u=>u.id));
@@ -1599,6 +1614,10 @@ async function saveCollectionSettings(){
   state.settings=s;saveLocalState();
   setBranding();toast('Collection settings saved.');
 }
+function requestAddPlace(){
+  if(!canEdit()){if(CFG.mode==='local'){openAccount();$('localRoleSettings').scrollIntoView({block:'center'});$('localRoleSelect').focus();toast('Adding venues requires the Owner test identity. Choose Owner under Test role.');}else openAuth('owner');return;}
+  if(archiveMode)returnToPlaces();void openPlaceEditor();
+}
 function returnToPlaces(){archiveMode=false;populateFilterOptions();render();showAllTopControls();}
 function showArchive(){if(!canEdit())return;archiveMode=true;$('accountDialog').close();resetFilters();$('resultCount').scrollIntoView({behavior:'smooth'});toast('Showing Archive');}
 async function signOut(){await persistPreferences();localStorage.removeItem(LS_SESSION);location.reload();}
@@ -1607,7 +1626,7 @@ function showAllTopControls(){
   $('catalogueTopControls').classList.remove('compact');$('backToTopBtn').hidden=true;
   syncCatalogueFilters();
   window.scrollTo({top:0,behavior:'instant'});
-  $('addPlaceBtn').closest('.admin-actions').classList.toggle('hidden',!canEdit());
+  $('addPlaceBtn').closest('.admin-actions').classList.remove('hidden');
   document.querySelector('.search-wrap input')?.focus({preventScroll:true});
 }
 function installCompactNavigation(){
@@ -1664,7 +1683,7 @@ function bindEvents(){
   $('activeChips').onclick=e=>{const b=e.target.closest('[data-clear-filter]');if(b){const key=b.dataset.clearFilter;filters[key]='';if(key==='country'){filters.region='';filters.city='';}if(key==='region')filters.city='';rebuildAndRender();}if(e.target.closest('[data-clear-area]')){mapBoundsFilter=null;rebuildAndRender();}};
   $('resetFiltersBtn').onclick=()=>{archiveMode=false;resetFilters();};$('searchAreaBtn').onclick=()=>{mapBoundsFilter=map.getBounds();$('searchAreaBtn').classList.add('hidden');rebuildAndRender();};
   $('returnToPlacesBtn').onclick=returnToPlaces;
-  $('addPlaceBtn').onclick=()=>{if(archiveMode)returnToPlaces();openPlaceEditor();};$('placeForm').onsubmit=savePlace;$('placeCloseBtn').onclick=closePlaceEditor;$('placeCancelBtn').onclick=closePlaceEditor;$('placeDialog').addEventListener('cancel',e=>{e.preventDefault();closePlaceEditor();});$('placeForm').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closePlaceEditor();}});$('archivePlaceBtn').onclick=()=>archivePlace($('placeId').value);$('restorePlaceBtn').onclick=()=>restorePlace($('placeId').value);$('deleteForeverBtn').onclick=()=>deleteForever($('placeId').value);
+  $('addPlaceBtn').onclick=requestAddPlace;$('placeForm').onsubmit=savePlace;$('placeCloseBtn').onclick=closePlaceEditor;$('placeCancelBtn').onclick=closePlaceEditor;$('placeDialog').addEventListener('cancel',e=>{e.preventDefault();closePlaceEditor();});$('placeForm').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closePlaceEditor();}});$('archivePlaceBtn').onclick=()=>archivePlace($('placeId').value);$('restorePlaceBtn').onclick=()=>restorePlace($('placeId').value);$('deleteForeverBtn').onclick=()=>deleteForever($('placeId').value);
   bindTypeaheadChoice('placeCountry',v=>void hydrateEditorGeography({country:v,region:'',city:''}),{geo:true});
   bindTypeaheadChoice('placeRegion',v=>void hydrateEditorGeography({country:$('placeCountry').value,region:v,city:''}),{geo:true});
   bindTypeaheadChoice('placeCity',()=>{}, {geo:true});

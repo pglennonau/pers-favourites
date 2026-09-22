@@ -1,6 +1,6 @@
 # Pers Favourites — User Guide
 
-Version: **0.27.29**
+Version: **0.27.30**
 
 ## v28 navigation and photos
 
@@ -262,4 +262,12 @@ This remains a local trial, with no secure email/password accounts. See [the QA 
 - Archive has a Back to Places button. Opening My Settings returns to active Places without changing identity or permissions.
 - My Settings means your personal preferences. The current account and role remain shown above the settings tabs.
 
-Update through Account → My Settings → Check for Update → Install Update. Confirm version 0.27.29. Do not clear browser/site data to update; this trial stores venues on the device.
+Update through Account → My Settings → Check for Update → Install Update. Confirm version 0.27.30. Do not clear browser/site data to update; this trial stores venues on the device.
+
+## v30: visible location suggestions and Add venue
+
+Type part of a location, then tap the suggestion directly below the field: Spai → Spain, Andal → Andalusia, Mala → Málaga. Suggestions also work in the Add venue form. They no longer depend on the browser's native suggestion strip. Arrow keys and Enter are supported.
+
+Add venue is always visible on Places, including the compact scrolling header and Archive. Accounts allowed to edit open the form directly. Other accounts receive the existing sign-in or local-trial identity guidance; tapping Add never grants a role automatically. In the current local trial, choose Owner under Account → My Settings → Test role when acting as the Owner. My Settings itself does not switch identities.
+
+Update using Account → My Settings → Check for Update → Install Update and confirm 0.27.30. Do not clear site data to update.

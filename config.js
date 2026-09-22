@@ -1,5 +1,5 @@
 window.PERS_CONFIG = {
-  version: "0.27.29",
+  version: "0.27.30",
   deploymentId: "pers-favourites-per-trial",
   mode: "local",
   backend: "cloudflare",

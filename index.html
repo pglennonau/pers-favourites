@@ -10,11 +10,11 @@
   <title>Pers Favourites</title>
   <link id="appManifest" rel="manifest" href="manifest.webmanifest" />
   
-<script src="config.js?v=0.27.29"></script>
-  <script src="branding.js?v=0.27.29"></script>
+<script src="config.js?v=0.27.30"></script>
+  <script src="branding.js?v=0.27.30"></script>
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css?v=0.27.29" />
+  <link rel="stylesheet" href="styles.css?v=0.27.30" />
 </head>
 <body>
   <header class="topbar">
@@ -73,7 +73,7 @@
         <div><strong>Places</strong><span id="resultCount" class="result-count">0 places</span></div>
         <div class="catalogue-head-actions">
           <button id="filtersToggleBtn" class="secondary compact" type="button">Edit filters</button>
-          <div class="admin-actions" id="adminActions"><button id="addPlaceBtn" class="primary compact">+ Add</button></div>
+          <div class="admin-actions" id="adminActions"><button id="addPlaceBtn" class="primary compact">+ Add venue</button></div>
         </div>
       </div>
 
@@ -283,7 +283,7 @@
       <section class="app-update-card">
         <h3>App Updates</h3>
         <div class="connection-grid">
-          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.29</strong></div>
+          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.30</strong></div>
           <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
         </div>
         <div class="inline-actions">
@@ -398,7 +398,7 @@
         <p class="muted small">The Owner decides whether Ask Pers is enabled; System Administrator controls the technical endpoint.</p>
       </fieldset>
       <fieldset class="external-service-card">
-        <legend>External Services - Google Maps / Places</legend><p class="muted small">v0.27.29 uses Cloudflare only. Manage the Google API key as a Cloudflare Worker secret; browser key replacement is disabled.</p>
+        <legend>External Services - Google Maps / Places</legend><p class="muted small">v0.27.30 uses Cloudflare only. Manage the Google API key as a Cloudflare Worker secret; browser key replacement is disabled.</p>
         <label>Google Places Worker endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
         <div class="connection-grid">
           <div><span class="muted small">Connection</span><strong id="googleConnectionState">Not connected</strong></div>
@@ -445,7 +445,7 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.29</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.30</span></p>
   </dialog>
 
   <dialog id="masterListsDialog" class="modal">
@@ -473,9 +473,9 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="geo-fallback.js?v=0.27.29"></script>
+  <script src="geo-fallback.js?v=0.27.30"></script>
 <aside id="venueBar" hidden aria-label="Selected venue actions"><div class="venue-bar-heading"><strong id="venueBarName"></strong><button id="venueBarToggle" type="button" aria-controls="venueBarActions" aria-expanded="true">⌄ Hide actions</button></div><div id="venueBarActions" class="card-actions"></div></aside>
-  <script src="app.js?v=0.27.29"></script>
+  <script src="app.js?v=0.27.30"></script>
 
 </body>
 </html>

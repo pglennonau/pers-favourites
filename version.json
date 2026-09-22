@@ -1,6 +1,6 @@
 {
-  "version": "0.27.29",
+  "version": "0.27.30",
   "published": "2026-09-22",
-  "notes": "Stable M\u00e1laga location selection; retained Add access and clear Archive exit; personal settings clarification.",
-  "build": "20260922.2"
+  "notes": "Visible tappable location suggestions for partial names; always-visible Add venue with permission guidance.",
+  "build": "20260922.3"
 }

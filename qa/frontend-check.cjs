@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.29'})};
+ return {ok:true,json:async()=>({version:'0.27.30'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -198,7 +198,7 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  w.document.getElementById('filtersToggleBtn').click();
  check('compact Filters restores top and opens criteria',()=>{assert.equal(read('catalogueFiltersOpen'),true);assert.equal(w.document.getElementById('catalogueTopControls').classList.contains('compact'),false);});
  w.dispatchEvent(new w.Event('scroll'));w.document.getElementById('backToTopBtn').click();
- check('Top restores full controls without granting Add access',()=>{assert.equal(w.document.getElementById('backToTopBtn').hidden,true);assert.ok(w.document.getElementById('adminActions').classList.contains('hidden'));});
+ check('Top restores full controls without granting Add access',()=>{assert.equal(w.document.getElementById('backToTopBtn').hidden,true);assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),false);assert.equal(read('canEdit()'),false);});
  read(`archiveMode=false;filters=defaultFilters();photos=[{id:'nav1',placeId:'a',status:'approved',isCover:true},{id:'nav2',placeId:'a',status:'approved',isCover:true}];render()`);
  const thumbnail=w.document.querySelector('[data-venue-photos="a"]');thumbnail.click();
  check('thumbnail opens named photo viewer',()=>{assert.equal(w.document.getElementById('photoViewerDialog').open,true);assert.equal(w.document.getElementById('photoPosition').textContent,'1 / 2');assert.equal(read('activeVenueId'),'a');});
@@ -249,9 +249,30 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  read('showArchive()');w.document.getElementById('addPlaceBtn').click();await tick();
  check('v29 Add from Archive returns to active Places',()=>assert.equal(read('archiveMode'),false));read('closePlaceEditor()');
  read(`currentUser={id:'qa-viewer',role:'viewer'};render()`);
- check('v29 viewer still cannot Add',()=>assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),true));
+ check('v30 viewer sees Add but cannot edit',()=>{assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),false);assert.equal(read('canEdit()'),false);});
  read('showArchive()');check('v29 viewer cannot enter Archive',()=>assert.equal(read('archiveMode'),false));
  read(`CFG.mode='production';currentUser={id:'qa-sys',role:'sysadmin'};render()`);check('v29 sysadmin without Owner cannot Add',()=>assert.equal(read('canEdit()'),false));
  read(`currentUser={id:'qa-dual',role:'sysadmin',roles:['sysadmin','owner']};render()`);check('v29 dual-role account retains Add',()=>assert.equal(read('canEdit()'),true));
+
+ read(`CFG.mode='local';currentUser=state.users.find(u=>u.role==='owner');resetFilters();`);
+ const suggestion=(id,name)=>[...w.document.getElementById(id+'Suggestions').querySelectorAll('button')].find(b=>b.textContent===name);
+ input('countryFilter','Spai');
+ check('v30 Spai visibly offers Spain without completing text',()=>{assert.equal(w.document.getElementById('countryFilter').value,'Spai');assert.equal(w.document.getElementById('countryFilterSuggestions').hidden,false);assert.ok(suggestion('countryFilter','Spain'));});
+ suggestion('countryFilter','Spain').click();await tick();input('regionFilter','Andal');
+ check('v30 partial region visibly offers Andalusia',()=>assert.ok(suggestion('regionFilter','Andalusia')));
+ suggestion('regionFilter','Andalusia').click();await tick();input('cityFilter','Mala');
+ check('v30 Mala visibly offers Málaga',()=>assert.ok(suggestion('cityFilter','Málaga')));
+ suggestion('cityFilter','Málaga').click();
+ check('v30 tapping suggestion applies complete location',()=>assert.equal(read('filters.city'),'Málaga'));
+ read('resetFilters()');input('countryFilter','Spai');w.document.getElementById('countryFilter').dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+ check('v30 keyboard reaches Spain option',()=>assert.equal(w.document.activeElement.textContent,'Spain'));w.document.activeElement.click();
+ check('v30 keyboard choice commits country',()=>assert.equal(read('filters.country'),'Spain'));
+ read('currentUser={id:"qa-viewer",role:"viewer"};render()');w.document.getElementById('addPlaceBtn').click();
+ check('v30 viewer Add opens identity guidance without granting permission',()=>{assert.equal(w.document.getElementById('accountDialog').open,true);assert.equal(w.document.getElementById('placeDialog').open,false);assert.equal(read('canEdit()'),false);assert.equal(w.document.activeElement.id,'localRoleSelect');});
+ w.document.getElementById('accountClose').click();read('currentUser=state.users.find(u=>u.role==="owner");render()');w.document.getElementById('addPlaceBtn').click();await tick();
+ w.document.getElementById('placeName').value='v30 new venue via suggestions';input('placeCountry','Spai');check('editor Spain suggestion',()=>assert.ok(suggestion('placeCountry','Spain')));suggestion('placeCountry','Spain').click();await tick();input('placeRegion','Andal');check('editor Andalusia suggestion',()=>assert.ok(suggestion('placeRegion','Andalusia')));suggestion('placeRegion','Andalusia').click();await tick();input('placeCity','Mala');check('editor Málaga suggestion',()=>assert.ok(suggestion('placeCity','Málaga')));suggestion('placeCity','Málaga').click();
+ w.document.getElementById('savePlaceBtn').click();await tick();
+ check('v30 Add form saves through actual submit button',()=>assert.ok(read('places.some(p=>p.name==="v30 new venue via suggestions"&&p.city==="Málaga"&&p.country==="Spain")')));
+ check('v30 saved venue persists in local storage',()=>assert.ok(read('JSON.parse(localStorage.getItem(LS_DB)).places.some(p=>p.name==="v30 new venue via suggestions")')));
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});
