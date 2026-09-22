@@ -1,5 +1,5 @@
 {
-  "passed": 134,
+  "passed": 162,
   "passes": [
     "sort name",
     "rendered order name",
@@ -134,8 +134,36 @@
     "recoveryDialog Return closes the subpage",
     "newPasswordDialog has one bottom Return control",
     "newPasswordDialog Return closes the subpage",
-    "pinch zoom remains enabled"
+    "pinch zoom remains enabled",
+    "scroll compacts top controls and exposes return button",
+    "compact Filters restores top and opens criteria",
+    "Top restores full controls without granting Add access",
+    "thumbnail opens named photo viewer",
+    "Next advances within the same venue",
+    "Previous returns to first photo",
+    "photo Close returns to list",
+    "name selects row without opening photos",
+    "keyboard thumbnail opens viewer",
+    "v29 partial Málaga input never auto-commits on a timer",
+    "v29 background geography refresh preserves city draft",
+    "v29 unaccented Malaga commits Málaga",
+    "v29 clear and reselect Málaga 0",
+    "v29 clear and reselect Málaga 1",
+    "v29 clear and reselect Málaga 2",
+    "v29 zero results retain Málaga selection and option",
+    "v29 accented aliases match saved venue",
+    "v29 settings preserve location and identity",
+    "v29 Archive has an explicit exit and authorised Add",
+    "v29 delete archive then My Settings returns to Places with same role",
+    "v29 Add opens usable editor after navigation sequence",
+    "v29 new venue saves after archive navigation",
+    "v29 explicit Back to Places leaves Archive",
+    "v29 Add from Archive returns to active Places",
+    "v29 viewer still cannot Add",
+    "v29 viewer cannot enter Archive",
+    "v29 sysadmin without Owner cannot Add",
+    "v29 dual-role account retains Add"
   ],
   "photoCalls": 7,
-  "searchCalls": 22
+  "searchCalls": 29
 }

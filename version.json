@@ -1,6 +1,6 @@
 {
-  "version": "0.27.28",
+  "version": "0.27.29",
   "published": "2026-09-22",
-  "notes": "Compact sticky Places/List/Map/Filters controls; Top / Show all; explicit thumbnail viewer with previous/next and guarded image loading.",
-  "build": "20260922.1"
+  "notes": "Stable M\u00e1laga location selection; retained Add access and clear Archive exit; personal settings clarification.",
+  "build": "20260922.2"
 }

@@ -171,7 +171,7 @@ body{padding-bottom:var(--venue-bar-space,0px)}
 #catalogueTopControls.compact .catalogue-head>div:first-child{display:flex;flex-direction:column;gap:0;font-size:.85rem}
 #catalogueTopControls.compact .catalogue-head-actions{order:3}
 #catalogueTopControls.compact .toolbar{margin:0;padding:0}
-#catalogueTopControls.compact #adminActions,#catalogueTopControls.compact #sortSelect{display:none}
+#catalogueTopControls.compact #sortSelect{display:none}
 #catalogueTopControls.compact button{min-height:42px;padding:7px 9px;font-size:.85rem}
 #backToTopBtn{position:fixed;right:12px;bottom:calc(var(--venue-bar-space,0px) + 14px);z-index:29;background:var(--accent);color:white;box-shadow:0 2px 8px #0003;min-height:44px}
 #backToTopBtn[hidden]{display:none}
@@ -180,3 +180,5 @@ body{padding-bottom:var(--venue-bar-space,0px)}
 .photo-navigation{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:12px 0}
 .photo-navigation button{min-height:44px}
 #photoViewerAttribution .google-photo-attribution{position:static;background:#244c40;color:white;padding:8px}
+
+.archive-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;margin:8px 0}.archive-banner[hidden]{display:none}

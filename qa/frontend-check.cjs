@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.28'})};
+ return {ok:true,json:async()=>({version:'0.27.29'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -212,5 +212,46 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('name selects row without opening photos',()=>{assert.equal(read('activeVenueId'),'a');assert.equal(w.document.getElementById('photoViewerDialog').open,false);});
  thumbnail.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
  check('keyboard thumbnail opens viewer',()=>assert.equal(w.document.getElementById('photoViewerDialog').open,true));
+ // v29: partial typing, asynchronous option refresh and clear/reselection.
+ for(const dialog of w.document.querySelectorAll('dialog'))dialog.close();
+ read(`currentUser=state.users.find(u=>u.role==='owner');archiveMode=false;resetFilters();`);
+ const cityInput=w.document.getElementById('cityFilter');
+ const input=(id,value)=>{const el=w.document.getElementById(id);el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));};
+ input('countryFilter','Spain');input('regionFilter','Andalusia');await tick();
+ cityInput.focus();input('cityFilter','Mala');await new Promise(r=>setTimeout(r,280));
+ check('v29 partial Málaga input never auto-commits on a timer',()=>{assert.equal(cityInput.value,'Mala');assert.equal(read('filters.city'),'');});
+ read('populateFilterOptions()');
+ check('v29 background geography refresh preserves city draft',()=>assert.equal(cityInput.value,'Mala'));
+ input('cityFilter','Malaga');
+ check('v29 unaccented Malaga commits Málaga',()=>assert.equal(read('filters.city'),'Málaga'));
+ for(let i=0;i<3;i++){
+   read('resetFilters()');input('countryFilter','Spain');input('regionFilter',i===1?'Andulucia':'Andalucía');await tick();input('cityFilter','Malaga');
+   check('v29 clear and reselect Málaga '+i,()=>assert.equal(read('filters.city'),'Málaga'));
+ }
+ cityInput.blur();
+ read(`places.push({id:'v29-mal',name:'Málaga test venue',country:'Spain',stateRegion:'Andalucía',city:'Malaga',placeType:'Cafe'});filters.type='Hotel';populateFilterOptions();render();`);
+ check('v29 zero results retain Málaga selection and option',()=>{assert.equal(read('filters.city'),'Málaga');assert.ok(read('(searchableChoices.get("cityFilter")||[]).some(x=>geoSame(x.value,"Málaga"))'));});
+ read(`filters.type='';render()`);
+ check('v29 accented aliases match saved venue',()=>assert.ok(read('filteredPlaces.some(p=>p.id==="v29-mal")')));
+ const identityBefore=read('JSON.stringify(currentUser)');read('openAccount();setAccountPane("user",true)');w.document.getElementById('accountClose').click();
+ check('v29 settings preserve location and identity',()=>{assert.equal(read('filters.city'),'Málaga');assert.equal(read('JSON.stringify(currentUser)'),identityBefore);});
+ w.confirm=()=>true;
+ read(`places.push({id:'v29-arch',name:'Disposable archived QA venue',country:'Spain',stateRegion:'Andalusia',city:'Málaga',archivedAt:'2026-09-01'});showArchive()`);
+ check('v29 Archive has an explicit exit and authorised Add',()=>{assert.equal(w.document.getElementById('archiveBanner').hidden,false);assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),false);});
+ await read('deleteForever("v29-arch")');read('openAccount();setAccountPane("user",true)');w.document.getElementById('accountClose').click();
+ check('v29 delete archive then My Settings returns to Places with same role',()=>{assert.equal(read('archiveMode'),false);assert.equal(read('JSON.stringify(currentUser)'),identityBefore);assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),false);});
+ w.document.getElementById('addPlaceBtn').click();await tick();
+ check('v29 Add opens usable editor after navigation sequence',()=>assert.equal(w.document.getElementById('placeDialog').open,true));
+ w.document.getElementById('placeName').value='v29 Add after archive';await read('savePlace({preventDefault(){}})');
+ check('v29 new venue saves after archive navigation',()=>assert.ok(read('places.some(p=>p.name==="v29 Add after archive"&&!p.archivedAt)')));
+ read('showArchive()');w.document.getElementById('returnToPlacesBtn').click();
+ check('v29 explicit Back to Places leaves Archive',()=>assert.equal(read('archiveMode'),false));
+ read('showArchive()');w.document.getElementById('addPlaceBtn').click();await tick();
+ check('v29 Add from Archive returns to active Places',()=>assert.equal(read('archiveMode'),false));read('closePlaceEditor()');
+ read(`currentUser={id:'qa-viewer',role:'viewer'};render()`);
+ check('v29 viewer still cannot Add',()=>assert.equal(w.document.getElementById('adminActions').classList.contains('hidden'),true));
+ read('showArchive()');check('v29 viewer cannot enter Archive',()=>assert.equal(read('archiveMode'),false));
+ read(`CFG.mode='production';currentUser={id:'qa-sys',role:'sysadmin'};render()`);check('v29 sysadmin without Owner cannot Add',()=>assert.equal(read('canEdit()'),false));
+ read(`currentUser={id:'qa-dual',role:'sysadmin',roles:['sysadmin','owner']};render()`);check('v29 dual-role account retains Add',()=>assert.equal(read('canEdit()'),true));
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

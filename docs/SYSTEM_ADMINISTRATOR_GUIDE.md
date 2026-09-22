@@ -1,6 +1,6 @@
 # Pers Favourites — System Administrator Guide
 
-Version: **0.27.28**
+Version: **0.27.29**
 
 ## v28 navigation and photos
 
@@ -430,3 +430,13 @@ Status at this update: v0.27.25 is approved for deployment as a local-trial bug-
 Important: removing Temporary Owner permission alone does **not** close the recovery route while Pat's address remains Per's recovery address. Both OA-15 and OA-16 must be checked before treating the Owner account as handed over for confidential use. Revocation cannot retract information already downloaded.
 
 For each closure, record: action ID, completion date, person confirming completion, test/evidence reference and any accepted limitation. Add newly discovered matters here so they are not lost in chat or left only at the end of a QA report.
+
+## v29 changes
+
+- Málaga remains selectable under Spain → Andalusia, including after clearing filters or when no venues match. Andalucía/Andalucia and the reported Andulucia spelling resolve to Andalusia.
+- Location fields retain unfinished typing during background refreshes. Partial city names are completed on selection, Enter or leaving the field, not by a typing timer.
+- Add stays available for permitted accounts in the compact header and Archive. Adding from Archive returns to active Places.
+- Archive has a Back to Places button. Opening My Settings returns to active Places without changing identity or permissions.
+- My Settings means your personal preferences. The current account and role remain shown above the settings tabs.
+
+Update through Account → My Settings → Check for Update → Install Update. Confirm version 0.27.29. Do not clear browser/site data to update; this trial stores venues on the device.

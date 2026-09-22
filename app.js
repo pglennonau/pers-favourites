@@ -1,6 +1,6 @@
 'use strict';
 
-const CFG = Object.assign({version:'0.27.28',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
+const CFG = Object.assign({version:'0.27.29',mode:'local',backend:'cloudflare',appName:'Pers Favourites',ownerDisplayName:'Owner',homeRegion:'',allowViewerSignup:false,cloudflareApiEndpoint:'',placesSearchEndpoint:''}, window.PERS_CONFIG || {});
 const LS_DB = `pers-v027f-db:${CFG.deploymentId || location.pathname}`;
 const LS_SESSION = `pers-v027f-session:${CFG.deploymentId || location.pathname}`;
 const LS_PUBLIC_VIEWER = `pers-v027f-public-viewer:${CFG.deploymentId || location.pathname}`;
@@ -972,7 +972,7 @@ async function boot(){
   setBranding();bindEvents();installReturnNavigation();installCompactNavigation();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setTimeout(()=>checkForAppUpdate(true),1200);
-  if(CFG.mode!=='local'){throw new Error('v0.27.28 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
+  if(CFG.mode!=='local'){throw new Error('v0.27.29 uses local Pers data with Cloudflare only for authorised external services. Set mode to local.');}
   state=loadLocalState();
   const started=localStorage.getItem(LS_SESSION)==='local-started'||localStorage.getItem(LEGACY_SESSION)==='local-started';
   if(started&&!localStorage.getItem(LS_SESSION))localStorage.setItem(LS_SESSION,'local-started');
@@ -993,7 +993,7 @@ function setBranding(){const s=state?.settings||{};const name=s.appName||CFG.app
 function applyPreferencesToUI(){$('sortSelect').value=preferences.sort||'nearest';$('prefDistance').value=preferences.preferredDistance||'1';if($('settingDefaultNearMe'))$('settingDefaultNearMe').value=state.settings.defaultNearMe||'1';$('rememberFilters').checked=!!preferences.rememberFilters;if($('sourceGoogle'))$('sourceGoogle').checked=!!preferences.externalSources?.google;if($('sourceTripadvisor'))$('sourceTripadvisor').checked=!!preferences.externalSources?.tripadvisor;setView(preferences.view||'list',false);syncFilterControls();applyLanguage();}
 function syncFilterControls(){
   const map={country:'countryFilter',region:'regionFilter',city:'cityFilter',type:'typeFilter',cuisine:'cuisineFilter',rating:'ratingFilter',distance:'distanceFilter',openNow:'openNowFilter',price:'priceFilter',meal:'mealFilter',greatFor:'greatForFilter',feature:'featureFilter',status:'statusFilter',dietary:'dietaryFilter',tag:'tagFilter'};
-  Object.entries(map).forEach(([k,id])=>{if($(id)) $(id).value=filters[k]||'';});
+  Object.entries(map).forEach(([k,id])=>{const el=$(id),next=filters[k]||'';if(el&&!(document.activeElement===el&&el.committedChoice===next))el.value=next;});
 }
 function populateSelect(id,label,values,current=''){const el=$(id);el.innerHTML=`<option value="">${esc(label)}</option>`+values.map(v=>{const item=typeof v==='string'?{value:v,label:v}:v;return `<option value="${esc(item.value)}">${esc(item.label)}</option>`;}).join('');el.value=current||'';}
 function counted(values){const m=new Map();values.filter(Boolean).forEach(v=>m.set(v,(m.get(v)||0)+1));return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([value,count])=>({value,label:`${value} (${count})`}));}
@@ -1002,7 +1002,8 @@ function populateSearchChoice(id,label,values,current='',disabled=false){
   const input=$(id),list=$(`${id}List`);if(!input||!list)return;
   const items=choiceItems(values);searchableChoices.set(id,items);
   list.innerHTML=items.map(x=>`<option value="${esc(x.value)}" label="${esc(x.label||x.value)}"></option>`).join('');
-  input.placeholder=label;input.disabled=!!disabled;input.value=current||'';input.setAttribute('aria-label',label);
+  const next=current||'',keepDraft=document.activeElement===input&&input.committedChoice===next;
+  input.placeholder=label;input.disabled=!!disabled;if(!keepDraft)input.value=next;input.committedChoice=next;input.setAttribute('aria-label',label);
 }
 function levenshtein(a,b){a=foldText(a);b=foldText(b);const m=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=m[0];m[0]=i;for(let j=1;j<=b.length;j++){const old=m[j];m[j]=Math.min(m[j]+1,m[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return m[b.length];}
 function resolveSearchChoice(id,raw,{geo=false,fuzzy=true}={}){
@@ -1017,12 +1018,12 @@ function resolveSearchChoice(id,raw,{geo=false,fuzzy=true}={}){
 }
 function commitSearchChoice(id,opts={}){const input=$(id);if(!input)return '';const raw=clean(input.value);if(!raw){input.value='';return '';}const v=resolveSearchChoice(id,raw,opts);if(v){input.value=v;return v;}return '';}
 function bindTypeaheadChoice(id,onCommit,{geo=false}={}){
-  const el=$(id);if(!el)return;let timer=null,lastCommitted='';
-  const setCommitted=v=>{const next=clean(v);if(next===lastCommitted)return;lastCommitted=next;onCommit(next);};
+  const el=$(id);if(!el)return;let timer=null;
+  const setCommitted=v=>{const next=clean(v);if(next===el.committedChoice)return;el.committedChoice=next;onCommit(next);};
   const resolveAndCommit=(fuzzy=true)=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){el.value='';setCommitted('');return '';}const v=resolveSearchChoice(id,raw,{geo,fuzzy});if(v){el.value=v;setCommitted(v);return v;}return '';};
   // Programmatic fills (for example Google returning Spain) do not fire input/change.
   // Re-sync when the user enters the field so an old country cannot snap back on iPhone Safari.
-  el.addEventListener('focus',()=>{clearTimeout(timer);const raw=clean(el.value);lastCommitted=resolveSearchChoice(id,raw,{geo,fuzzy:true})||raw;if(raw&&/^place(Country|Region|City)$/.test(id)){setTimeout(()=>{try{el.select();}catch{}},0);}try{el.showPicker?.();}catch{}});
+  el.addEventListener('focus',()=>{clearTimeout(timer);const raw=clean(el.value);if(raw&&/^place(Country|Region|City)$/.test(id)){setTimeout(()=>{try{el.select();}catch{}},0);}try{el.showPicker?.();}catch{}});
   el.addEventListener('input',()=>{
     clearTimeout(timer);const q=clean(el.value);
     if(!q){setCommitted('');return;}
@@ -1030,10 +1031,10 @@ function bindTypeaheadChoice(id,onCommit,{geo=false}={}){
     const exact=resolveSearchChoice(id,q,{geo,fuzzy:false});
     const isExact=exact&&(geo?geoSame(exact,q):foldText(exact)===foldText(q));
     if(isExact){el.value=exact;setCommitted(exact);return;}
-    if(!/^place(Country|Region|City)$/.test(id)&&q.length>=3)timer=setTimeout(()=>{const v=resolveSearchChoice(id,q,{geo,fuzzy:false});if(v){el.value=v;setCommitted(v);}},220);
+    // Partial input stays a draft until change, blur or Enter; never select a city on a typing timer.
   });
   el.addEventListener('change',()=>resolveAndCommit(true));
-  el.addEventListener('blur',()=>{const raw=clean(el.value);if(!raw){resolveAndCommit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;setCommitted(v);}/* keep unmatched text visible rather than restoring a stale prior country */});
+  el.addEventListener('blur',()=>{clearTimeout(timer);const raw=clean(el.value);if(!raw){resolveAndCommit(true);return;}const v=resolveSearchChoice(id,raw,{geo,fuzzy:true});if(v){el.value=v;setCommitted(v);}/* keep unmatched text visible rather than restoring a stale prior country */});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){const v=resolveSearchChoice(id,el.value,{geo,fuzzy:true});if(v){e.preventDefault();el.value=v;setCommitted(v);}}});
 }
 
@@ -1056,8 +1057,8 @@ function valuesForFilter(rows,key){switch(key){case'type':return rows.map(p=>p.p
 function optionContains(options,value,geo=false){return options.some(o=>geo?geoSame(o.value,value):o.value===value);}
 
 function geoKey(v){return foldText(v);}
-function geoAliasKey(v){const k=geoKey(v);const aliases={'andalucia':'andalusia','islas baleares':'balearic islands','illes balears':'balearic islands','cataluna':'catalonia','catalunya':'catalonia','comunidad valenciana':'valencian community','comunitat valenciana':'valencian community','comunidad de madrid':'community of madrid','madrid':'community of madrid','region de murcia':'region of murcia','murcia':'region of murcia','pais vasco':'basque country','euskadi':'basque country','navarra':'navarre','canarias':'canary islands','aragon':'aragon'};return aliases[k]||k;}
-function canonicalRegion(country,value){if(geoKey(country)==='spain'&&['andalicia','andalucia','andalusia'].includes(geoKey(value)))return 'Andalusia';return value;}
+function geoAliasKey(v){const k=geoKey(v);const aliases={'andalucia':'andalusia','andulucia':'andalusia','andalicia':'andalusia','islas baleares':'balearic islands','illes balears':'balearic islands','cataluna':'catalonia','catalunya':'catalonia','comunidad valenciana':'valencian community','comunitat valenciana':'valencian community','comunidad de madrid':'community of madrid','madrid':'community of madrid','region de murcia':'region of murcia','murcia':'region of murcia','pais vasco':'basque country','euskadi':'basque country','navarra':'navarre','canarias':'canary islands','aragon':'aragon'};return aliases[k]||k;}
+function canonicalRegion(country,value){if(geoKey(country)==='spain'&&['andalicia','andalucia','andulucia','andalusia'].includes(geoKey(value)))return 'Andalusia';return value;}
 function geoSame(a,b){return !!a&&!!b&&geoAliasKey(a)===geoAliasKey(b);}
 function regionTerm(country=''){
   const k=geoAliasKey(country);
@@ -1127,17 +1128,17 @@ function populateFilterOptions(){
   const locationRows=places.filter(p=>!p.archivedAt);
   const dynamic=[['typeFilter',t('placeType'),'type'],['cuisineFilter',t('cuisine'),'cuisine'],['mealFilter',t('meal'),'meal'],['greatForFilter',t('greatFor'),'greatFor'],['featureFilter',t('feature'),'feature'],['dietaryFilter',t('dietary'),'dietary'],['tagFilter',t('personalTag'),'tag']];
   for(let pass=0;pass<2;pass++){
-    const countryOptions=counted(uniq([...fallbackCountries().map(x=>x.name),...locationRows.map(p=>p.country)]));
+    const countryOptions=counted(uniq([...fallbackCountries().map(x=>x.name),...locationRows.map(p=>p.country),filters.country]));
     if(filters.country&&!optionContains(countryOptions,filters.country,true)){filters.country='';filters.region='';filters.city='';}
     populateSearchChoice('countryFilter',`${t('country')} - ${t('typeToSearch')}`,countryOptions,filters.country,false);
     const term=regionTerm(filters.country);
     if(!filters.country){filters.region='';filters.city='';populateSearchChoice('regionFilter',t('selectCountryFirst'),[],'',true);populateSearchChoice('cityFilter',`${t('region')} - ${t('selectCountryFirst')}`,[],'',true);}
     else{
-      const regionOptions=counted(uniq([...fallbackStates(countryGeoRecord(filters.country)?.iso2).map(x=>x.name),...locationRows.filter(p=>geoSame(p.country,filters.country)).map(p=>p.stateRegion)]));
+      const regionOptions=counted(uniq([...fallbackStates(countryGeoRecord(filters.country)?.iso2).map(x=>x.name),...locationRows.filter(p=>geoSame(p.country,filters.country)).map(p=>p.stateRegion),filters.region].map(v=>canonicalRegion(filters.country,v))));
       if(filters.region&&!optionContains(regionOptions,filters.region,true)){filters.region='';filters.city='';}
       populateSearchChoice('regionFilter',`${term} - ${t('typeToSearch')}`,regionOptions,filters.region,!regionOptions.length);
       if(!filters.region){filters.city='';populateSearchChoice('cityFilter',`Select ${term} first`,[],'',true);}
-      else{const cityOptions=counted(uniq([...catalogueCities(filters.country,filters.region).map(x=>x.name),...locationRows.filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city)]));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter',`${t('cityTown')} - ${t('typeToSearch')}`,cityOptions,filters.city,!cityOptions.length);}
+      else{const cityOptions=counted(uniq([...catalogueCities(filters.country,filters.region).map(x=>x.name),...locationRows.filter(p=>geoSame(p.country,filters.country)&&geoSame(p.stateRegion,filters.region)).map(p=>p.city),filters.city]));if(filters.city&&!optionContains(cityOptions,filters.city,true))filters.city='';populateSearchChoice('cityFilter',`${t('cityTown')} - ${t('typeToSearch')}`,cityOptions,filters.city,!cityOptions.length);}
     }
     for(const [id,label,key] of dynamic){const rows=rowsForFilterChoice(key),counts=new Map(valuesForFilter(rows,key).filter(Boolean).map(v=>[v,0]));for(const v of valuesForFilter(rows,key).filter(Boolean))counts.set(v,(counts.get(v)||0)+1);const options=orderedUnique([...masterValues(key),...uniq([...counts.keys()])]).map(value=>({value,label:counts.get(value)?`${value} (${counts.get(value)})`:value}));if(filters[key]&&!optionContains(options,filters[key],false))filters[key]='';populateSelect(id,label,options,filters[key]);}
   }
@@ -1165,7 +1166,7 @@ function syncLocationBanner(){
 }
 function activeCatalogueFilterCount(){return Object.entries(filters).filter(([k,v])=>v&&!['country','region','city'].includes(k)).length+(mapBoundsFilter?1:0);}
 function syncCatalogueFilters(){const n=activeCatalogueFilterCount();if($('catalogueFiltersPanel'))$('catalogueFiltersPanel').classList.toggle('hidden',!catalogueFiltersOpen);if($('filtersToggleBtn')){$('filtersToggleBtn').textContent=n?`${($('catalogueTopControls').classList.contains('compact')?'Filters':t('editFilters','Edit filters'))} (${n})`:($('catalogueTopControls').classList.contains('compact')?'Filters':t('editFilters','Edit filters'));$('filtersToggleBtn').setAttribute('aria-expanded',String(catalogueFiltersOpen));$('filtersToggleBtn').setAttribute('aria-controls','catalogueFiltersPanel');}}
-function render(){applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit()||archiveMode);syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
+function render(){ $('archiveBanner').hidden=!archiveMode;applyFilters();renderChips();renderList();renderExternalResults();if(preferences.view==='map')renderMap();$('resultCount').textContent=`${filteredPlaces.length} ${filteredPlaces.length===1?t('place'):t('placesLower')}${archiveMode?' in Archive':''}`;$('adminActions').classList.toggle('hidden',!canEdit());syncLocationBanner();syncCatalogueFilters();updatePendingPhotoBadge();renderSelectionSummary();translateTextNodes(document.body);persistPreferences();}
 function userRatingSummary(placeId){
   if(CFG.mode==='local'){
     const viewerIds=new Set((state?.users||[]).filter(u=>u.role==='viewer').map(u=>u.id));
@@ -1568,6 +1569,7 @@ function setAccountPane(name='user',fromClick=false){
     const pane=$(`${n}SettingsPane`),tab=$(`accountTab${n==='sysadmin'?'Sysadmin':n[0].toUpperCase()+n.slice(1)}`);
     if(pane)pane.classList.toggle('hidden',n!==name);if(tab)tab.classList.toggle('active',n===name);
   }
+  if(name==='user'&&archiveMode)returnToPlaces();
   if(name==='sysadmin')refreshGoogleConnectionStatus();
   if(name==='owner'||name==='sysadmin')refreshServiceCosts();
   return true;
@@ -1597,14 +1599,15 @@ async function saveCollectionSettings(){
   state.settings=s;saveLocalState();
   setBranding();toast('Collection settings saved.');
 }
-function showArchive(){archiveMode=true;$('accountDialog').close();resetFilters();$('resultCount').scrollIntoView({behavior:'smooth'});toast('Showing Archive');}
+function returnToPlaces(){archiveMode=false;populateFilterOptions();render();showAllTopControls();}
+function showArchive(){if(!canEdit())return;archiveMode=true;$('accountDialog').close();resetFilters();$('resultCount').scrollIntoView({behavior:'smooth'});toast('Showing Archive');}
 async function signOut(){await persistPreferences();localStorage.removeItem(LS_SESSION);location.reload();}
 
 function showAllTopControls(){
   $('catalogueTopControls').classList.remove('compact');$('backToTopBtn').hidden=true;
   syncCatalogueFilters();
   window.scrollTo({top:0,behavior:'instant'});
-  $('addPlaceBtn').closest('.admin-actions').classList.toggle('hidden',!canEdit()||archiveMode);
+  $('addPlaceBtn').closest('.admin-actions').classList.toggle('hidden',!canEdit());
   document.querySelector('.search-wrap input')?.focus({preventScroll:true});
 }
 function installCompactNavigation(){
@@ -1653,14 +1656,15 @@ function bindEvents(){
   $('editLocationBtn').onclick=()=>{locationEditorOpen=!locationEditorOpen;if(locationEditorOpen)populateFilterOptions();syncLocationBanner();if(locationEditorOpen)$('countryFilter')?.focus();};
   $('locationDoneBtn').onclick=()=>{locationEditorOpen=false;syncLocationBanner();};
   bindTypeaheadChoice('countryFilter',v=>{filters.country=v;filters.region='';filters.city='';locationEditorOpen=true;rebuildAndRender();},{geo:true});
-  bindTypeaheadChoice('regionFilter',v=>{filters.region=v;filters.city='';locationEditorOpen=true;rebuildAndRender();const country=filters.country;void ensureGeoCities(country,v).then(()=>{if(filters.country===country&&filters.region===v){populateFilterOptions();render();}});},{geo:true});
+  bindTypeaheadChoice('regionFilter',v=>{filters.region=canonicalRegion(filters.country,v);filters.city='';locationEditorOpen=true;rebuildAndRender();const country=filters.country,region=filters.region;void ensureGeoCities(country,region).then(()=>{if(filters.country===country&&filters.region===region){populateFilterOptions();render();}});},{geo:true});
   bindTypeaheadChoice('cityFilter',v=>{filters.city=v;locationEditorOpen=!v;rebuildAndRender();},{geo:true});
   $('clearLocationBtn').onclick=()=>{filters.country='';filters.region='';filters.city='';locationEditorOpen=true;rebuildAndRender();};
   const fm={typeFilter:'type',cuisineFilter:'cuisine',ratingFilter:'rating',distanceFilter:'distance',openNowFilter:'openNow',priceFilter:'price',mealFilter:'meal',greatForFilter:'greatFor',featureFilter:'feature',statusFilter:'status',dietaryFilter:'dietary',tagFilter:'tag'};
   Object.entries(fm).forEach(([id,k])=>$(id).onchange=async()=>{filters[k]=$(id).value;rebuildAndRender();if(k==='openNow'&&filters.openNow==='yes'){if(!$('sourceGoogle').checked&&placesEndpoint()){$('sourceGoogle').checked=true;preferences.externalSources.google=true;}if($('sourceGoogle').checked||$('sourceTripadvisor').checked)await searchExternalSources();}});
   $('activeChips').onclick=e=>{const b=e.target.closest('[data-clear-filter]');if(b){const key=b.dataset.clearFilter;filters[key]='';if(key==='country'){filters.region='';filters.city='';}if(key==='region')filters.city='';rebuildAndRender();}if(e.target.closest('[data-clear-area]')){mapBoundsFilter=null;rebuildAndRender();}};
   $('resetFiltersBtn').onclick=()=>{archiveMode=false;resetFilters();};$('searchAreaBtn').onclick=()=>{mapBoundsFilter=map.getBounds();$('searchAreaBtn').classList.add('hidden');rebuildAndRender();};
-  $('addPlaceBtn').onclick=()=>openPlaceEditor();$('placeForm').onsubmit=savePlace;$('placeCloseBtn').onclick=closePlaceEditor;$('placeCancelBtn').onclick=closePlaceEditor;$('placeDialog').addEventListener('cancel',e=>{e.preventDefault();closePlaceEditor();});$('placeForm').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closePlaceEditor();}});$('archivePlaceBtn').onclick=()=>archivePlace($('placeId').value);$('restorePlaceBtn').onclick=()=>restorePlace($('placeId').value);$('deleteForeverBtn').onclick=()=>deleteForever($('placeId').value);
+  $('returnToPlacesBtn').onclick=returnToPlaces;
+  $('addPlaceBtn').onclick=()=>{if(archiveMode)returnToPlaces();openPlaceEditor();};$('placeForm').onsubmit=savePlace;$('placeCloseBtn').onclick=closePlaceEditor;$('placeCancelBtn').onclick=closePlaceEditor;$('placeDialog').addEventListener('cancel',e=>{e.preventDefault();closePlaceEditor();});$('placeForm').addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closePlaceEditor();}});$('archivePlaceBtn').onclick=()=>archivePlace($('placeId').value);$('restorePlaceBtn').onclick=()=>restorePlace($('placeId').value);$('deleteForeverBtn').onclick=()=>deleteForever($('placeId').value);
   bindTypeaheadChoice('placeCountry',v=>void hydrateEditorGeography({country:v,region:'',city:''}),{geo:true});
   bindTypeaheadChoice('placeRegion',v=>void hydrateEditorGeography({country:$('placeCountry').value,region:v,city:''}),{geo:true});
   bindTypeaheadChoice('placeCity',()=>{}, {geo:true});

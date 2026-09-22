@@ -1,6 +1,6 @@
 # Pers Favourites — Owner Guide
 
-Version: **0.27.28**
+Version: **0.27.29**
 
 ## v28 navigation and photos
 
@@ -289,3 +289,13 @@ Filters, sort and source selections remain visible above the results. Nearest as
 Photo areas now stay attached to their venues during sorting and adding places. Provider photo matching uses the saved provider ID where available and rejects ambiguous alternatives. The selections summary can be collapsed and expanded without clearing filters. Missing coordinates are excluded from the map.
 
 This remains a local trial, with no secure email/password accounts. See [the QA audit](QA_V0.27.25.md) and [account implementation requirements](ACCOUNT_SETUP.md) for outstanding work.
+
+## v29 changes
+
+- Málaga remains selectable under Spain → Andalusia, including after clearing filters or when no venues match. Andalucía/Andalucia and the reported Andulucia spelling resolve to Andalusia.
+- Location fields retain unfinished typing during background refreshes. Partial city names are completed on selection, Enter or leaving the field, not by a typing timer.
+- Add stays available for permitted accounts in the compact header and Archive. Adding from Archive returns to active Places.
+- Archive has a Back to Places button. Opening My Settings returns to active Places without changing identity or permissions.
+- My Settings means your personal preferences. The current account and role remain shown above the settings tabs.
+
+Update through Account → My Settings → Check for Update → Install Update. Confirm version 0.27.29. Do not clear browser/site data to update; this trial stores venues on the device.
