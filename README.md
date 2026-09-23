@@ -177,3 +177,8 @@ Type part of a location, then tap the suggestion directly below the field: Spai 
 Add venue is always visible on Places, including the compact scrolling header and Archive. Accounts allowed to edit open the form directly. Other accounts receive the existing sign-in or local-trial identity guidance; tapping Add never grants a role automatically. In the current local trial, choose Owner under Account → My Settings → Test role when acting as the Owner. My Settings itself does not switch identities.
 
 Update using Account → My Settings → Check for Update → Install Update and confirm 0.27.30. Do not clear site data to update.
+
+
+## Release 0.27.31
+
+Corrects online-added venue location filtering. Matching user-selected country/region/city values survive Save Place. Missing locations on existing Google-linked venues are resolved in-session using exact Place IDs. See docs/QA_V0.27.31.md.

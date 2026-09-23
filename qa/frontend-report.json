@@ -1,5 +1,5 @@
 {
-  "passed": 174,
+  "passed": 185,
   "passes": [
     "sort name",
     "rendered order name",
@@ -174,8 +174,19 @@
     "editor Andalusia suggestion",
     "editor Málaga suggestion",
     "v30 Add form saves through actual submit button",
-    "v30 saved venue persists in local storage"
+    "v30 saved venue persists in local storage",
+    "v31 editor inherits explicit location filters",
+    "v31 online add remains visible under selected location",
+    "v31 saves independently selected location",
+    "v31 saved venue matches after reload",
+    "v31 location aliases compare equally",
+    "v31 wider result does not inherit wrong location",
+    "v31 provider geography is not persisted",
+    "v31 recovers existing online venue by exact provider ID",
+    "v31 recovery does not change saved record",
+    "v31 same name with wrong ID stays excluded",
+    "v31 failed lookup leaves records intact"
   ],
   "photoCalls": 7,
-  "searchCalls": 30
+  "searchCalls": 37
 }

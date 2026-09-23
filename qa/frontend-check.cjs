@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.30'})};
+ return {ok:true,json:async()=>({version:'0.27.31'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -274,5 +274,36 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  w.document.getElementById('savePlaceBtn').click();await tick();
  check('v30 Add form saves through actual submit button',()=>assert.ok(read('places.some(p=>p.name==="v30 new venue via suggestions"&&p.city==="Málaga"&&p.country==="Spain")')));
  check('v30 saved venue persists in local storage',()=>assert.ok(read('JSON.parse(localStorage.getItem(LS_DB)).places.some(p=>p.name==="v30 new venue via suggestions")')));
+ // v31: use the real online-add/save path, including reload of persisted records.
+ read(`resetFilters();filters.country='Spain';filters.region='Andalucia';filters.city='Malaga';`);
+ await read('openPlaceEditor()');
+ check('v31 editor inherits explicit location filters',()=>assert.equal(w.document.getElementById('placeCity').value,'Malaga'));
+ read(`lastFindPlaceRaw='El Pimpi';onlinePlaceResults=[{provider:'Google Places',place:googleWorkerResultToPlace({id:'pimpi-google',name:'El Pimpi',country:'España',stateRegion:'Andalucía',city:'Málaga'})}];`);
+ await read('useOnlinePlace(0)');
+ w.document.getElementById('savePlaceBtn').click();await tick();
+ check('v31 online add remains visible under selected location',()=>assert.ok(read(`filteredPlaces.some(p=>p.googlePlaceId==='pimpi-google')`)));
+ check('v31 saves independently selected location',()=>assert.equal(read(`places.find(p=>p.googlePlaceId==='pimpi-google').city`),'Malaga'));
+ read(`places=JSON.parse(localStorage.getItem(LS_DB)).places.map(normalizeLegacyPlace);liveGeography.clear();render();`);
+ check('v31 saved venue matches after reload',()=>assert.ok(read(`filteredPlaces.some(p=>p.googlePlaceId==='pimpi-google')`)));
+ check('v31 location aliases compare equally',()=>assert.equal(read(`geoSame('España','Spain')&&geoSame('Andalucía','Andalusia')&&geoSame('Málaga','Malaga')`),true));
+ // A different venue must not inherit Malaga just because the current filter says Malaga.
+ read(`lastFindPlaceRaw='Elsewhere';`);await read('openPlaceEditor()');
+ read(`onlinePlaceResults=[{provider:'Google Places',place:googleWorkerResultToPlace({id:'elsewhere',name:'Elsewhere',country:'France',stateRegion:'Île-de-France',city:'Paris'})}];`);
+ await read('useOnlinePlace(0)');w.document.getElementById('savePlaceBtn').click();await tick();
+ check('v31 wider result does not inherit wrong location',()=>assert.ok(!read(`filteredPlaces.some(p=>p.googlePlaceId==='elsewhere')`)));
+ check('v31 provider geography is not persisted',()=>assert.equal(read(`JSON.parse(localStorage.getItem(LS_DB)).places.find(p=>p.googlePlaceId==='elsewhere').city`),''));
+ // Reproduce v30 record with fields already erased. Recovery requires identical provider ID.
+ const v31Fetch=w.fetch;
+ w.fetch=async()=>({ok:true,json:async()=>({places:[{id:'wrong-id',name:'El Pimpi',country:'Spain',stateRegion:'Andalucia',city:'Malaga'},{id:'old-pimpi',name:'El Pimpi',country:'España',stateRegion:'Andalucía',city:'Málaga'}]})});
+ read(`places.push(normalizeLegacyPlace({id:'old-pimpi-record',name:'El Pimpi',googlePlaceId:'old-pimpi'}));liveGeography.clear();geographyAttempts.clear();`);
+ await read('recoverMissingGeography()');
+ check('v31 recovers existing online venue by exact provider ID',()=>assert.ok(read(`filteredPlaces.some(p=>p.id==='old-pimpi-record')`)));
+ check('v31 recovery does not change saved record',()=>assert.equal(read(`places.find(p=>p.id==='old-pimpi-record').country`),''));
+ read(`places.push(normalizeLegacyPlace({id:'unmatched',name:'El Pimpi',googlePlaceId:'unmatched'}));`);await read('recoverMissingGeography()');
+ check('v31 same name with wrong ID stays excluded',()=>assert.ok(!read(`filteredPlaces.some(p=>p.id==='unmatched')`)));
+ w.fetch=async()=>{throw new Error('offline')};read(`geographyAttempts.clear()`);await read('recoverMissingGeography()');
+ check('v31 failed lookup leaves records intact',()=>assert.ok(read(`places.some(p=>p.id==='unmatched')`)));
+ w.fetch=v31Fetch;
+
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

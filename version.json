@@ -1,6 +1,6 @@
 {
-  "version": "0.27.30",
-  "published": "2026-09-22",
-  "notes": "Visible tappable location suggestions for partial names; always-visible Add venue with permission guidance.",
-  "build": "20260922.3"
+  "version": "0.27.31",
+  "published": "2026-09-23",
+  "notes": "Fix online-added venues disappearing from location filters; recover missing linked venue geography in-session.",
+  "build": "20260923.1"
 }
