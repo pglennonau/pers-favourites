@@ -42,6 +42,7 @@ const staticRefs=[...app.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]);
 const dynamicIds=new Set(['detailPrivateNote']);
 const missingRefs=[...new Set(staticRefs.filter(id=>!ids.includes(id)&&!dynamicIds.has(id)))];
 assert(missingRefs.length===0,'all static DOM id references exist');
+assert(['addAccessDialog','duplicateReviewDialog'].every(id=>index.indexOf(`id="${id}"`)<index.indexOf('<script src="app.js')),'new dialog markup is parsed before event binding');
 
 assert(index.includes('>My Settings</button>'),'My Settings role label present');
 assert(index.includes('>Owner <span'),'Owner role label present');

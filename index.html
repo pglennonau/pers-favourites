@@ -475,9 +475,11 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="geo-fallback.js?v=0.27.32"></script>
 <aside id="venueBar" hidden aria-label="Selected venue actions"><div class="venue-bar-heading"><strong id="venueBarName"></strong><button id="venueBarToggle" type="button" aria-controls="venueBarActions" aria-expanded="true">⌄ Hide actions</button></div><div id="venueBarActions" class="card-actions"></div></aside>
+<dialog id="addAccessDialog" class="modal"><h2>Add Venue access</h2><p>This browser is using a read-only test identity. Adding venues requires Owner or System Administrator access.</p><p>This is a local trial. The choices below switch test identities on this device; they are not secure account sign-in.</p><div class="button-row"><button id="addAsOwner" type="button">Continue as test Owner</button><button id="addAsAdmin" type="button">Continue as test Administrator</button><button id="addAccessClose" type="button" class="secondary">Cancel</button></div></dialog>
+<dialog id="duplicateReviewDialog" class="modal"><h2>Review duplicate venues</h2><p>Compare the records before choosing which to keep. Nothing is merged or deleted automatically.</p><div id="duplicateReviewRows"></div><button id="duplicateReviewClose" type="button">Close</button></dialog>
   <script src="app.js?v=0.27.32"></script>
 
-<dialog id="addAccessDialog"><h2>Add Venue access</h2><p>This browser is using a read-only test identity. Adding venues requires Owner or System Administrator access.</p><p>This is a local trial. The choices below switch test identities on this device; they are not secure account sign-in.</p><div class="button-row"><button id="addAsOwner" type="button">Continue as test Owner</button><button id="addAsAdmin" type="button">Continue as test Administrator</button><button id="addAccessClose" type="button" class="secondary">Cancel</button></div></dialog>
-<dialog id="duplicateReviewDialog"><h2>Review duplicate venues</h2><p>Compare the records before choosing which to keep. Nothing is merged or deleted automatically.</p><div id="duplicateReviewRows"></div><button id="duplicateReviewClose" type="button">Close</button></dialog>
+
+
 </body>
 </html>

@@ -2,5 +2,5 @@
   "version": "0.27.32",
   "published": "2026-09-25",
   "notes": "Prevent duplicate venues; correct Add Venue routing; retain live selected venue names and capitalise independent fallback labels. Local trial: secure accounts remain outstanding.",
-  "build": "20260925.1"
+  "build": "20260925.2"
 }

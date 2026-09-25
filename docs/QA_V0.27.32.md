@@ -3,7 +3,7 @@
 Date: 25 September 2026. Baseline: deployed 0.27.31, commit f510741f7590cab195b8722ed3ebdac0bae69b42.
 
 - Frontend interaction suite: 211 checks passed using jsdom with mocked service responses.
-- Release and packaging structure: 115 checks passed.
+- Release and packaging structure: 116 checks passed.
 - Existing Cloudflare Worker suite: 15 tests passed; Worker implementation unchanged.
 - JavaScript syntax: passed.
 - Combined Owner, System Administrator and User guide: 37 PDF pages rendered and visually inspected.
@@ -17,3 +17,5 @@ An older clear-provider-ID test now clears the provider URLs as well. Leaving a 
 Mocked tests do not prove provider availability, physical iPhone behaviour or production authentication. The full Google name requires a live lookup after restart; offline full-name retention is not complete. Secure individual accounts and shared cloud storage remain unimplemented. Cloudflare dashboard access was blocked by repeated security verification. No authentication, recovery or production permission tests are claimed as passed.
 
 The former layout concern is closed at the user's request; no layout redesign was made.
+
+Live browser verification caught dialog markup initially placed after app.js. Build 20260925.2 moves the markup before event binding and adds a release check for that ordering. The shell cache revision is incremented to replace the initial cached shell.
