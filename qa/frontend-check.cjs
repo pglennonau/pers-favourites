@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.31'})};
+ return {ok:true,json:async()=>({version:'0.27.32'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -183,7 +183,7 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('edited region survives save and reopen',()=>assert.equal(region.value,'Andalusia'));
  check('provider IDs survive save and reopen',()=>{assert.equal(w.document.getElementById('placeGoogleId').value,'verified-google');assert.equal(w.document.getElementById('placeTripadvisorId').value,'123456');});
  check('corrected region persists in saved data',()=>assert.equal(read('JSON.parse(localStorage.getItem(LS_DB)).places.find(p=>p.id==="a").stateRegion'),'Andalusia'));
- w.document.getElementById('placeGoogleId').value='';w.document.getElementById('placeTripadvisorId').value='';await read('savePlace({preventDefault(){}})');
+ w.document.getElementById('placeGoogleId').value='';w.document.getElementById('placeGoogleUrl').value='';w.document.getElementById('placeTripadvisorId').value='';w.document.getElementById('placeTripadvisorUrl').value='';await read('savePlace({preventDefault(){}})');
  check('clearing provider IDs persists',()=>{assert.equal(read('places.find(p=>p.id==="a").googlePlaceId'),'');assert.equal(read('places.find(p=>p.id==="a").tripadvisorLocationId'),'');});
  read('currentUser={id:"qa-viewer",role:"viewer"}');const beforeSave=read('JSON.stringify(places)');await read('savePlace({preventDefault(){}})');check('viewer save rejected',()=>assert.equal(read('JSON.stringify(places)'),beforeSave));
  for(const dialog of w.document.querySelectorAll('dialog')){
@@ -268,7 +268,7 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  check('v30 keyboard reaches Spain option',()=>assert.equal(w.document.activeElement.textContent,'Spain'));w.document.activeElement.click();
  check('v30 keyboard choice commits country',()=>assert.equal(read('filters.country'),'Spain'));
  read('currentUser={id:"qa-viewer",role:"viewer"};render()');w.document.getElementById('addPlaceBtn').click();
- check('v30 viewer Add opens identity guidance without granting permission',()=>{assert.equal(w.document.getElementById('accountDialog').open,true);assert.equal(w.document.getElementById('placeDialog').open,false);assert.equal(read('canEdit()'),false);assert.equal(w.document.activeElement.id,'localRoleSelect');});
+ check('v32 viewer Add opens dedicated guidance without granting permission',()=>{assert.equal(w.document.getElementById('addAccessDialog').open,true);assert.equal(w.document.getElementById('accountDialog').open,false);assert.equal(w.document.getElementById('placeDialog').open,false);assert.equal(read('canEdit()'),false);});w.document.getElementById('addAccessClose').click();
  w.document.getElementById('accountClose').click();read('currentUser=state.users.find(u=>u.role==="owner");render()');w.document.getElementById('addPlaceBtn').click();await tick();
  w.document.getElementById('placeName').value='v30 new venue via suggestions';input('placeCountry','Spai');check('editor Spain suggestion',()=>assert.ok(suggestion('placeCountry','Spain')));suggestion('placeCountry','Spain').click();await tick();input('placeRegion','Andal');check('editor Andalusia suggestion',()=>assert.ok(suggestion('placeRegion','Andalusia')));suggestion('placeRegion','Andalusia').click();await tick();input('placeCity','Mala');check('editor Málaga suggestion',()=>assert.ok(suggestion('placeCity','Málaga')));suggestion('placeCity','Málaga').click();
  w.document.getElementById('savePlaceBtn').click();await tick();
@@ -304,6 +304,51 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
  w.fetch=async()=>{throw new Error('offline')};read(`geographyAttempts.clear()`);await read('recoverMissingGeography()');
  check('v31 failed lookup leaves records intact',()=>assert.ok(read(`places.some(p=>p.id==='unmatched')`)));
  w.fetch=v31Fetch;
+
+ // v32 release acceptance: duplicate prevention, selected names and Add routing.
+ read(`currentUser=state.users.find(u=>u.role==='owner');places=[];state.places=places;liveGeography.clear();resetFilters();`);
+ await read('openPlaceEditor()');
+ read(`lastFindPlaceRaw='el pimpi';onlinePlaceResults=[{provider:'Google Places',place:googleWorkerResultToPlace({id:'v32-pimpi',name:'Bodega El Pimpi',address:'Calle Granada 62',country:'Spain',stateRegion:'Andalucía',city:'Málaga'})}];`);
+ await read('useOnlinePlace(0)');
+ await read('Promise.all([savePlace({preventDefault(){}}),savePlace({preventDefault(){}})])');
+ check('v32 double Save creates exactly one venue',()=>assert.equal(read('places.length'),1));
+ check('v32 full selected name appears on saved card',()=>assert.equal(w.document.querySelector('#listPanel h3').textContent,'Bodega El Pimpi'));
+ check('v32 lowercase independent fallback capitalised',()=>assert.equal(read('places[0].name'),'El Pimpi'));
+ check('v32 provider full name is not cached in browser database',()=>assert.ok(!read('localStorage.getItem(LS_DB)').includes('Bodega El Pimpi')));
+ const pimpiId=read('places[0].id');
+ await read(`openPlaceEditor(${JSON.stringify(pimpiId)})`);
+ check('v32 editor retains full selected name',()=>assert.equal(w.document.getElementById('placeName').value,'Bodega El Pimpi'));
+ await read('savePlace({preventDefault(){}})');
+ check('v32 unchanged edit retains live-name preference',()=>assert.equal(read('places[0].useProviderName'),true));
+ const reloadFetch=w.fetch;
+ w.fetch=async()=>({ok:true,json:async()=>({places:[{id:'v32-pimpi',name:'Bodega El Pimpi',country:'Spain',stateRegion:'Andalucía',city:'Málaga'}]})});
+ read('places=JSON.parse(localStorage.getItem(LS_DB)).places.map(normalizeLegacyPlace);state.places=places;liveGeography.clear();geographyAttempts.clear();');await read('recoverMissingGeography()');
+ check('v32 full name recovered on reload without location filter',()=>assert.equal(read('venueName(places[0])'),'Bodega El Pimpi'));
+ await read(`openPlaceEditor(${JSON.stringify(pimpiId)})`);w.document.getElementById('placeName').value='My El Pimpi';await read('savePlace({preventDefault(){}})');read('liveGeography.clear();places=JSON.parse(localStorage.getItem(LS_DB)).places.map(normalizeLegacyPlace);state.places=places;');
+ check('v32 intentional owner name persists after reload',()=>{assert.equal(read('venueName(places[0])'),'My El Pimpi');assert.equal(read('places[0].useProviderName'),false);});w.fetch=reloadFetch;
+ check('v32 exact provider ID blocks renamed duplicate',()=>assert.ok(read(`duplicateOf({name:'Different label',googlePlaceId:'v32-pimpi'})`)));
+ check('v32 editing record excludes itself',()=>assert.equal(read('duplicateOf(places[0],places[0].id)'),undefined));
+ read(`places.push(normalizeLegacyPlace({id:'manual',name:'Café Test',address:'12 Main St.',country:'Spain',city:'Malaga'}));`);
+ check('v32 normalised name and address block manual duplicate',()=>assert.equal(read(`duplicateOf({name:'cafe test',address:'12 MAIN ST',city:'Málaga',country:'Spain'}).id`),'manual'));
+ check('v32 different business at same address allowed',()=>assert.equal(read(`duplicateOf({name:'Other Business',address:'12 Main St.',city:'Malaga'})`),undefined));
+ check('v32 same name with unknown address is not assumed duplicate',()=>assert.equal(read(`duplicateOf({name:'Café Test',city:'Malaga'})`),undefined));
+ check('v32 distinct provider IDs remain separate',()=>assert.equal(read(`duplicateOf({name:'My El Pimpi',googlePlaceId:'other-pimpi'})`),undefined));
+ read(`places[0].archivedAt=nowISO();`);await read('openPlaceEditor()');w.document.getElementById('placeName').value='El Pimpi';w.document.getElementById('placeGoogleId').value='v32-pimpi';const countBefore=read('places.length');await read('savePlace({preventDefault(){}})');
+ check('v32 archived duplicate cannot be added again',()=>assert.equal(read('places.length'),countBefore));
+ check('v32 duplicate directs user to restore Archive record',()=>assert.match(w.document.getElementById('toast').textContent,/Archive.*Restore/));
+ read(`closePlaceEditor();importCandidates=[normaliseImported({name:'Imported cafe',address:'20 High Street',GooglePlaceId:'import-id'}),normaliseImported({name:'Imported cafe renamed',address:'20 High Street',GooglePlaceId:'import-id'})];`);
+ await read('Promise.all([runImport(),runImport()])');
+ check('v32 import blocks same-batch and repeated-submit duplicates',()=>assert.equal(read(`places.filter(p=>p.googlePlaceId==='import-id').length`),1));
+ await read('openPlaceEditor("manual")');w.document.getElementById('placeGoogleId').value='import-id';await read('savePlace({preventDefault(){}})');
+ check('v32 edit cannot collide with another provider identity',()=>assert.equal(read(`places.find(p=>p.id==='manual').googlePlaceId`),''));
+ read(`closePlaceEditor();places.push({...places.find(p=>p.id==='manual'),id:'old-duplicate'});reviewDuplicates();`);
+ check('v32 existing duplicates can be reviewed without deletion',()=>{assert.equal(w.document.getElementById('duplicateReviewDialog').open,true);assert.match(w.document.getElementById('duplicateReviewRows').textContent,/Café Test/);assert.equal(read(`places.filter(p=>p.name==='Café Test').length`),2);});
+ read(`$('duplicateReviewDialog').close();currentUser=state.users.find(u=>u.role==='viewer');requestAddPlace();`);
+ w.document.getElementById('addAsOwner').click();await tick();
+ check('v32 explicit test identity choice resumes Add form',()=>{assert.equal(w.document.getElementById('placeDialog').open,true);assert.equal(w.document.getElementById('accountDialog').open,false);assert.equal(read('currentUser.role'),'owner');});
+ check('v32 chosen test identity persists for reload',()=>assert.equal(read('JSON.parse(localStorage.getItem(LS_DB)).activeUserId'),read('currentUser.id')));
+ read(`closePlaceEditor();currentUser=state.users.find(u=>u.role==='sysadmin');archiveMode=true;requestAddPlace();`);await tick();
+ check('v32 Administrator Add leaves Archive and opens form directly',()=>{assert.equal(read('archiveMode'),false);assert.equal(w.document.getElementById('placeDialog').open,true);});
 
  console.log(JSON.stringify({passed:passes.length,passes,photoCalls,searchCalls},null,2));dom.window.close();
 })().catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});

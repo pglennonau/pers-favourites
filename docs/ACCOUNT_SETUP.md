@@ -1,5 +1,7 @@
 # Administrator, Owner and Temporary Owner setup
 
+**0.27.32 status:** Not implemented or activated. Cloudflare dashboard access was blocked by security verification on 25 September 2026. No production account or shared-data acceptance checks have passed. A verified email sender and account backend still need provisioning. The current app must remain labelled a local trial.
+
 Status: implementation specification, not an enabled account system. Updated for the v0.27.25 local-trial release on 20 September 2026.
 
 ## Current limitation
