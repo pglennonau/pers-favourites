@@ -15,7 +15,7 @@ const googleRow={id:'google-don',name:'Cafeteria Don Pepe',lat:37.88,lng:-4.77,c
 w.fetch=async(url,opts)=>{
  if(String(url).includes('/photo')){photoCalls++;return {ok:!failPhoto,json:async()=>failPhoto?{error:'Google Places demo minute limit reached.'}:{photoUri:'https://example.test/photo.jpg'}};}
  if(opts?.method==='POST'){searchCalls++;return {ok:true,json:async()=>({places:[googleRow]})};}
- return {ok:true,json:async()=>({version:'0.27.32'})};
+ return {ok:true,json:async()=>({version:'0.27.33'})};
 };
 Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:success=>{geoCalls++;success({coords:{latitude:37.88,longitude:-4.77,accuracy:10}});}}});
 const tick=()=>new Promise(r=>setTimeout(r,15));
@@ -25,6 +25,8 @@ const passes=[];function check(label,fn){try{fn();passes.push(label);}catch(e){e
 (async()=>{
  for(const file of ['config.js','geo-fallback.js','branding.js','app.js'])run(fs.readFileSync(path.join(root,file),'utf8'));
  w.document.getElementById('startLocalBtn').click();await tick();
+ check('v33 starts with User role',()=>assert.equal(read('currentUser.role'),'viewer'));
+ read(`currentUser=state.users.find(u=>u.role==='owner');state.activeUserId=currentUser.id;saveLocalState();`);
  read(`window.PERS_TEST.seedCatalogue([
  {id:'b',name:'Beta',lat:37.90,lng:-4.77,price:'$',persRating:5,createdAt:'2026-03-01',placeType:'Cafe',country:'Spain',stateRegion:'Andalusia',city:'Córdoba'},
  {id:'c',name:'Charlie',lat:37.881,lng:-4.77,price:'$$',persRating:3,createdAt:'2026-01-01',placeType:'Bar',country:'Spain',stateRegion:'Andalusia',city:'Granada'},

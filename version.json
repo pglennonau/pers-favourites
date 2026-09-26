@@ -1,6 +1,6 @@
 {
-  "version": "0.27.32",
-  "published": "2026-09-25",
-  "notes": "Prevent duplicate venues; correct Add Venue routing; retain live selected venue names and capitalise independent fallback labels. Local trial: secure accounts remain outstanding.",
-  "build": "20260925.2"
+  "version": "0.27.33",
+  "published": "2026-09-26",
+  "notes": "Owner rating in Add/Edit; saved venue names open details; clearer opening-hours status; nine additional venue types. Local trial; cloud accounts remain outstanding.",
+  "build": "20260926.1"
 }

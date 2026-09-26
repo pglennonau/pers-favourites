@@ -10,11 +10,11 @@
   <title>Pers Favourites</title>
   <link id="appManifest" rel="manifest" href="manifest.webmanifest" />
   
-<script src="config.js?v=0.27.32"></script>
-  <script src="branding.js?v=0.27.32"></script>
+<script src="config.js?v=0.27.33"></script>
+  <script src="branding.js?v=0.27.33"></script>
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="styles.css?v=0.27.32" />
+  <link rel="stylesheet" href="styles.css?v=0.27.33" />
 </head>
 <body>
   <header class="topbar">
@@ -161,6 +161,8 @@
       <input type="hidden" id="placeId" />
       <div class="grid2">
         <label class="wide">Name<input id="placeName" required /></label>
+        <label class="wide"><span id="placeOwnerRatingLabel">Owner rating</span><select id="placePersRating"><option value="0">Not rated</option><option value="1">1 star</option><option value="2">2 stars</option><option value="3">3 stars</option><option value="4">4 stars</option><option value="5">5 stars</option></select></label>
+        <p class="wide muted small">This is the collection Owner's rating, separate from the User average. After saving, venue details open so you can add photos, favourites, visit status and private notes.</p>
         <label>Place type<select id="placeType"><option value="">Select Place Type</option></select></label>
         <label>Cuisine<select id="placeCuisine"><option value="">Select Cuisine</option></select></label>
         <label>Country<input id="placeCountry" class="geo-choice" list="placeCountryList" placeholder="Country - type to search" autocomplete="off" inputmode="search" /><datalist id="placeCountryList"></datalist></label>
@@ -283,7 +285,7 @@
       <section class="app-update-card">
         <h3>App Updates</h3>
         <div class="connection-grid">
-          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.32</strong></div>
+          <div><span class="muted small">Current version</span><strong id="currentAppVersion">0.27.33</strong></div>
           <div><span class="muted small">Latest available</span><strong id="latestAppVersion">Not checked</strong></div>
         </div>
         <div class="inline-actions">
@@ -398,7 +400,7 @@
         <p class="muted small">The Owner decides whether Ask Pers is enabled; System Administrator controls the technical endpoint.</p>
       </fieldset>
       <fieldset class="external-service-card">
-        <legend>External Services - Google Maps / Places</legend><p class="muted small">v0.27.32 uses Cloudflare only. Manage the Google API key as a Cloudflare Worker secret; browser key replacement is disabled.</p>
+        <legend>External Services - Google Maps / Places</legend><p class="muted small">v0.27.33 uses Cloudflare only. Manage the Google API key as a Cloudflare Worker secret; browser key replacement is disabled.</p>
         <label>Google Places Worker endpoint<input id="settingPlacesSearchEndpoint" type="url" placeholder="https://your-worker.example.com/places-search" /></label>
         <div class="connection-grid">
           <div><span class="muted small">Connection</span><strong id="googleConnectionState">Not connected</strong></div>
@@ -445,7 +447,7 @@
     <hr />
     <button id="signOutBtn" class="secondary">Sign out of protected access</button>
     <p class="muted small geo-attribution">Geographic dropdown data: <a href="https://github.com/dr5hn/countries-states-cities-database" target="_blank" rel="noopener">Countries States Cities Database</a> (ODbL 1.0).</p>
-    <p class="version">Version <span id="versionLabel">0.27.32</span></p>
+    <p class="version">Version <span id="versionLabel">0.27.33</span></p>
   </dialog>
 
   <dialog id="masterListsDialog" class="modal">
@@ -473,11 +475,11 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="geo-fallback.js?v=0.27.32"></script>
+  <script src="geo-fallback.js?v=0.27.33"></script>
 <aside id="venueBar" hidden aria-label="Selected venue actions"><div class="venue-bar-heading"><strong id="venueBarName"></strong><button id="venueBarToggle" type="button" aria-controls="venueBarActions" aria-expanded="true">⌄ Hide actions</button></div><div id="venueBarActions" class="card-actions"></div></aside>
 <dialog id="addAccessDialog" class="modal"><h2>Add Venue access</h2><p>This browser is using a read-only test identity. Adding venues requires Owner or System Administrator access.</p><p>This is a local trial. The choices below switch test identities on this device; they are not secure account sign-in.</p><div class="button-row"><button id="addAsOwner" type="button">Continue as test Owner</button><button id="addAsAdmin" type="button">Continue as test Administrator</button><button id="addAccessClose" type="button" class="secondary">Cancel</button></div></dialog>
 <dialog id="duplicateReviewDialog" class="modal"><h2>Review duplicate venues</h2><p>Compare the records before choosing which to keep. Nothing is merged or deleted automatically.</p><div id="duplicateReviewRows"></div><button id="duplicateReviewClose" type="button">Close</button></dialog>
-  <script src="app.js?v=0.27.32"></script>
+  <script src="app.js?v=0.27.33"></script>
 
 
 
